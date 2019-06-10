@@ -1,0 +1,37 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+  <title>conres.io</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <link id="style:styles/markout.css" rel=preload as=style href="https://smotaal.io/markout/styles/markout.css" />
+  <link rel=stylesheet href="https://smotaal.io/markout/styles/styles.css" />
+	<style>
+		html {
+			--shade: #66aa99f6;
+			/* --shade-dark: #336699f6; */
+		}
+	</style>
+  <script type="module">
+    document.body.querySelector('markout-content').setAttribute('src', location.hash.startsWith('#/') ? location.hash.slice(2).replace(/(?:.md|)$/i, '.md') : 'README.md');
+    (async () => {
+      // return import('/pholio/dist/pholio.js');
+      try {
+        if (location.protocol === 'http:') {
+          return import('/node_modules/@smotaal/pholio/dist/pholio.js');
+        }
+      } catch (exception) {
+      }
+      import('https://www.smotaal.io/pholio/dist/pholio.js');
+    })()
+  </script>
+</head>
+
+<body>
+  <main>
+    <markout-content></markout-content>
+  </main>
+</body>
+
+</html>
