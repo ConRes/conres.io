@@ -9,7 +9,7 @@ This was only the start of many extensive research endeavors, involving addition
 
 In 2006 Franz Sigg wrote a paper for the RIT TestTargets 6 publication with the title "Testing for Resolution and Contrast" The topic was also taught to students at RIT.
 
-To date, there are some 29 implementations of the target, all hand programmed in PostScript by Franz Sigg to elicit pixel perfect vector-based detail and tone that have made it possible to measure the limitations and correlation extents of those aspects in print and other imaging system, while they would have otherwise been inconceivable or untenable to even explore.
+To date, there are some 29 implementations of the target, all hand programmed in PostScript by Franz Sigg to elicit pixel perfect vector-based detail and tone that have made it possible to measure the limitations and correlation extents of those aspects in print and other imaging domains, where otherwise they would have remained inconceivable or untenable to even explore.
 
 Version 1 shown in Figure 1 used a continuously varying checkerboard pattern to test ConRes.
 
