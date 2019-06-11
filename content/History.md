@@ -1,4 +1,5 @@
-﻿# Historical evolution of the Contrast-Resolution Test Target and Evaluation System
+# Contrast-Resolution Test Target and Evaluation Methods
+## Historical Overview
 
 _Franz Sigg_
 
