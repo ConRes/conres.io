@@ -1,0 +1,34 @@
+{
+  "name": "iqfft-demo-alpha-app",
+  "productName": "IQFFTDemo A2",
+  "version": "1.0.0-Alpha.20170720",
+  "author": "Saleh A Motaal <saleh@grasppe.com>",
+  "description": "IQ prototype app for FFT-based research of contrast-resolution test targets",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "copy:js:vendor": "cp -pvf ../dist/vendor.js ./vendor.js; cp -pvf ../dist/vendor.js.map ./vendor.js.map;",
+    "copy:js:framework": "cp -pvf ../dist/framework.js ./framework.js; cp -pvf ../dist/framework.js.map ./framework.js.map;",
+    "copy:js:workers:fft": "cp -pvf ../public/workers/fft.js ./workers/fft.js;",
+    "copy:js": "npm run copy:js:vendor; npm run copy:js:framework; npm run copy:js:workers:fft;",
+    "link:js:vendor": "ln -sf ../dist/vendor.js ./vendor.js; ln -sf ../dist/vendor.js.map ./vendor.js.map;",
+    "link:js:framework": "ln -sf ../dist/framework.js ./framework.js; ln -sf ../dist/framework.js.map ./framework.js.map;",
+    "link:js:workers:fft": "ln -sf ../../public/workers/fft.js ./workers/fft.js;",
+    "link:js": "npm run link:js:vendor; npm run link:js:framework; npm run link:js:workers:fft;",
+    "bundle": "polymer-bundler --strip-comments --inline-scripts --inline-css index.html > iqfft-demo.html",
+    "reinstall": "bower uninstall; bower i -p; bower prune;",
+    "sab-only": "electron --js-flags=\"--harmony_sharedarraybuffer\" .",
+    "sab": "electron --js-flags=\"--harmony --harmony_sharedarraybuffer --turbo\" .",
+    "sandbox": "electron --enable-sandbox .",
+    "sandbox-sab": "electron --enable-sanbox --js-flags=\"--harmony  --harmony-sharedarraybuffer --turbo --experimental_extras --ignition --fast_math\" .",
+    "start": "electron .",
+    "build": "electron-packager . --out=../dist --asar --overwrite --arch=x64 --icon=assets/ConRes.icns"
+  },
+  "main": "main.js",
+  "devDependencies": {
+    "bower": "^1.8.0",
+    "electron": "^1.7.5",
+    "electron-packager": "^8.7.2",
+    "polymer-bundler": "^2.2.0"
+  }
+}
