@@ -1,0 +1,111 @@
+<html>
+
+<head>
+    <base href=".">
+    <title>ConRes19tv - Collection</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <style>
+        @import url('https://fonts.googleapis.com/css?family=Roboto+Mono:400,700|Roboto:400,300,300italic,400italic,500,500italic,700,700italic');
+        body {
+            max-width: 100vw;
+            max-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-flow: column nowrap;
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" style="opacity: 0.125;">         <rect x="50" y="0" width="50" height="50" fill="black" />         <rect x="0" y="50" width="50" height="50" fill="black" />         <rect x="0" y="0" width="50" height="50" fill="white" />         <rect x="50" y="50" width="50" height="50" fill="white" />     </svg>');
+            font-family: Roboto, Noto, sans-serif;
+            font-size: 12px;
+            overflow: hidden;
+        }
+
+        iframe {
+            border: 0 none;
+            margin: 1px 0;
+            display: flex;
+            width: 100%;
+            max-height: 50vh;
+            flex: 1 1 auto;
+        }
+    </style>
+</head>
+
+<body bgcolor="#FFFFFF" leftmargin="0" topmargin="0" marginwidth="0" marginheight="0">
+    <iframe src="./vector/index.html"></iframe>
+    <iframe src="./am-120-30/index.html"></iframe>
+    <iframe src="./am-150-30/index.html"></iframe>
+    <iframe src="./fm-1200/index.html"></iframe>
+    <iframe src="./fm-2400/index.html"></iframe>
+    <iframe src="./ct-1200/index.html"></iframe>
+    <script>
+        (function () {
+            /** @type {Array.<HTMLIFrameElement>} */
+            const frames = document.querySelectorAll('iframe');
+            const passive = true;
+            const windows = new Map();
+            let scrollTimeout, scrollTarget;
+
+            async function frameScroll(/** @type {Event} */ event) {
+                /** @type {Document} */ let targetDocument = event && event.target || {};
+                /** @type {Document} */ let { defaultView: targetWindow } = targetDocument;
+                if (scrollTarget && targetWindow !== scrollTarget) return;
+                clearTimeout(scrollTimeout), scrollTarget = undefined;
+                let { scrollX: x, scrollY: y } = targetWindow;
+                const scope = ['@scroll', x, y, { this: this, targetWindow, event, arguments }];
+                if (!targetWindow) return console.error(...scope);
+                x = x < 0 ? 0 : x; y = y < 0 ? 0 : y;
+                if (x >= 0 || y >= 0) scrollTarget = targetWindow, scrollTimeout = requestAnimationFrame(() => { //
+                    if (scrollTarget !== targetWindow) return;
+                    clearTimeout(scrollTimeout)
+                    for (const window of windows.values())
+                        scrollTarget && window && window !== scrollTarget && window.scrollTo(x, y);
+                    scrollTimeout = setTimeout(() => (scrollTarget === targetWindow && (scrollTarget = undefined)), 10);
+                });
+            }
+
+            function frameDrag(/** @type {Event} */ event) {
+                /** @type {Window} */ let contentWindow = this || {};
+                /** @type {DragEvent} */ let { dataTransfer = {} } = event || {};
+                // let { scrollX: x, scrollY: y } = contentWindow || {};
+                const scope = ['@drag', { this: this, contentWindow, event, arguments }];
+                if (!contentWindow) return console.error(...scope);
+                if (dataTransfer.types && dataTransfer.types.length > 0) for (const window of windows.values()) {
+                    const elements = window && window !== contentWindow && window.document.querySelectorAll('td.dragged');
+                    if (elements) for (const dragged of elements) dragged.classList.remove('dragged');
+                }
+                console.log(...scope);
+            }
+
+            function frameLoad(/** @type {Event} */ event) {
+                /** @type {HTMLIFrameElement} */ let frame = this || {};
+                /** @type {Window} */ let { contentWindow } = frame;
+                const scope = ['@load', { this: this, contentWindow, event, arguments }];
+                windows.delete(frame);
+                if (!contentWindow) return console.error(...scope);
+                console.log(...scope);
+                windows.set(frame, contentWindow);
+                contentWindow.addEventListener('scroll', frameScroll, { passive });
+                // contentWindow.addEventListener('mouseleave', () => (scrollTarget !== contentWindow || (scrollTarget = undefined)), { passive });
+                contentWindow.addEventListener('mouseenter', () => (clearTimeout(scrollTimeout), scrollTarget = undefined), { passive });
+                contentWindow.addEventListener('dragstart', frameDrag, { passive });
+            }
+
+            function frameUnload(/** @type {Event} */ event) {
+                /** @type {HTMLIFrameElement} */ let { contentWindow } = this || {};
+                const scope = ['@unload', { this: this, contentWindow, event, arguments }];
+                if (!contentWindow) return console.error(...scope);
+                console.log(...scope);
+                windows.delete(frame);
+                contentWindow.removeEventListener('scroll', frameScroll);
+            }
+
+            const baseURL = '/'; // location.href.replace(/\/ConRes19tv[^\/]*$/, '/');
+
+            for (const frame of frames) {
+                frame.src = `${baseURL}${frame.src.replace(/^.*?\//, '')}`;
+                frame.addEventListener('load', frameLoad);
+                frame.addEventListener('unload', frameUnload);
+            }
+        })();
+    </script>
+</body>
