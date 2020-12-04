@@ -4,13 +4,13 @@
 	"description": "Contrast-Resolution Resources & Guides",
 	"version": "0.0.0-alpha.1",
 	"author": "Saleh Abdel Motaal <saleh@grasppe.com>",
-	"repository": "https://github.com/conres/contrast-resolution.git",
+	"repository": "https://github.com/conres/conres.io.git",
 	"license": "MIT",
 	"type": "module",
 	"exports": {},
 	"scripts": {
-		"start": "npx http-server -d false --cors -s -c-1 -p 80 -P https://contrast-resolution.smotaal.io/",
-		"serve": "http-server -d false --cors -s -c-1 -p 80 -P https://contrast-resolution.smotaal.io/",
+		"start": "npx http-server -d false --cors -s -c-1 -p 80 -P https://conres.io/",
+		"serve": "http-server -d false --cors -s -c-1 -p 80 -P https://conres.io/",
 		"local:cache": "http-server -d false --cors -s -p 80",
 		"local": "http-server -d false --cors -s -c-1 -p 80"
 	},
