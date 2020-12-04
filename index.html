@@ -5,15 +5,15 @@
   <title>conres.io</title>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <link id="style:styles/markout.css" rel=preload as=style href="https://smotaal.io/markout/styles/markout.css" />
+  <!-- <link id="style:styles/markout.css" rel=preload as=style href="https://smotaal.io/markout/styles/markout.css" /> -->
   <link rel=stylesheet href="https://smotaal.io/markout/styles/styles.css" />
-	<style>
-		html {
-			--shade: #66aa99f6;
-			/* --shade-dark: #336699f6; */
-		}
-	</style>
-  <script type="module">
+  <style>
+    html {
+      --shade: #66aa99f6;
+      /* --shade-dark: #336699f6; */
+    }
+  </style>
+  <!-- <script type="module">
     document.body.querySelector('markout-content').setAttribute('src', location.hash.startsWith('#/') ? location.hash.slice(2).replace(/(?:.md|)$/i, '.md') : 'README.md');
     (async () => {
       // return import('/pholio/dist/pholio.js');
@@ -25,12 +25,19 @@
       }
       import('https://www.smotaal.io/pholio/dist/pholio.js');
     })()
-  </script>
+
+    window.addEventListener('hashchange', () => location.reload());
+  </script> -->
 </head>
 
 <body>
   <main>
-    <markout-content></markout-content>
+    <article style="text-align: center;">
+      <img width=75% alt="conres.io" src="./assets/conres-io-preview.png" />
+      <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSdRqPvEnPsaAuII0BkZGZq-lS3vZb6Z-LDdEoFUBbW-28UrPQ/viewform?embedded=true"
+              width="640" height="720" frameborder="0" marginheight="0" marginwidth="0">Loading…</iframe>
+      <!-- <markout-content></markout-content> -->
+    </article>
   </main>
 </body>
 
