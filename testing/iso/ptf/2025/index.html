@@ -101,6 +101,11 @@
         article :is(article, section):has(fieldset, input, button):not(:focus-within) {
             /* opacity: 0.5; */
         }
+
+        form>article :is(article, section):has(>fieldset:disabled) {
+            opacity: 0.5;
+            pointer-events: none;
+        }
     </style>
     <script type="importmap">
         {
@@ -124,48 +129,72 @@
                         Contrast-Resolution perceptual round robin tests.</p>
                 </header>
                 <section id="overview">
-                    <h2>Overview</h2>
-                    <p>The ISO Perceptual Test Form is a standardized test form used to conduct psychometric tests
-                        relative
-                        to the measured contrast and resolution capabilities of printing systems.</p>
+                    <fieldset name="overview-fieldset">
+                        <div class="full-row">
+                            <h2>Overview</h2>
+                            <p>The ISO Perceptual Test Form is a standardized test form used to conduct psychometric
+                                tests
+                                relative
+                                to the measured contrast and resolution capabilities of printing systems.</p>
 
-                    <p>This generator is used to produce individualized PDF files specifically for a test run. This
-                        ensures
-                        that each printed sample is marked with a unique QR code for traceability. The QR code is
-                        associated
-                        with a separate single-page PDF file used to document the printing system, substrate and
-                        colorants,
-                        along with other metadata.</p>
+                            <p>This generator is used to produce individualized PDF files specifically for a test run.
+                                This
+                                ensures
+                                that each printed sample is marked with a unique QR code for traceability. The QR code
+                                is
+                                associated
+                                with a separate single-page PDF file used to document the printing system, substrate and
+                                colorants,
+                                along with other metadata.</p>
 
-                    <p>The process is divided into two stages:
-                    <ol>
-                        <li>Preparation: Download the test form and convert the colors to the output ICC profile.</li>
-                        <li>Serialization: Validate the color-converted PDF, document and generate the labelled PDF.
-                        </li>
-                    </ol>
-                    </p>
+                            <p>The process is divided into two stages:
+                            <ol>
+                                <!-- <li>Preparation: Download the test form and convert the colors to the output ICC
+                                    profile.
+                                </li>
+                                <li>Serialization: Validate the color-converted PDF, document and generate the labelled
+                                    PDF.
+                                </li> -->
+                                <li>Download the test form and convert the colors to the output ICC profile. Then,
+                                    follow the instructions to convert colors in Adobe Acrobat.</li>
+                                </li>
+                                <li>Validate the color-converted PDF. Then, fill in the information in the fields
+                                    provided. Finally, generate and download the PDF and <code>metadata.json</code>
+                                    file.
+                                    PDF.
+                                </li>
+                            </ol>
+                            </p>
 
-                    <p>This tool is limited to the preparation and serialization stages only. Refer to the
-                        supplemental documentation for instructions related to the scanning and submission stages.</p>
+                            <p>This tool is limited to the preparation and serialization stages only. Refer to the
+                                supplemental documentation for instructions related to the scanning and submission
+                                stages.
+                            </p>
 
-                    <article id="requirements">
-                        <h3>Requirements</h3>
-                        <p>What you will need:</p>
-                        <ul>
-                            <li>The latest version of Adobe Acrobat running on macOS or Windows.</li>
-                            <li>The specifications for the specific printing system, substrate and colorants used.</li>
-                            <li>The calibrated ICC profile for the specific printing system, substrate and colorants
-                                used.
-                            </li>
-                        </ul>
-                    </article>
-                    <!-- <div class="full-row"><button id="test-form-generator-start-button">Continue</button></div> -->
+                            <article id="requirements">
+                                <h3>Requirements</h3>
+                                <p>What you will need:</p>
+                                <ul>
+                                    <li>The latest version of Adobe Acrobat running on macOS or Windows.</li>
+                                    <li>The specifications for the specific printing system, substrate and colorants
+                                        used.
+                                    </li>
+                                    <li>The calibrated ICC profile for the specific printing system, substrate and
+                                        colorants
+                                        used.
+                                    </li>
+                                </ul>
+                            </article>
+
+                            <button id="test-form-overview-continue-button">Continue</button>
+                        </div>
+                    </fieldset>
                 </section>
                 <hr />
                 <section id="preparation">
-                    <h2>Preparation</h2>
+                    <!-- <h2>Preparation</h2> -->
                     <article id="download">
-                        <h3>Download</h3>
+                        <h2>Download</h2>
                         <fieldset name="download-fieldset">
                             <div class="full-row">
                                 <label for="test-form-version-select">Choose the version of the test form you
@@ -175,7 +204,8 @@
                                 <select id="test-form-version-select" name="test-form-version">
                                     <option value="2025-03-22 - ISO PTF 2x-4x">2025-03-22 - ISO PTF 2x-4x</option>
                                 </select>
-                                <p>If you already downloaded the PDF and converted the colors in Acrobat, you can skip this step.</p>
+                                <p>If you already downloaded the PDF and converted the colors in Acrobat, you can skip
+                                    this step.</p>
                             </div>
                             <!-- <input type="file" id="source-test-form-file-input" class="full-row" accept="application/pdf" /> -->
                             <div class="full-row">
@@ -184,103 +214,132 @@
                             </div>
                             <p><small><b>Note</b>: There is only one test form at this time.</small></p>
                             <fieldset name="download-progress-fieldset" style="opacity:0;" class="full-row">
-                                <progress id="test-form-download-progress" name="test-form-download-progress" value="0" max="100"></progress>
+                                <progress id="test-form-download-progress" name="test-form-download-progress" value="0"
+                                    max="100"></progress>
                                 <output id="test-form-download-progress-output">0%</output>
                             </fieldset>
                         </fieldset>
                     </article>
                     <hr />
                     <article id="color-conversion">
-                        <h3>Color Conversion</h3>
-                        <p>For this test form, color conversion must be done manually in Adobe Acrobat.</p>
-                        <p>The test form provided includes elements defined in various color spaces, include
-                            <code>sRGB</code>, <code>sGray</code> and <code>LAB</code>, ensuring predictable black
-                            generation when converted to the output device's color space in Acrobat. The color converted
-                            version will later be validated and labelled before it can be printed.
-                        </p>
-                        <p>Please perform the following steps:</p>
-                        <ol>
-                            <li>Ensure you have access to the output ICC profile used, and that this profile is
-                                accessible
-                                in Adobe Acrobat.
-                                <p>On macOS, the profile must be placed in <code>Library/ColorSync/Profiles</code>
-                                    subfolder, either at the system-level or within the user's home folder.</p>
-                                <p>On Windows, the profile must be placed in
-                                    <code>Windows/System32/Spool/Drivers/Color/Printers</code> on the system volume.
+                        <h2>Color Conversion</h2>
+                        <fieldset name="conversion-fieldset">
+                            <div class="full-row">
+                                <p>For this test form, color conversion must be done manually in Adobe Acrobat.</p>
+                                <p>The test form provided includes elements defined in various color spaces, include
+                                    <code>sRGB</code>, <code>sGray</code> and <code>LAB</code>, ensuring predictable
+                                    black
+                                    generation when converted to the output device's color space in Acrobat. The color
+                                    converted
+                                    version will later be validated and labelled before it can be printed.
                                 </p>
-                            </li>
-                            <li>Open the downloaded test form in Adobe Acrobat.
-                                <p>The pages of the downloaded test form is not labelled and include elements defined in
-                                    the
-                                    <code>sRGB</code>, <code>sGray</code> or <code>LAB</code> color spaces.
-                                </p>
-                            </li>
-                            <li>Open the
-                                <code><img src="./images/Acrobat - Icons - Convert Colors.svg" class="inline-icon"/> Convert Colors</code>
-                                tool.
-                                <p>
-                                    This tool is available by default in the
-                                    <code><img src="./images/Acrobat - Icons - Print Production.svg" class="inline-icon"/> Print Production</code>
-                                    task panel. If the panel is not visible, it be accessed by selecting
-                                    <code>View</code>
-                                    &rarr; <code>Tools</code> &rarr; <code>Print Production</code> from the menubar.
-                                </p>
-                            </li>
-                            <li>Convert the colors using the following parameters:
-                                <p>
-                                <ul>
-                                    <li>Set the <code>Matching Criteria</code> to <code>Any Object</code> in
-                                        <code>Any Colorspace</code> with <code>No minimum</code>
-                                        <code>No maximum</code> text sizes.
-                                        <p>These parameters will perform all color conversions in a single iteration
-                                            which
-                                            is necessary to ensure consistent output across various printing systems.
-                                            The
-                                            printing workflow should be limited to trapping and related
-                                            registration-specific optimizations.</p>
-                                    </li>
-                                    <li>Set the <code>Conversion Attributes</code> to <code>Convert to Profile</code>
-                                        with
-                                        the output ICC profile used, with <code>Embed</code> checked and the
-                                        <code>Use Document Intent</code> option selected.
-                                        <p>These parameters will convert all the elements to the output ICC profile
-                                            which is
-                                            necessary to prevent further color conversions when printing. The printing
-                                            workflow should be set up to use the same output ICC profile without further
-                                            <code>Profile Connection Space</code> bound transformations.
+                                <p>Please perform the following steps:</p>
+                                <ol>
+                                    <li>Ensure you have access to the output ICC profile used, and that this profile is
+                                        accessible
+                                        in Adobe Acrobat.
+                                        <p>On macOS, the profile must be placed in
+                                            <code>Library/ColorSync/Profiles</code>
+                                            subfolder, either at the system-level or within the user's home folder.
+                                        </p>
+                                        <p>On Windows, the profile must be placed in
+                                            <code>Windows/System32/Spool/Drivers/Color/Printers</code> on the system
+                                            volume.
                                         </p>
                                     </li>
-                                    <li>The <code>Output Intent</code> is not used and should be grayed out.</li>
-                                    <li>Set the <code>Conversion Options</code> to
-                                        <code>Promote Gray to CMYK Black</code>
-                                        and <code>Preserve CMYK Primaries</code> only.
-                                        <p>These parameters will ensure consistent for tone characteristics and black
-                                            generation across various printing systems. The printing workflow for CMYK
-                                            printing systems should be configured to preserve the resulting CMYK values,
-                                            limiting all neutral vector, text, and images elements, apart from elements
-                                            defined in <code>LAB</code> (i.e. elements defined in
-                                            <code>Separation, Black</code>, <code>sRGB</code> and <code>sGray</code>) to
-                                            print using the black printer only in the ideal.
+                                    <li>Open the downloaded test form in Adobe Acrobat.
+                                        <p>The pages of the downloaded test form is not labelled and include elements
+                                            defined in
+                                            the
+                                            <code>sRGB</code>, <code>sGray</code> or <code>LAB</code> color spaces.
                                         </p>
                                     </li>
-                                    <li>Set the <code>Convert Pages</code> to <code>All</code> pages.</li>
-                                </ul>
-                                </p>
-                            </li>
-                            <li>Save the PDF using the <code>Save As…</code> option appending a unique identifier name
-                                for
-                                the respective printing condition.
-                                <p>The unique PDF filename along with the embedded ICC profiles will be used for the
-                                    labelling and tracking purposes.</p>
-                            </li>
-                        </ol>
+                                    <li>Open the
+                                        <code><img src="./images/Acrobat - Icons - Convert Colors.svg" class="inline-icon"/> Convert Colors</code>
+                                        tool.
+                                        <p>
+                                            This tool is available by default in the
+                                            <code><img src="./images/Acrobat - Icons - Print Production.svg" class="inline-icon"/> Print Production</code>
+                                            task panel. If the panel is not visible, it be accessed by selecting
+                                            <code>View</code>
+                                            &rarr; <code>Tools</code> &rarr; <code>Print Production</code> from the
+                                            menubar.
+                                        </p>
+                                    </li>
+                                    <li>Convert the colors using the following parameters:
+                                        <p>
+                                        <ul>
+                                            <li>Set the <code>Matching Criteria</code> to <code>Any Object</code> in
+                                                <code>Any Colorspace</code> with <code>No minimum</code>
+                                                <code>No maximum</code> text sizes.
+                                                <p>These parameters will perform all color conversions in a single
+                                                    iteration
+                                                    which
+                                                    is necessary to ensure consistent output across various printing
+                                                    systems.
+                                                    The
+                                                    printing workflow should be limited to trapping and related
+                                                    registration-specific optimizations.</p>
+                                            </li>
+                                            <li>Set the <code>Conversion Attributes</code> to
+                                                <code>Convert to Profile</code>
+                                                with
+                                                the output ICC profile used, with <code>Embed</code> checked and the
+                                                <code>Use Document Intent</code> option selected.
+                                                <p>These parameters will convert all the elements to the output ICC
+                                                    profile
+                                                    which is
+                                                    necessary to prevent further color conversions when printing. The
+                                                    printing
+                                                    workflow should be set up to use the same output ICC profile without
+                                                    further
+                                                    <code>Profile Connection Space</code> bound transformations.
+                                                </p>
+                                            </li>
+                                            <li>The <code>Output Intent</code> is not used and should be grayed out.
+                                            </li>
+                                            <li>Set the <code>Conversion Options</code> to
+                                                <code>Promote Gray to CMYK Black</code>
+                                                and <code>Preserve CMYK Primaries</code> only.
+                                                <p>These parameters will ensure consistent for tone characteristics and
+                                                    black
+                                                    generation across various printing systems. The printing workflow
+                                                    for
+                                                    CMYK
+                                                    printing systems should be configured to preserve the resulting CMYK
+                                                    values,
+                                                    limiting all neutral vector, text, and images elements, apart from
+                                                    elements
+                                                    defined in <code>LAB</code> (i.e. elements defined in
+                                                    <code>Separation, Black</code>, <code>sRGB</code> and
+                                                    <code>sGray</code>) to
+                                                    print using the black printer only in the ideal.
+                                                </p>
+                                            </li>
+                                            <li>Set the <code>Convert Pages</code> to <code>All</code> pages.</li>
+                                        </ul>
+                                        </p>
+                                    </li>
+                                    <li>Save the PDF using the <code>Save As…</code> option appending a unique
+                                        identifier
+                                        name
+                                        for
+                                        the respective printing condition.
+                                        <!-- <p>The unique PDF filename along with the embedded ICC profiles will be used for the labelling and tracking purposes.</p> -->
+                                        <p><b>Note</b>: The embedded ICC profiles will be extracted and used to produce
+                                            reference images.</p>
+                                    </li>
+                                </ol>
+                                <button id="test-form-conversion-continue-button">Continue</button>
+                            </div>
+                        </fieldset>
                     </article>
                 </section>
                 <hr />
                 <section id="serialization">
-                    <h2>Serialization</h2>
+                    <!-- <h2>Serialization</h2> -->
                     <article id="validation">
-                        <h3>Validation</h3>
+                        <h2>Validation</h2>
                         <fieldset name="validation-fieldset">
                             <label for="test-form-file-input" class="full-row">Select the color converted PDF
                                 file:</label>
@@ -290,14 +349,15 @@
                                 <button id="test-form-validation-button">Validate</button>
                             </div>
                             <fieldset name="validation-progress-fieldset" style="opacity:0;" class="full-row">
-                                <progress id="test-form-validation-progress" name="test-form-validation-progress" value="0" max="100"></progress>
+                                <progress id="test-form-validation-progress" name="test-form-validation-progress"
+                                    value="0" max="100"></progress>
                                 <output id="test-form-validation-progress-output">0%</output>
                             </fieldset>
                         </fieldset>
                     </article>
                     <hr />
                     <article id="documentation">
-                        <h3>Documentation</h3>
+                        <h2>Documentation</h2>
                         <fieldset name="documentation-fieldset">
                             <label for="device-input">Device:</label>
                             <input type="text" id="device-input" name="device"
@@ -318,14 +378,20 @@
                     </article>
                     <hr />
                     <article id="generation">
-                        <h3>Generation</h3>
+                        <h2>Generation</h2>
                         <fieldset name="generation-fieldset">
-                            <label>The labelled and information PDF files are ready to be generated:</label>
+                            <label>The labelled PDF and metadata files are ready to be generated:</label>
                             <div class="full-row">
                                 <button id="test-form-generation-button">Generate</button>
+                                <p>Once generated, you should see two new files in your downloads, the labelled test
+                                    form as a PDF and
+                                    metadata in a JSON file. Make sure you keep them together.</p>
+                                <p><b>Note</b>:If you will be submitting those prints, the metadata file must by
+                                    submitted along with your prints.</p>
                             </div>
                             <fieldset name="generation-progess-fieldset" style="opacity:0;" class="full-row">
-                                <progress id="test-form-generation-progress" name="test-form-generation-progress" max="100"></progress>
+                                <progress id="test-form-generation-progress" name="test-form-generation-progress"
+                                    max="100"></progress>
                                 <output id="test-form-generation-progress-output">0%</output>
                             </fieldset>
                         </fieldset>
