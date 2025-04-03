@@ -48,7 +48,7 @@ const assetLocations = {
 
 const DEBUG_FIELDSETS = false;
 const DEBUG_FETCH = false;
-const DEBUG_METADATA = true;
+const DEBUG_METADATA = false;
 
 /**
  * @typedef {object} FetchState
@@ -61,12 +61,16 @@ const DEBUG_METADATA = true;
  */
 
 /**
+ * @typedef {'ready'|'overview'|'download' | 'conversion' | 'validation' | 'documentation' | 'generation' | 'exporting' | 'done' | 'aborted'} TestFormGeneratorStage
+ */
+
+/**
  * @typedef {object} TestFormGeneratorState
- * @property { 'ready'|'download' | 'validation' | 'documentation' | 'generation' | 'exporting' | 'done' | 'aborted' } [stage]
+ * @property {TestFormGeneratorStage} [stage]
  * @property {boolean} [aborted]
  * @property {HTMLFormElement} form
- * @property {Partial<Record<'download' | 'validation' | 'documentation' | 'generation' | 'exporting', HTMLDivElement>>} sections
- * @property {Partial<Record<'download' | 'validation' | 'documentation' | 'generation' | 'exporting', HTMLFieldSetElement>>} fieldsets
+ * @property {Partial<Record<TestFormGeneratorStage, HTMLDivElement>>} sections
+ * @property {Partial<Record<TestFormGeneratorStage, HTMLFieldSetElement>>} fieldsets
  * @property {Record<string, ArrayBufferLike?>} resources
  * @property {object} [metadata]
  */
@@ -151,13 +155,77 @@ class TestFormGenerator {
         state.stage = 'ready';
 
         yield state;
+        yield* this.#overviewStage(state);
         yield* this.#downloadStage(state);
+        yield* this.#conversionStage(state);
         yield* this.#validationStage(state);
         yield* this.#documentationStage(state);
         yield* this.#generationStage(state);
         // yield* this.#exportingStep(state);
         state.stage = 'done';
         yield state;
+    }
+
+    /**
+     * @param {TestFormGeneratorState} state 
+     */
+    async * #overviewStage(state) {
+        state.stage = 'overview';
+
+        /** @type {HTMLFieldSetElement} */
+        const fieldset = state.fieldsets['overview-fieldset'];
+
+        yield state;
+
+        if (!fieldset) throw new Error('Export fieldset missing');
+
+        fieldset.removeAttribute('disabled');
+        (fieldset.parentElement ?? fieldset).scrollIntoView({ behavior: 'smooth', 'block': 'center', 'inline': 'nearest' });
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        if (DEBUG_FIELDSETS) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        } else {
+            const { promise, resolve, reject } = Promise.withResolvers();
+            const overviewContinueButton = /** @type {HTMLButtonElement} */(state.form.elements.namedItem('test-form-overview-continue-button'));
+
+            overviewContinueButton.onclick = () => resolve(undefined);
+
+            await promise;
+        }
+        // fieldset.focus();
+        // yield state;
+        fieldset.setAttribute('disabled', '');
+    }
+
+    /**
+     * @param {TestFormGeneratorState} state 
+     */
+    async * #conversionStage(state) {
+        state.stage = 'conversion';
+
+        /** @type {HTMLFieldSetElement} */
+        const fieldset = state.fieldsets['conversion-fieldset'];
+
+        yield state;
+
+        if (!fieldset) throw new Error('Export fieldset missing');
+
+        fieldset.removeAttribute('disabled');
+        (fieldset.parentElement ?? fieldset).scrollIntoView({ behavior: 'smooth', 'block': 'center', 'inline': 'nearest' });
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        if (DEBUG_FIELDSETS) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        } else {
+            const { promise, resolve, reject } = Promise.withResolvers();
+            const conversionContinueButton = /** @type {HTMLButtonElement} */(state.form.elements.namedItem('test-form-conversion-continue-button'));
+
+            conversionContinueButton.onclick = () => resolve(undefined);
+
+            await promise;
+        }
+        // fieldset.focus();
+        // yield state;
+        fieldset.setAttribute('disabled', '');
     }
 
     /**
@@ -174,7 +242,7 @@ class TestFormGenerator {
         if (!fieldset) throw new Error('Download fieldset missing');
 
         fieldset.removeAttribute('disabled');
-        fieldset.scrollIntoView({ behavior: 'smooth', 'block': 'start', 'inline': 'nearest' });
+        (fieldset.parentElement ?? fieldset).scrollIntoView({ behavior: 'smooth', 'block': 'center', 'inline': 'nearest' });
         await new Promise(resolve => requestAnimationFrame(resolve));
         if (DEBUG_FIELDSETS) {
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -311,7 +379,7 @@ class TestFormGenerator {
         if (!fieldset) throw new Error('Validation fieldset missing');
 
         fieldset.removeAttribute('disabled');
-        fieldset.scrollIntoView({ behavior: 'smooth', 'block': 'start', 'inline': 'nearest' });
+        (fieldset.parentElement ?? fieldset).scrollIntoView({ behavior: 'smooth', 'block': 'center', 'inline': 'nearest' });
         await new Promise(resolve => requestAnimationFrame(resolve));
         if (DEBUG_FIELDSETS) {
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -454,7 +522,7 @@ class TestFormGenerator {
         if (!fieldset) throw new Error('Documentation fieldset missing');
 
         fieldset.removeAttribute('disabled');
-        fieldset.scrollIntoView({ behavior: 'smooth', 'block': 'start', 'inline': 'nearest' });
+        (fieldset.parentElement ?? fieldset).scrollIntoView({ behavior: 'smooth', 'block': 'center', 'inline': 'nearest' });
         await new Promise(resolve => requestAnimationFrame(resolve));
         if (DEBUG_FIELDSETS) {
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -507,6 +575,8 @@ class TestFormGenerator {
             };
 
             await promise;
+
+            testFormDocumentationSaveButton.onclick = testFormDocumentationResetButton.onclick = null;
         }
         // fieldset.focus();
         // yield state;
@@ -526,7 +596,7 @@ class TestFormGenerator {
         if (!fieldset) throw new Error('Generation fieldset missing');
 
         fieldset.removeAttribute('disabled');
-        fieldset.scrollIntoView({ behavior: 'smooth', 'block': 'start', 'inline': 'nearest' });
+        (fieldset.parentElement ?? fieldset).scrollIntoView({ behavior: 'smooth', 'block': 'center', 'inline': 'nearest' });
         await new Promise(resolve => requestAnimationFrame(resolve));
         if (DEBUG_FIELDSETS) {
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -538,242 +608,250 @@ class TestFormGenerator {
 
             generateTestFormButton.onclick = async () => {
 
-                state.resources = {
-                    ...state.resources,
-                    'Slug Template.ps': await this.#loadAsset('2025-03-22 - ISO PTF 2x-4x/Slug Template.ps'),
-                    'input/Barcode.ps': await this.#loadAsset('2025-03-22 - ISO PTF 2x-4x/Barcode.ps'),
-                };
+                try {
+                    state.resources = {
+                        ...state.resources,
+                        'Slug Template.ps': await this.#loadAsset('2025-03-22 - ISO PTF 2x-4x/Slug Template.ps'),
+                        'input/Barcode.ps': await this.#loadAsset('2025-03-22 - ISO PTF 2x-4x/Barcode.ps'),
+                    };
 
-                console.log({ resources: { ...state.resources } });
+                    console.log({ resources: { ...state.resources } });
 
-                // ICCProfile:
-                const iccProfileHeader = parseICCHeaderFromBuffer(/** @type {*} */(
-                    // Buffer.from(/** @type {*} */(state.resources['input/Output.icc']))
-                    new Buffer(/** @type {ArrayBuffer} */(state.resources['input/Output.icc']))
-                ));
+                    // ICCProfile:
+                    const iccProfileHeader = parseICCHeaderFromBuffer(/** @type {*} */(
+                        // Buffer.from(/** @type {*} */(state.resources['input/Output.icc']))
+                        new Buffer(/** @type {ArrayBuffer} */(state.resources['input/Output.icc']))
+                    ));
 
-                if (iccProfileHeader.colorSpace !== 'RGB' && iccProfileHeader.colorSpace !== 'CMYK')
-                    throw new Error(`The ICC profile must be RGB or CMYK. The ICC profile is ${iccProfileHeader.colorSpace}.`);
+                    if (iccProfileHeader.colorSpace !== 'RGB' && iccProfileHeader.colorSpace !== 'CMYK')
+                        throw new Error(`The ICC profile must be RGB or CMYK. The ICC profile is ${iccProfileHeader.colorSpace}.`);
 
-                // /** @type {{default: import("./assets/2025-03-22 - 01 - AI-PDF - No 2x-4x (D) - Template.pdf.json")}} */
-                // const { default: testFormDefinitions } = await import(`${assetURLs["TestFormTemplate.pdf"]}.json`, { with: { type: "json" } });
+                    // /** @type {{default: import("./assets/2025-03-22 - 01 - AI-PDF - No 2x-4x (D) - Template.pdf.json")}} */
+                    // const { default: testFormDefinitions } = await import(`${assetURLs["TestFormTemplate.pdf"]}.json`, { with: { type: "json" } });
 
-                const attachedManifestBuffer = state.resources['Slugs.json'];
+                    const attachedManifestBuffer = state.resources['Slugs.json'];
 
-                if (!attachedManifestBuffer) throw new Error('Missing Slugs.json');
+                    if (!attachedManifestBuffer) throw new Error('Missing Slugs.json');
 
-                const attachedManifestSourceText = new TextDecoder().decode(new Uint8Array(attachedManifestBuffer));
+                    const attachedManifestSourceText = new TextDecoder().decode(new Uint8Array(attachedManifestBuffer));
 
-                console.log({ attachedManifestSourceText });
+                    console.log({ attachedManifestSourceText });
 
-                /** @type {import("../../../../assets/testforms/2025-03-22 - ISO PTF 2x-4x.pdf.json")} */
-                const attachedManifest = attachedManifestBuffer && JSON.parse(attachedManifestSourceText);
+                    /** @type {import("../../../../assets/testforms/2025-03-22 - ISO PTF 2x-4x.pdf.json")} */
+                    const attachedManifest = attachedManifestBuffer && JSON.parse(attachedManifestSourceText);
 
-                const slugTemplateSourceBuffer = state.resources['Slug Template.ps'];
+                    const slugTemplateSourceBuffer = state.resources['Slug Template.ps'];
 
-                if (!slugTemplateSourceBuffer) throw new Error('Missing Slug Template.ps');
+                    if (!slugTemplateSourceBuffer) throw new Error('Missing Slug Template.ps');
 
-                const slugTemplateSourceText = new TextDecoder().decode(new Uint8Array(slugTemplateSourceBuffer));
-                let slugSourceText = slugTemplateSourceText;
+                    const slugTemplateSourceText = new TextDecoder().decode(new Uint8Array(slugTemplateSourceBuffer));
+                    let slugSourceText = slugTemplateSourceText;
 
-                slugSourceText = /^(?<indent>[ \t]*)%\|[ \t]+\{\{Slugs\}\}.*?$/m[
-                    Symbol.replace
-                ](
-                    slugSourceText,
-                    attachedManifest.pages
-                        .map(
-                            ({
-                                metadata: {
-                                    title,
-                                    variant,
-                                    colorSpace,
-                                    resolution: { value, unit } = {},
-                                },
-                            }) =>
-                                [
-                                    "$<indent><<",
-                                    title && `$<indent>  /Title (${title})`,
-                                    variant && `$<indent>  /Variant (${variant})`,
-                                    (colorSpace || value) &&
-                                    `$<indent>  /Parameters (${[
+                    slugSourceText = /^(?<indent>[ \t]*)%\|[ \t]+\{\{Slugs\}\}.*?$/m[
+                        Symbol.replace
+                    ](
+                        slugSourceText,
+                        attachedManifest.pages
+                            .map(
+                                ({
+                                    metadata: {
+                                        title,
+                                        variant,
                                         colorSpace,
-                                        `${value || ""}${unit || ""}`,
+                                        resolution: { value, unit } = {},
+                                    },
+                                }) =>
+                                    [
+                                        "$<indent><<",
+                                        title && `$<indent>  /Title (${title})`,
+                                        variant && `$<indent>  /Variant (${variant})`,
+                                        (colorSpace || value) &&
+                                        `$<indent>  /Parameters (${[
+                                            colorSpace,
+                                            `${value || ""}${unit || ""}`,
+                                        ]
+                                            .filter(Boolean)
+                                            .join(" - ")})`,
+                                        "$<indent>>>",
                                     ]
                                         .filter(Boolean)
-                                        .join(" - ")})`,
-                                    "$<indent>>>",
-                                ]
-                                    .filter(Boolean)
-                                    .join("\n")
-                        )
-                        .join("\n")
-                );
+                                        .join("\n")
+                            )
+                            .join("\n")
+                    );
 
-                slugSourceText = /^(?<indent>[ \t]*)%\|[ \t]+\{\{Slug\}\}.*?$/m[Symbol.replace](
-                    slugSourceText,
-                    [
-                        `$<indent>/SlugHeader (Slug CR 20250322) def`,
-                        `$<indent>/SlugFooter (${[
-                            state.metadata?.slugs?.email ?? "user@example.com",
-                            /^(?<YYYY>\d{4})-(?<MM>\d{2})-(?<DD>\d{2})T(?<hh>\d{2}):(?<mm>\d{2}):(?<ss>\d{2})\.\d+Z$/[
-                                Symbol.replace
-                            ](new Date().toISOString(), "$<YYYY>-$<MM>-$<DD> $<hh>:$<mm>:$<ss>"),
-                        ]
-                            .filter(Boolean)
-                            .join(" ")}) def`,
-                    ].join("\n")
-                );
+                    slugSourceText = /^(?<indent>[ \t]*)%\|[ \t]+\{\{Slug\}\}.*?$/m[Symbol.replace](
+                        slugSourceText,
+                        [
+                            `$<indent>/SlugHeader (Slug CR 20250322) def`,
+                            `$<indent>/SlugFooter (${[
+                                state.metadata?.slugs?.email ?? "user@example.com",
+                                /^(?<YYYY>\d{4})-(?<MM>\d{2})-(?<DD>\d{2})T(?<hh>\d{2}):(?<mm>\d{2}):(?<ss>\d{2})\.\d+Z$/[
+                                    Symbol.replace
+                                ](new Date().toISOString(), "$<YYYY>-$<MM>-$<DD> $<hh>:$<mm>:$<ss>"),
+                            ]
+                                .filter(Boolean)
+                                .join(" ")}) def`,
+                        ].join("\n")
+                    );
 
-                slugSourceText = slugSourceText.replace(
-                    "(Barcode.ps)",
-                    "(/input/Barcode.ps)"
-                );
+                    slugSourceText = slugSourceText.replace(
+                        "(Barcode.ps)",
+                        "(/input/Barcode.ps)"
+                    );
 
-                // console.log(slugSourceText);
+                    // console.log(slugSourceText);
 
-                state.resources['input/Slug.ps'] = new TextEncoder().encode(slugSourceText).buffer;
+                    state.resources['input/Slug.ps'] = new TextEncoder().encode(slugSourceText).buffer;
 
-                console.log({ resources: { ...state.resources } });
+                    console.log({ resources: { ...state.resources } });
 
-                // const buffer = /** @type {Buffer} */(Buffer.from(decodePDFRawStream(stream).decode()));
+                    // const buffer = /** @type {Buffer} */(Buffer.from(decodePDFRawStream(stream).decode()));
 
-                /** @type {Record<string, import('./helpers.js').InputResource>} */
-                const inputResources = {};
+                    /** @type {Record<string, import('./helpers.js').InputResource>} */
+                    const inputResources = {};
 
-                // const assetPathnames = {
-                //     'Barcode.ps', 
-                //     'inputSlug.ps': '/input/Slug.ps',
-                //     'input/Output.icc': '/input/Output.icc',
-                // };
+                    // const assetPathnames = {
+                    //     'Barcode.ps', 
+                    //     'inputSlug.ps': '/input/Slug.ps',
+                    //     'input/Output.icc': '/input/Output.icc',
+                    // };
 
-                for (const asset of ['Barcode.ps', 'Slug.ps', 'Output.icc']) {
-                    const pathname = `/input/${asset}`;
-                    const buffer = state.resources[`input/${asset}`];
+                    for (const asset of ['Barcode.ps', 'Slug.ps', 'Output.icc']) {
+                        const pathname = `/input/${asset}`;
+                        const buffer = state.resources[`input/${asset}`];
 
-                    if (!buffer) throw new Error(`Missing resource: input/${asset}`);
+                        if (!buffer) throw new Error(`Missing resource: input/${asset}`);
 
-                    inputResources[`input/${asset}`] = {
-                        pathname,
-                        data: new Uint8Array(buffer),
-                    };
-                }
+                        inputResources[`input/${asset}`] = {
+                            pathname,
+                            data: new Uint8Array(buffer),
+                        };
+                    }
 
-                const pendingPromises = [];
+                    const pendingPromises = [];
 
-                /** @type {Promise<EmscriptenModule & { FS: typeof FS; callMain: (argv: string[]) => number}>} */
-                const ghostscriptModulePromise = GhostscriptModule({ noInitialRun: true });
+                    /** @type {Promise<EmscriptenModule & { FS: typeof FS; callMain: (argv: string[]) => number}>} */
+                    const ghostscriptModulePromise = GhostscriptModule({ noInitialRun: true });
 
-                pendingPromises.push(ghostscriptModulePromise);
+                    pendingPromises.push(ghostscriptModulePromise);
 
-                const ghostscriptModule = await ghostscriptModulePromise;
+                    const ghostscriptModule = await ghostscriptModulePromise;
 
-                pendingPromises.push(prepareInputResources(ghostscriptModule.FS, inputResources));
+                    pendingPromises.push(prepareInputResources(ghostscriptModule.FS, inputResources));
 
-                await Promise.allSettled(pendingPromises.splice(0, pendingPromises.length));
+                    await Promise.allSettled(pendingPromises.splice(0, pendingPromises.length));
 
-                mkdirRecursiveWithFS(ghostscriptModule.FS, `/output/`);
+                    mkdirRecursiveWithFS(ghostscriptModule.FS, `/output/`);
 
-                await ghostscriptModule.callMain([
-                    "-dBATCH",
-                    "-dNOPAUSE",
-                    "-dNOSAFER",
-                    "-sDEVICE=pdfwrite",
-                    "-sOutputFile=/output/Slugs.pdf",
-                    "-sOutputICCProfile=/input/Output.icc",
-                    // "-sPostRenderProfile=/input/Output.icc",
-                    // "-sBlendColorProfile=/input/Output.icc",
-                    // "-sProofProfile=Output.icc",
-                    // "-sICCProfilesDir=/input/",
-                    // "-dUseCIEColor",
-                    // "-sProofProfile=/input/Output.icc",
-                    // ...iccProfileHeader.colorSpace === 'RGB'
-                    //     ? "-sProcessColorModel=DeviceRGB -sColorConversionStrategy=RGB -dRenderIntent=1 -dBlackPtComp=1 -dKPreserve=2".split(' ')
-                    //     : "-sProcessColorModel=DeviceCMYK -sColorConversionStrategy=CMYK -dRenderIntent=1 -dBlackPtComp=1 -dKPreserve=2".split(' '),
-                    ...iccProfileHeader.colorSpace === 'RGB'
-                        ? "-sProcessColorModel=DeviceRGB -sPDFACompatibilityPolicy=1 -dRenderIntent=1 -dBlackPtComp=1 -dKPreserve=2".split(' ')
-                        : "-sProcessColorModel=DeviceCMYK -sPDFACompatibilityPolicy=1 -dRenderIntent=1 -dBlackPtComp=1 -dKPreserve=2".split(' '),
-                    // "-I/input",
-                    "/input/Slug.ps",
-                ]);
+                    const exitCode = await ghostscriptModule.callMain([
+                        "-dBATCH",
+                        "-dNOPAUSE",
+                        "-dNOSAFER",
+                        "-sDEVICE=pdfwrite",
+                        "-sOutputFile=/output/Slugs.pdf",
+                        "-sOutputICCProfile=/input/Output.icc",
+                        // "-sPostRenderProfile=/input/Output.icc",
+                        // "-sBlendColorProfile=/input/Output.icc",
+                        // "-sProofProfile=Output.icc",
+                        // "-sICCProfilesDir=/input/",
+                        // "-dUseCIEColor",
+                        // "-sProofProfile=/input/Output.icc",
+                        // ...iccProfileHeader.colorSpace === 'RGB'
+                        //     ? "-sProcessColorModel=DeviceRGB -sColorConversionStrategy=RGB -dRenderIntent=1 -dBlackPtComp=1 -dKPreserve=2".split(' ')
+                        //     : "-sProcessColorModel=DeviceCMYK -sColorConversionStrategy=CMYK -dRenderIntent=1 -dBlackPtComp=1 -dKPreserve=2".split(' '),
+                        ...iccProfileHeader.colorSpace === 'RGB'
+                            ? "-sProcessColorModel=DeviceRGB -sPDFACompatibilityPolicy=1 -dRenderIntent=1 -dBlackPtComp=1 -dKPreserve=2".split(' ')
+                            : "-sProcessColorModel=DeviceCMYK -sPDFACompatibilityPolicy=1 -dRenderIntent=1 -dBlackPtComp=1 -dKPreserve=2".split(' '),
+                        // "-I/input",
+                        "/input/Slug.ps",
+                    ]);
 
-                const slugsOutputBuffer = ghostscriptModule.FS.readFile("/output/Slugs.pdf").buffer.slice();
+                    if (exitCode !== 0) {
+                        throw new Error(`Ghostscript failed with exit code ${exitCode}`);
+                    }
 
-                state.resources['output/Slugs.pdf'] = slugsOutputBuffer;
+                    const slugsOutputBuffer = ghostscriptModule.FS.readFile("/output/Slugs.pdf").buffer.slice();
 
-                downloadArrayBufferAs(slugsOutputBuffer, "Slugs.pdf", "application/pdf");
+                    state.resources['output/Slugs.pdf'] = slugsOutputBuffer;
 
-                console.log({ resources: { ...state.resources } });
+                    // downloadArrayBufferAs(slugsOutputBuffer, "Slugs.pdf", "application/pdf");
 
-                if (!state.resources['Test Form.pdf'])
-                    throw new Error('Missing Test Form Template.pdf');
-                if (!state.resources['output/Slugs.pdf'])
-                    throw new Error('Missing Slugs.pdf');
+                    console.log({ resources: { ...state.resources } });
 
-                const testFormDocument = await PDFDocument.load(new Uint8Array(
-                    state.resources['Test Form.pdf'].slice()
-                ));
-                const slugPDFDocument = await PDFDocument.load(new Uint8Array(state.resources['output/Slugs.pdf']));
+                    if (!state.resources['Test Form.pdf'])
+                        throw new Error('Missing Test Form Template.pdf');
+                    if (!state.resources['output/Slugs.pdf'])
+                        throw new Error('Missing Slugs.pdf');
 
-                console.log({ testFormDocument, slugPDFDocument });
+                    const testFormDocument = await PDFDocument.load(new Uint8Array(
+                        state.resources['Test Form.pdf'].slice()
+                    ));
+                    const slugPDFDocument = await PDFDocument.load(new Uint8Array(state.resources['output/Slugs.pdf']));
 
-                for (let page = 0, pageCount = testFormDocument.getPageCount(); page < pageCount; page++) {
-                    const testFormPage = testFormDocument.getPage(page);
-                    const [embeddedSlugPage] = await testFormDocument.embedPdf(slugPDFDocument, [page]);
+                    console.log({ testFormDocument, slugPDFDocument });
 
-                    testFormPage.drawPage(embeddedSlugPage);
-                }
+                    for (let page = 0, pageCount = testFormDocument.getPageCount(); page < pageCount; page++) {
+                        const testFormPage = testFormDocument.getPage(page);
+                        const [embeddedSlugPage] = await testFormDocument.embedPdf(slugPDFDocument, [page]);
 
-                state.resources['output/Test Form.pdf'] = (await testFormDocument.save()).buffer.slice();
+                        testFormPage.drawPage(embeddedSlugPage);
+                    }
 
-                await downloadArrayBufferAs(state.resources['output/Test Form.pdf'], "Test Form.pdf", "application/pdf");
+                    state.resources['output/Test Form.pdf'] = (await testFormDocument.save()).buffer.slice();
 
-                const iccProfileString = new TextDecoder().decode(new Uint8Array(state.resources['input/Output.icc']));
+                    // await downloadArrayBufferAs(state.resources['output/Test Form.pdf'], "Test Form.pdf", "application/pdf");
 
-                console.log({ iccProfileString });
+                    const iccProfileString = new TextDecoder().decode(new Uint8Array(state.resources['input/Output.icc']));
 
-                const iccProfileCharacters = Array.from(new Uint8Array(state.resources['input/Output.icc']), c => String.fromCharCode(c));
+                    console.log({ iccProfileString });
 
-                console.log({ iccProfileCharacters });
+                    const iccProfileCharacters = Array.from(new Uint8Array(state.resources['input/Output.icc']), c => String.fromCharCode(c));
 
-                const iccProfileBase64String = btoa(iccProfileCharacters.join(''));
+                    console.log({ iccProfileCharacters });
 
-                console.log({ iccProfileBase64String });
+                    const iccProfileBase64String = btoa(iccProfileCharacters.join(''));
 
-                // if (state.metadata) {
-                // (state.metadata.color ??= {}).profile = {
-                //     header: { ...iccProfileHeader },
-                //     contents: iccProfileBase64String,
-                // };
+                    console.log({ iccProfileBase64String });
 
-                state.resources['output/metadata.json'] = new TextEncoder().encode(JSON.stringify({
-                    metadata: state.metadata,
-                    manifest: attachedManifest,
-                    slugs: {
-                        // contents: btoa(Array.from(new Uint8Array(state.resources['output/Slugs.pdf']), c => String.fromCharCode(c)).join('')),
-                        contents: {
-                            type: 'application/pdf',
-                            base64: base64FromUint8Array(new Uint8Array(state.resources['output/Slugs.pdf'])),
-                        },
-                    },
-                    color: {
-                        profile: {
-                            ...iccProfileHeader,
-                            // contents: iccProfileBase64String,
+                    state.resources['output/metadata.json'] = new TextEncoder().encode(JSON.stringify({
+                        metadata: state.metadata,
+                        manifest: attachedManifest,
+                        slugs: {
+                            // contents: btoa(Array.from(new Uint8Array(state.resources['output/Slugs.pdf']), c => String.fromCharCode(c)).join('')),
                             contents: {
-                                type: 'application/vnd.iccprofile',
-                                base64: base64FromUint8Array(new Uint8Array(state.resources['input/Output.icc'])),
+                                type: 'application/pdf',
+                                base64: base64FromUint8Array(new Uint8Array(state.resources['output/Slugs.pdf'])),
+                            },
+                        },
+                        color: {
+                            profile: {
+                                ...iccProfileHeader,
+                                // contents: iccProfileBase64String,
+                                contents: {
+                                    type: 'application/vnd.iccprofile',
+                                    base64: base64FromUint8Array(new Uint8Array(state.resources['input/Output.icc'])),
+                                }
                             }
-                        }
-                    },
-                }, null, 2)).buffer;
+                        },
+                    }, null, 2)).buffer;
 
-                await downloadArrayBufferAs(state.resources['output/metadata.json'], "metadata.json", "application/json");
-                // }
+                    await downloadArrayBufferAs(state.resources['output/metadata.json'], "metadata.json", "application/json");
+                    await new Promise(resolve => requestAnimationFrame(resolve));
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    await downloadArrayBufferAs(state.resources['output/Test Form.pdf'], "Test Form.pdf", "application/pdf");
 
-                resolve(undefined);
+                    resolve(undefined);
+                } catch (error) {
+                    alert('An error occurred during the generation of the test form. Please try again.');
+                    console.error('TestFormGenerator %o', error, { ...state });
+                    reject(error);
+                }
             };
 
             await promise;
+
+            generateTestFormButton.onclick = null;
         }
         // fieldset.focus();
         // yield state;
@@ -794,7 +872,7 @@ class TestFormGenerator {
         if (!fieldset) throw new Error('Export fieldset missing');
 
         fieldset.removeAttribute('disabled');
-        fieldset.scrollIntoView({ behavior: 'smooth', 'block': 'start', 'inline': 'nearest' });
+        (fieldset.parentElement ?? fieldset).scrollIntoView({ behavior: 'smooth', 'block': 'center', 'inline': 'nearest' });
         await new Promise(resolve => requestAnimationFrame(resolve));
         if (DEBUG_FIELDSETS) await new Promise(resolve => setTimeout(resolve, 1000));
         // fieldset.focus();

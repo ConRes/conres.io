@@ -377,6 +377,12 @@ export const downloadArrayBufferAs = (arrayBuffer, filename, type) => {
     const a = document.createElement('a');
     a.download = filename;
     a.href = url;
+    // a.onclick = async () => {
+    //     await new Promise(resolve => requestAnimationFrame(resolve));
+    //     await new Promise(resolve => setTimeout(resolve, 1000));
+    //     URL.revokeObjectURL(url);
+    //     a.remove();
+    // };
     a.click();
     URL.revokeObjectURL(url);
     a.remove();
