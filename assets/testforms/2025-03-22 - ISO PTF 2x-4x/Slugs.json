@@ -1,0 +1,160 @@
+{
+    "pages": [
+        {
+            "metadata": {
+                "title": "#20 London",
+                "resolution": { "value": 1200, "unit": "ppi" },
+                "colorSpace": "sRGB",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "#20 London",
+                "resolution": { "value": 1200, "unit": "ppi" },
+                "colorSpace": "sGray",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "#20 London",
+                "resolution": { "value": 1200, "unit": "ppi" },
+                "colorSpace": "Lab",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "#21 Winter Trees",
+                "resolution": { "value": 1200, "unit": "ppi" },
+                "colorSpace": "sRGB",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "#21 Winter Trees",
+                "resolution": { "value": 1200, "unit": "ppi" },
+                "colorSpace": "sGray",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "#21 Winter Trees",
+                "resolution": { "value": 1200, "unit": "ppi" },
+                "colorSpace": "Lab",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "#22 Lake Forest and Cat",
+                "resolution": { "value": 1200, "unit": "ppi" },
+                "colorSpace": "sRGB",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "#22 Lake Forest and Cat",
+                "resolution": { "value": 1200, "unit": "ppi" },
+                "colorSpace": "sGray",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "#22 Lake Forest and Cat",
+                "resolution": { "value": 1200, "unit": "ppi" },
+                "colorSpace": "Lab",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "#30 Vitznau Map",
+                "resolution": { "value": 825.763, "unit": "ppi" },
+                "colorSpace": "sRGB",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "#30 Vitznau Map",
+                "resolution": { "value": 825.763, "unit": "ppi" },
+                "colorSpace": "sGray",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "#30 Vitznau Map",
+                "resolution": { "value": 825.763, "unit": "ppi" },
+                "colorSpace": "LAB",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "#31 Interlaken Map",
+                "resolution": { "value": 1200, "unit": "ppi" },
+                "colorSpace": "sRGB",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "#32 Interlaken Aerial",
+                "resolution": { "value": 1200, "unit": "ppi" },
+                "colorSpace": "sRGB",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "#31 Interlaken Map",
+                "resolution": { "value": 1200, "unit": "ppi" },
+                "colorSpace": "sGray",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "#32 Interlaken Aerial",
+                "resolution": { "value": 1200, "unit": "ppi" },
+                "colorSpace": "sGray",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "#40 Type Sizes",
+                "colorSpace": "sGray",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "#40 Type Sizes",
+                "colorSpace": "SepK",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "#45 Lissajou",
+                "colorSpace": "sGray",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "#45 Lissajou",
+                "colorSpace": "SepK",
+                "isColorManaged": true
+            }
+        }    
+    ]
+}

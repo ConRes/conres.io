@@ -1,0 +1,6 @@
+{
+  "private": true,
+  "name": "@conres/ghostscript-wasm",
+  "version": "0.0.1",
+  "type": "module"
+}

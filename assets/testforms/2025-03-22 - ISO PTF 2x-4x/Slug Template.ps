@@ -1,0 +1,162 @@
+/Slugs [
+    %| {{Slugs}}
+] def
+
+(Barcode.ps) run
+
+/merge_str {
+    % combine multiple strings: [(a) (b) ... (z)] --> (ab...z)
+    0 1 index { length add } forall string 0 3 2 roll
+ 	{ 3 copy putinterval length add } forall pop 
+} bind def
+
+/printIdAndDict {
+    /currentDictId exch def
+    /currentDict exch def
+
+    currentDictId print (\n) print
+
+    /maxKeyLength 0 def
+
+    currentDict {
+        /value exch def
+        /key exch def
+        /keyLength key length def
+
+        maxKeyLength keyLength lt { /maxKeyLength keyLength def } if
+    } forall
+    
+    currentDict {
+        /value exch def
+        /key exch def
+        /keyLength key length def
+        /keyPadding maxKeyLength keyLength sub 1 add string def
+
+        0 1 keyPadding length 1 sub { keyPadding exch ( ) putinterval } for
+        (  ) print key ==only keyPadding print value ===
+    } forall
+
+    currentDict
+} bind def
+
+/SlugPageWidth 792 def
+/SlugPageHeight 595 def
+/SlugPageMargin 72 4 div def
+
+%| /SlugPageWidth {{SlugPageWidth}} def
+%| /SlugPageHeight {{SlugPageHeight}} def
+%| /SlugPageMargin {{SlugPageMargin}} def
+
+%| {{SlugPage}}
+
+/SlugPadding SlugPageMargin 4 div def
+/SlugWidth   SlugPageWidth SlugPageMargin 2 mul sub 2 div def
+/SlugHeight  72 SlugPageMargin sub SlugPadding sub def
+/SlugXOffset SlugPageMargin def
+/SlugYOffset SlugPageHeight SlugPageMargin sub SlugHeight sub def
+
+%| /SlugPadding {{SlugPadding}} def
+%| /SlugWidth {{SlugWidth}} def
+%| /SlugHeight {{SlugHeight}} def
+%| /SlugXOffset {{SlugXOffset}} def
+%| /SlugYOffset {{SlugYOffset}} def
+
+/SlugHeader (Slug CR YYYYMMDD) def
+%| /SlugHeader ({{SlugHeader}}) def
+
+/SlugFooter (YYYYMMDD HHMMSS) def
+%| /SlugFooter ({{SlugFooter}}) def
+
+%| {{Slug}}
+
+<< /PageSize [ SlugPageWidth SlugPageHeight ] >> setpagedevice
+
+Slugs {
+
+    /Slug exch def
+
+    /SlugTitle [
+        % (Title: )
+        Slug /Title get
+        
+        Slug /Variant known {
+            ( \() 
+            Slug /Variant get
+            (\))
+        } if
+    ] merge_str def
+
+    /SlugParameters [
+        Slug /Parameters get
+    ] merge_str def
+
+    % /QRCodeSize 72 def
+    /QRCodeContents [
+        SlugHeader
+        (\n)
+        SlugTitle
+        (\n)
+        SlugParameters
+        (\n)
+        SlugFooter
+    ] merge_str def
+
+    /QRCodeECLevel (L) def
+        
+    /QRCodeDict QRCodeContents << /dontdraw true /eclevel QRCodeECLevel>> /qrcode /uk.co.terryburton.bwipp findresource exec def
+    /QRCodeHeight QRCodeDict /height get 72 mul def
+    /QRCodeWidth QRCodeDict /width get 72 mul def
+    /QRCodeScale SlugHeight QRCodeHeight div def
+
+    QRCodeDict (QRCodeDict) printIdAndDict pop
+
+    SlugXOffset SlugYOffset moveto
+
+    gsave
+
+    /SlugRect {
+        newpath
+        SlugXOffset SlugPadding sub SlugYOffset SlugPadding sub moveto
+        SlugXOffset SlugWidth add SlugPadding add SlugYOffset SlugPadding sub lineto
+        SlugXOffset SlugWidth add SlugPadding add SlugYOffset SlugHeight add SlugPadding add lineto
+        SlugXOffset SlugPadding sub SlugYOffset SlugHeight add SlugPadding add lineto
+        closepath
+    } bind def
+
+    0 setlinewidth
+    0.5 setgray SlugRect stroke
+    0.95 setgray SlugRect fill
+
+    grestore
+
+    gsave
+    QRCodeScale QRCodeScale scale
+    
+    QRCodeContents << /eclevel QRCodeECLevel >> /qrcode /uk.co.terryburton.bwipp findresource exec
+    grestore
+    
+    QRCodeWidth QRCodeScale mul SlugPadding add QRCodeHeight QRCodeScale mul rmoveto
+
+    0 -12 rmoveto
+    gsave
+    /Helvetica findfont 10 scalefont setfont
+    SlugTitle show
+    grestore
+
+    0 -10 rmoveto 
+    gsave
+    /Helvetica findfont 8 scalefont setfont
+    SlugParameters show
+    grestore
+
+    0 -10 rmoveto 
+    gsave
+    /Helvetica findfont 8 scalefont setfont
+    SlugFooter show
+    grestore
+
+    showpage
+
+    % pstack
+
+} forall
