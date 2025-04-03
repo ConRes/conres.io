@@ -15,18 +15,18 @@
 		"local": "http-server -d false --cors -s -c-1 -p 80"
 	},
 	"devDependencies": {
+		"@smotaal/esm": "SMotaal/esm",
+		"@smotaal/pholio": "SMotaal/pholio",
 		"@types/node": "*",
 		"http-server": "*",
 		"prettier": "*",
 		"rollup": "*",
-		"typescript": "*",
-		"@smotaal/esm": "SMotaal/esm",
-		"@smotaal/pholio": "SMotaal/pholio"
+		"typescript": "*"
 	},
-	"resolutions": {},
 	"workspaces": {
 		"packages": [
 			"../smotaal.io/pholio"
 		]
-	}
+	},
+	"packageManager": "yarn@4.8.1"
 }
