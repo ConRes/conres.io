@@ -26,7 +26,8 @@ import {
     prepareInputResources,
     // prepareOutputResources,
     mkdirRecursiveWithFS,
-    base64FromUint8Array,
+    uint8ArrayToBase64,
+    base64ToUint8Array,
 } from "./helpers.js";
 
 import GhostscriptModule from "./packages/ghostscript-wasm/gs.js";
@@ -366,6 +367,10 @@ class TestFormGenerator {
     }
 
     /**
+     * @typedef {'Test Form.pdf'|'Slugs.json'|'input/Output.icc'} ValidationStageResources
+     */
+
+    /**
      * @param {TestFormGeneratorState} state 
     */
     async * #validationStage(state) {
@@ -398,9 +403,11 @@ class TestFormGenerator {
                 validationProgress.removeAttribute('max');
                 validationProgressOutput.value = `Validating…`;
 
-                state.resources = {};
-
                 try {
+
+                    const resources = { .../** @type {Record<ValidationStageResources,ArrayBufferLike>} */ ({}) };
+
+                    state.resources = resources;
 
                     await new Promise(resolve => requestAnimationFrame(resolve));
 
@@ -468,15 +475,15 @@ class TestFormGenerator {
                     });
 
 
-                    state.resources = {
-                        'Test Form.pdf': pdfDocumentBuffer.slice(),
-                        'Slugs.json': attachedManifestBuffer.slice(
-                            attachedManifestRecord.contents.byteOffset,
-                            attachedManifestRecord.contents.byteOffset + attachedManifestRecord.contents.byteLength,
-                        ),
-                        'input/Output.icc': outputIccProfile.buffer.buffer.slice(),
-                    };
+                    resources['Test Form.pdf'] = pdfDocumentBuffer.slice();
+                    resources['Slugs.json'] = attachedManifestBuffer.slice(attachedManifestRecord.contents.byteOffset, attachedManifestRecord.contents.byteOffset + attachedManifestRecord.contents.byteLength);
+                    resources['input/Output.icc'] = outputIccProfile.buffer.buffer.slice();
 
+                    // Object.assign(resources, {
+                    //     'Test Form.pdf': pdfDocumentBuffer.slice(),
+                    //     'Slugs.json': attachedManifestBuffer.slice(attachedManifestRecord.contents.byteOffset, attachedManifestRecord.contents.byteOffset + attachedManifestRecord.contents.byteLength),
+                    //     'input/Output.icc': outputIccProfile.buffer.buffer.slice(),
+                    // });
                 } catch (error) {
                     console.error('TestFormGenerator %o', error, { ...state });
                     validationProgressOutput.value = `Validation failed: ${error.message}`;
@@ -582,6 +589,11 @@ class TestFormGenerator {
         // yield state;
         fieldset.setAttribute('disabled', '');
     }
+
+    /**
+     * @typedef {'Slug Template.ps'|'input/Barcode.ps'|'input/Slugs.ps'|`input/${'Barcode.ps'|'Slugs.ps'|'Output.icc'}`|'output/metadata.json'|'output/Test Form.pdf'} GenerationStageResources
+     */
+
     /**
      * @param {TestFormGeneratorState} state 
     */
@@ -603,24 +615,29 @@ class TestFormGenerator {
         } else {
 
             const generateTestFormButton = /** @type {HTMLButtonElement} */(state.form.elements.namedItem('test-form-generation-button'));
+            const generateTestFormDebuggingCheckbox = /** @type {HTMLInputElement} */(state.form.elements.namedItem('test-form-generation-debugging-checkbox'));
 
             const { promise, resolve, reject } = Promise.withResolvers();
 
             generateTestFormButton.onclick = async () => {
 
                 try {
-                    state.resources = {
-                        ...state.resources,
-                        'Slug Template.ps': await this.#loadAsset('2025-03-22 - ISO PTF 2x-4x/Slug Template.ps'),
-                        'input/Barcode.ps': await this.#loadAsset('2025-03-22 - ISO PTF 2x-4x/Barcode.ps'),
+                    const resources = {
+                        .../** @type {Record<ValidationStageResources,ArrayBufferLike>} */ (state.resources),
+                        .../** @type {Partial<Record<GenerationStageResources, ArrayBufferLike>>} */ ({
+                            'Slug Template.ps': await this.#loadAsset('2025-03-22 - ISO PTF 2x-4x/Slug Template.ps'),
+                            'input/Barcode.ps': await this.#loadAsset('2025-03-22 - ISO PTF 2x-4x/Barcode.ps'),
+                        }),
                     };
+
+                    state.resources = resources;
 
                     console.log({ resources: { ...state.resources } });
 
                     // ICCProfile:
                     const iccProfileHeader = parseICCHeaderFromBuffer(/** @type {*} */(
-                        // Buffer.from(/** @type {*} */(state.resources['input/Output.icc']))
-                        new Buffer(/** @type {ArrayBuffer} */(state.resources['input/Output.icc']))
+                        // Buffer.from(/** @type {*} */(resources['input/Output.icc']))
+                        new Buffer(/** @type {ArrayBuffer} */(resources['input/Output.icc']))
                     ));
 
                     if (iccProfileHeader.colorSpace !== 'RGB' && iccProfileHeader.colorSpace !== 'CMYK')
@@ -629,7 +646,7 @@ class TestFormGenerator {
                     // /** @type {{default: import("./assets/2025-03-22 - 01 - AI-PDF - No 2x-4x (D) - Template.pdf.json")}} */
                     // const { default: testFormDefinitions } = await import(`${assetURLs["TestFormTemplate.pdf"]}.json`, { with: { type: "json" } });
 
-                    const attachedManifestBuffer = state.resources['Slugs.json'];
+                    const attachedManifestBuffer = resources['Slugs.json'];
 
                     if (!attachedManifestBuffer) throw new Error('Missing Slugs.json');
 
@@ -640,7 +657,7 @@ class TestFormGenerator {
                     /** @type {import("../../../../assets/testforms/2025-03-22 - ISO PTF 2x-4x.pdf.json")} */
                     const attachedManifest = attachedManifestBuffer && JSON.parse(attachedManifestSourceText);
 
-                    const slugTemplateSourceBuffer = state.resources['Slug Template.ps'];
+                    const slugTemplateSourceBuffer = resources['Slug Template.ps'];
 
                     if (!slugTemplateSourceBuffer) throw new Error('Missing Slug Template.ps');
 
@@ -702,7 +719,7 @@ class TestFormGenerator {
 
                     // console.log(slugSourceText);
 
-                    state.resources['input/Slug.ps'] = new TextEncoder().encode(slugSourceText).buffer;
+                    resources['input/Slugs.ps'] = new TextEncoder().encode(slugSourceText).buffer;
 
                     console.log({ resources: { ...state.resources } });
 
@@ -713,13 +730,13 @@ class TestFormGenerator {
 
                     // const assetPathnames = {
                     //     'Barcode.ps', 
-                    //     'inputSlug.ps': '/input/Slug.ps',
+                    //     'inputSlugs.ps': '/input/Slugs.ps',
                     //     'input/Output.icc': '/input/Output.icc',
                     // };
 
-                    for (const asset of ['Barcode.ps', 'Slug.ps', 'Output.icc']) {
+                    for (const asset of ['Barcode.ps', 'Slugs.ps', 'Output.icc']) {
                         const pathname = `/input/${asset}`;
-                        const buffer = state.resources[`input/${asset}`];
+                        const buffer = resources[`input/${asset}`];
 
                         if (!buffer) throw new Error(`Missing resource: input/${asset}`);
 
@@ -764,7 +781,7 @@ class TestFormGenerator {
                             ? "-sProcessColorModel=DeviceRGB -sPDFACompatibilityPolicy=1 -dRenderIntent=1 -dBlackPtComp=1 -dKPreserve=2".split(' ')
                             : "-sProcessColorModel=DeviceCMYK -sPDFACompatibilityPolicy=1 -dRenderIntent=1 -dBlackPtComp=1 -dKPreserve=2".split(' '),
                         // "-I/input",
-                        "/input/Slug.ps",
+                        "/input/Slugs.ps",
                     ]);
 
                     if (exitCode !== 0) {
@@ -773,21 +790,21 @@ class TestFormGenerator {
 
                     const slugsOutputBuffer = ghostscriptModule.FS.readFile("/output/Slugs.pdf").buffer.slice();
 
-                    state.resources['output/Slugs.pdf'] = slugsOutputBuffer;
+                    resources['output/Slugs.pdf'] = slugsOutputBuffer;
 
                     // downloadArrayBufferAs(slugsOutputBuffer, "Slugs.pdf", "application/pdf");
 
                     console.log({ resources: { ...state.resources } });
 
-                    if (!state.resources['Test Form.pdf'])
+                    if (!resources['Test Form.pdf'])
                         throw new Error('Missing Test Form Template.pdf');
-                    if (!state.resources['output/Slugs.pdf'])
+                    if (!resources['output/Slugs.pdf'])
                         throw new Error('Missing Slugs.pdf');
 
                     const testFormDocument = await PDFDocument.load(new Uint8Array(
-                        state.resources['Test Form.pdf'].slice()
+                        resources['Test Form.pdf'].slice()
                     ));
-                    const slugPDFDocument = await PDFDocument.load(new Uint8Array(state.resources['output/Slugs.pdf']));
+                    const slugPDFDocument = await PDFDocument.load(new Uint8Array(resources['output/Slugs.pdf']));
 
                     console.log({ testFormDocument, slugPDFDocument });
 
@@ -798,30 +815,67 @@ class TestFormGenerator {
                         testFormPage.drawPage(embeddedSlugPage);
                     }
 
-                    state.resources['output/Test Form.pdf'] = (await testFormDocument.save()).buffer.slice();
+                    resources['output/Test Form.pdf'] = (await testFormDocument.save()).buffer.slice();
 
-                    // await downloadArrayBufferAs(state.resources['output/Test Form.pdf'], "Test Form.pdf", "application/pdf");
+                    // await downloadArrayBufferAs(resources['output/Test Form.pdf'], "Test Form.pdf", "application/pdf");
+                    // await downloadArrayBufferAs(resources['input/Output.icc'], "Output.icc", "application/vnd.iccprofile");
+                    // const iccProfileString = new TextDecoder().decode(new Uint8Array(resources['input/Output.icc']));
+                    // const iccProfileString2 = new TextDecoder('utf8').decode(new Uint8Array(resources['input/Output.icc']));
+                    // console.log({ iccProfileString, iccProfileString2, equal: iccProfileString === iccProfileString2 });
+                    // const iccProfileCharacters = Array.from(new Uint8Array(resources['input/Output.icc']), c => String.fromCharCode(c));
+                    // console.log({ iccProfileCharacters });
+                    // const iccProfileBase64String = btoa(iccProfileCharacters.join(''));
+                    // const iccProfileBase64String2 = btoa(iccProfileString2);
+                    // await downloadArrayBufferAs(new TextEncoder().encode(iccProfileBase64String).buffer, "Output.icc.base64-1", "application/vnd.iccprofile+base64");
+                    // await downloadArrayBufferAs(new TextEncoder().encode(iccProfileBase64String2).buffer, "Output.icc.base64-2", "application/vnd.iccprofile+base64");
 
-                    const iccProfileString = new TextDecoder().decode(new Uint8Array(state.resources['input/Output.icc']));
+                    // console.log({ iccProfileBase64String, iccProfileBase64String2, equal: iccProfileBase64String === iccProfileBase64String2 });
 
-                    console.log({ iccProfileString });
+                    /** @type {Parameters<uint8ArrayToBase64>[1] | Parameters<base64ToUint8Array>[1]} */
+                    const base64Options = { 'alphabet': 'base64' };
 
-                    const iccProfileCharacters = Array.from(new Uint8Array(state.resources['input/Output.icc']), c => String.fromCharCode(c));
+                    const iccProfileBytes = new Uint8Array(resources['input/Output.icc']);
+                    const iccProfileBase64 = uint8ArrayToBase64(iccProfileBytes, base64Options);
 
-                    console.log({ iccProfileCharacters });
+                    const slugsBytes = new Uint8Array(resources['output/Slugs.pdf']);
+                    const slugsBase64 = uint8ArrayToBase64(slugsBytes, base64Options);
 
-                    const iccProfileBase64String = btoa(iccProfileCharacters.join(''));
+                    const iccProfileDecodedBytes = base64ToUint8Array(iccProfileBase64, base64Options).bytes;
+                    const iccProfileBase64IsVerfied = iccProfileDecodedBytes.every((byte, index) => byte === iccProfileBytes[index]);
 
-                    console.log({ iccProfileBase64String });
+                    const slugsDecodedBytes = base64ToUint8Array(slugsBase64, base64Options).bytes;
+                    const slugsBase64IsVerified = slugsDecodedBytes.every((byte, index) => byte === slugsBytes[index]);
+                    
+                    console.log({
+                        iccProfileBytes, slugsBytes,
+                        iccProfileBase64, slugsBase64,
+                        iccProfileDecodedBytes, slugsDecodedBytes,
+                        iccProfileBase64IsVerfied, slugsBase64IsVerified,
+                    });
 
-                    state.resources['output/metadata.json'] = new TextEncoder().encode(JSON.stringify({
+                    const stall = async (timeout = 1000) => {
+                        await new Promise(resolve => requestAnimationFrame(resolve));
+                        await new Promise(resolve => setTimeout(resolve, timeout));
+                    };
+
+                    const isDebugging = generateTestFormDebuggingCheckbox.checked;
+                    
+                    isDebugging && await downloadArrayBufferAs(resources['input/Output.icc'], "Output.icc", "application/vnd.iccprofile");
+                    isDebugging && await downloadArrayBufferAs(resources['output/Slugs.pdf'], "Slugs.pdf", "application/pdf");
+                    // await stall();
+                    // await downloadArrayBufferAs(new TextEncoder().encode(iccProfileBase64).buffer, "Output.icc.base64", "application/vnd.iccprofile+base64");
+                    // await stall();
+                    // await downloadArrayBufferAs(iccProfileDecodedBytes.buffer, "Output.icc.base64.icc", "application/vnd.iccprofile");
+                    // await stall();
+
+                    resources['output/metadata.json'] = new TextEncoder().encode(JSON.stringify({
                         metadata: state.metadata,
                         manifest: attachedManifest,
                         slugs: {
-                            // contents: btoa(Array.from(new Uint8Array(state.resources['output/Slugs.pdf']), c => String.fromCharCode(c)).join('')),
+                            // contents: btoa(Array.from(new Uint8Array(resources['output/Slugs.pdf']), c => String.fromCharCode(c)).join('')),
                             contents: {
                                 type: 'application/pdf',
-                                base64: base64FromUint8Array(new Uint8Array(state.resources['output/Slugs.pdf'])),
+                                base64: slugsBase64,
                             },
                         },
                         color: {
@@ -830,16 +884,15 @@ class TestFormGenerator {
                                 // contents: iccProfileBase64String,
                                 contents: {
                                     type: 'application/vnd.iccprofile',
-                                    base64: base64FromUint8Array(new Uint8Array(state.resources['input/Output.icc'])),
+                                    base64: iccProfileBase64,
                                 }
                             }
                         },
                     }, null, 2)).buffer;
 
-                    await downloadArrayBufferAs(state.resources['output/metadata.json'], "metadata.json", "application/json");
-                    await new Promise(resolve => requestAnimationFrame(resolve));
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    await downloadArrayBufferAs(state.resources['output/Test Form.pdf'], "Test Form.pdf", "application/pdf");
+                    await downloadArrayBufferAs(resources['output/metadata.json'], "metadata.json", "application/json");
+                    // await stall();
+                    await downloadArrayBufferAs(resources['output/Test Form.pdf'], "Test Form.pdf", "application/pdf");
 
                     resolve(undefined);
                 } catch (error) {

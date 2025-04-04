@@ -372,20 +372,30 @@ export const dumpPDFDocument = pdfDocument => {
  * @param {string} filename 
  * @param {`${string}/${string}` | undefined} [type] 
  */
-export const downloadArrayBufferAs = (arrayBuffer, filename, type) => {
+export const downloadArrayBufferAs = (arrayBuffer, filename, type, timeout = 1000) => {
+    const {promise, resolve, reject} = Promise.withResolvers();
     const url = URL.createObjectURL(new Blob([arrayBuffer], { type }));
     const a = document.createElement('a');
     a.download = filename;
     a.href = url;
-    // a.onclick = async () => {
-    //     await new Promise(resolve => requestAnimationFrame(resolve));
-    //     await new Promise(resolve => setTimeout(resolve, 1000));
-    //     URL.revokeObjectURL(url);
-    //     a.remove();
-    // };
+    a.onclick = async () => {
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        if (timeout) await new Promise(resolve => setTimeout(resolve, timeout));
+        URL.revokeObjectURL(url);
+        a.remove();
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        resolve(undefined);
+    };
+    a.onerror = async (error) => {
+        console.error(error);
+        URL.revokeObjectURL(url);
+        a.remove();
+        reject(error);
+    };
     a.click();
-    URL.revokeObjectURL(url);
-    a.remove();
+    return promise;
+    // URL.revokeObjectURL(url);
+    // a.remove();
 };
 
 /**
@@ -537,6 +547,8 @@ export const prepareOutputResources = async (FS, resources) => {
 };
 
 
-export const base64FromUint8Array = (uint8Array) => {
-    return btoa(Array.from(uint8Array).map((byte) => String.fromCharCode(byte)).join(''));
-};
+// export const base64FromUint8Array = (uint8Array) => {
+//     return btoa(Array.from(uint8Array).map((byte) => String.fromCharCode(byte)).join(''));
+// };
+
+export * from './helpers/tc39-proposal-arraybuffer-base64-polyfill-core.js';
