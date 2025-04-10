@@ -28,6 +28,7 @@ import {
     mkdirRecursiveWithFS,
     uint8ArrayToBase64,
     base64ToUint8Array,
+    PromiseWithResolvers,
 } from "./helpers.js";
 
 import GhostscriptModule from "./packages/ghostscript-wasm/gs.js";
@@ -186,7 +187,8 @@ class TestFormGenerator {
         if (DEBUG_FIELDSETS) {
             await new Promise(resolve => setTimeout(resolve, 1000));
         } else {
-            const { promise, resolve, reject } = Promise.withResolvers();
+            // const { promise, resolve, reject } = Promise.withResolvers();
+            const { promise, resolve, reject } = PromiseWithResolvers();
             const overviewContinueButton = /** @type {HTMLButtonElement} */(state.form.elements.namedItem('test-form-overview-continue-button'));
 
             overviewContinueButton.onclick = () => resolve(undefined);
@@ -217,7 +219,8 @@ class TestFormGenerator {
         if (DEBUG_FIELDSETS) {
             await new Promise(resolve => setTimeout(resolve, 1000));
         } else {
-            const { promise, resolve, reject } = Promise.withResolvers();
+            // const { promise, resolve, reject } = Promise.withResolvers();
+            const { promise, resolve, reject } = PromiseWithResolvers();
             const conversionContinueButton = /** @type {HTMLButtonElement} */(state.form.elements.namedItem('test-form-conversion-continue-button'));
 
             conversionContinueButton.onclick = () => resolve(undefined);
@@ -248,7 +251,8 @@ class TestFormGenerator {
         if (DEBUG_FIELDSETS) {
             await new Promise(resolve => setTimeout(resolve, 1000));
         } else {
-            const { promise, resolve, reject } = Promise.withResolvers();
+            // const { promise, resolve, reject } = Promise.withResolvers();
+            const { promise, resolve, reject } = PromiseWithResolvers();
 
             const testFormVersionSelect = /** @type {HTMLSelectElement} */(state.form.elements.namedItem('test-form-version'));
             const downloadButton = /** @type {HTMLButtonElement} */(state.form.elements.namedItem('test-form-download-button'));
@@ -345,7 +349,7 @@ class TestFormGenerator {
                         { 'mimeType': 'application/json' }
                     );
 
-                    const modifiedTestFormArrayBuffer = (await pdfDocument.save()).buffer;
+                    const modifiedTestFormArrayBuffer = /** @type {ArrayBuffer} */ ((await pdfDocument.save()).buffer);
 
                     await downloadArrayBufferAs(modifiedTestFormArrayBuffer, `${testFormName}.pdf`, 'application/pdf');
 
@@ -389,7 +393,8 @@ class TestFormGenerator {
         if (DEBUG_FIELDSETS) {
             await new Promise(resolve => setTimeout(resolve, 1000));
         } else {
-            const { promise, resolve, reject } = Promise.withResolvers();
+            // const { promise, resolve, reject } = Promise.withResolvers();
+            const { promise, resolve, reject } = PromiseWithResolvers();
 
             const preparedTestFormFileInput = /** @type {HTMLInputElement} */(state.form.elements.namedItem('prepared-test-form-file-input'));
             const validationButton = /** @type {HTMLButtonElement} */(state.form.elements.namedItem('test-form-validation-button'));
@@ -405,7 +410,7 @@ class TestFormGenerator {
 
                 try {
 
-                    const resources = { .../** @type {Record<ValidationStageResources,ArrayBufferLike>} */ ({}) };
+                    const resources = { .../** @type {Record<ValidationStageResources,ArrayBuffer>} */ ({}) };
 
                     state.resources = resources;
 
@@ -534,7 +539,8 @@ class TestFormGenerator {
         if (DEBUG_FIELDSETS) {
             await new Promise(resolve => setTimeout(resolve, 1000));
         } else {
-            const { promise, resolve, reject } = Promise.withResolvers();
+            // const { promise, resolve, reject } = Promise.withResolvers();
+            const { promise, resolve, reject } = PromiseWithResolvers();
 
             // const testFormDocumentationButton = /** @type {HTMLButtonElement} */(state.form.elements.namedItem('test-form-documentation-button'));
             const testFormDocumentationResetButton = /** @type {HTMLButtonElement} */(state.form.elements.namedItem('test-form-documentation-reset-button'));
@@ -617,14 +623,15 @@ class TestFormGenerator {
             const generateTestFormButton = /** @type {HTMLButtonElement} */(state.form.elements.namedItem('test-form-generation-button'));
             const generateTestFormDebuggingCheckbox = /** @type {HTMLInputElement} */(state.form.elements.namedItem('test-form-generation-debugging-checkbox'));
 
-            const { promise, resolve, reject } = Promise.withResolvers();
+            // const { promise, resolve, reject } = Promise.withResolvers();
+            const { promise, resolve, reject } = PromiseWithResolvers();
 
             generateTestFormButton.onclick = async () => {
 
                 try {
                     const resources = {
-                        .../** @type {Record<ValidationStageResources,ArrayBufferLike>} */ (state.resources),
-                        .../** @type {Partial<Record<GenerationStageResources, ArrayBufferLike>>} */ ({
+                        .../** @type {Record<ValidationStageResources, ArrayBuffer>} */ (state.resources),
+                        .../** @type {Partial<Record<GenerationStageResources, ArrayBuffer>>} */ ({
                             'Slug Template.ps': await this.#loadAsset('2025-03-22 - ISO PTF 2x-4x/Slug Template.ps'),
                             'input/Barcode.ps': await this.#loadAsset('2025-03-22 - ISO PTF 2x-4x/Barcode.ps'),
                         }),
@@ -673,6 +680,7 @@ class TestFormGenerator {
                                 ({
                                     metadata: {
                                         title,
+                                        // @ts-ignore
                                         variant,
                                         colorSpace,
                                         resolution: { value, unit } = {},
@@ -719,7 +727,7 @@ class TestFormGenerator {
 
                     // console.log(slugSourceText);
 
-                    resources['input/Slugs.ps'] = new TextEncoder().encode(slugSourceText).buffer;
+                    resources['input/Slugs.ps'] = /** @type {ArrayBuffer} */ (new TextEncoder().encode(slugSourceText).buffer);
 
                     console.log({ resources: { ...state.resources } });
 
@@ -815,7 +823,7 @@ class TestFormGenerator {
                         testFormPage.drawPage(embeddedSlugPage);
                     }
 
-                    resources['output/Test Form.pdf'] = (await testFormDocument.save()).buffer.slice();
+                    resources['output/Test Form.pdf'] = /** @type {ArrayBuffer} */ ((await testFormDocument.save()).buffer.slice());
 
                     // await downloadArrayBufferAs(resources['output/Test Form.pdf'], "Test Form.pdf", "application/pdf");
                     // await downloadArrayBufferAs(resources['input/Output.icc'], "Output.icc", "application/vnd.iccprofile");
@@ -845,7 +853,7 @@ class TestFormGenerator {
 
                     const slugsDecodedBytes = base64ToUint8Array(slugsBase64, base64Options).bytes;
                     const slugsBase64IsVerified = slugsDecodedBytes.every((byte, index) => byte === slugsBytes[index]);
-                    
+
                     console.log({
                         iccProfileBytes, slugsBytes,
                         iccProfileBase64, slugsBase64,
@@ -859,7 +867,7 @@ class TestFormGenerator {
                     };
 
                     const isDebugging = generateTestFormDebuggingCheckbox.checked;
-                    
+
                     isDebugging && await downloadArrayBufferAs(resources['input/Output.icc'], "Output.icc", "application/vnd.iccprofile");
                     isDebugging && await downloadArrayBufferAs(resources['output/Slugs.pdf'], "Slugs.pdf", "application/pdf");
                     // await stall();
@@ -868,7 +876,7 @@ class TestFormGenerator {
                     // await downloadArrayBufferAs(iccProfileDecodedBytes.buffer, "Output.icc.base64.icc", "application/vnd.iccprofile");
                     // await stall();
 
-                    resources['output/metadata.json'] = new TextEncoder().encode(JSON.stringify({
+                    resources['output/metadata.json'] = /** @type {ArrayBuffer} */ (new TextEncoder().encode(JSON.stringify({
                         metadata: state.metadata,
                         manifest: attachedManifest,
                         slugs: {
@@ -888,7 +896,7 @@ class TestFormGenerator {
                                 }
                             }
                         },
-                    }, null, 2)).buffer;
+                    }, null, 2)).buffer);
 
                     await downloadArrayBufferAs(resources['output/metadata.json'], "metadata.json", "application/json");
                     // await stall();
@@ -961,7 +969,8 @@ class TestFormGenerator {
 
         if (!assetLocation) throw new Error(`Asset location missing: ${assetName}`);
 
-        const { promise, resolve, reject } = Promise.withResolvers();
+        // const { promise, resolve, reject } = Promise.withResolvers();
+        const { promise, resolve, reject } = PromiseWithResolvers();
 
         this.#assetCache[assetName] = promise;
 
@@ -998,7 +1007,7 @@ class TestFormGenerator {
 
                 const contentLength = cachedResponse.headers.get('content-length');
 
-                fetchState.receivedBytes = fetchState.totalBytes = parseInt(contentLength);
+                fetchState.receivedBytes = fetchState.totalBytes = contentLength ? parseInt(contentLength) :  NaN;
                 fetchState.done = true;
 
                 options?.update?.(fetchState);
@@ -1024,9 +1033,13 @@ class TestFormGenerator {
 
                     (async () => {
                         const clonedResponse = fetchedResponse.clone();
-                        const reader = clonedResponse.body.getReader();
+                        const reader = clonedResponse.body?.getReader?.();
+
+                        if (!reader) throw new Error('Failed to read response body');
+                        
                         // let chunks = [];
                         let lastProgress = 0;
+
                         while (!fetchState.done) {
                             const { done, value } = await reader.read();
 

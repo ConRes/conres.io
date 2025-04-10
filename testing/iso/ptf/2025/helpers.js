@@ -100,7 +100,7 @@ export const lookupPDFDocumentAttachementByName = (pdfDocument, attachmentName) 
 
         if (!attachedFileStream) continue;
 
-        const attachedFileContents = decodePDFRawStream(attachedFileStream).decode();
+        const attachedFileContents = /** @type {Uint8Array<ArrayBuffer>} */  (decodePDFRawStream(attachedFileStream).decode());
 
         return {
             ref: attachedFileRef,
@@ -367,13 +367,24 @@ export const dumpPDFDocument = pdfDocument => {
 
 };
 
+/** @type {typeof Promise.withResolvers} */
+export const PromiseWithResolvers = Promise.withResolvers ?? (() => {
+    const promiseWithResolvers = {};
+    promiseWithResolvers.promise = new Promise((resolve, reject) => {
+        promiseWithResolvers.resolve = resolve;
+        promiseWithResolvers.reject = reject;
+    });
+    return promiseWithResolvers;
+})
+
 /**
- * @param {ArrayBufferLike} arrayBuffer 
+ * @param {ArrayBuffer} arrayBuffer 
  * @param {string} filename 
  * @param {`${string}/${string}` | undefined} [type] 
  */
 export const downloadArrayBufferAs = (arrayBuffer, filename, type, timeout = 1000) => {
-    const {promise, resolve, reject} = Promise.withResolvers();
+    // const {promise, resolve, reject} = Promise.withResolvers();
+    const {promise, resolve, reject} = PromiseWithResolvers();
     const url = URL.createObjectURL(new Blob([arrayBuffer], { type }));
     const a = document.createElement('a');
     a.download = filename;
