@@ -138,13 +138,14 @@
                                 to the measured contrast and resolution capabilities of printing systems.</p>
 
                             <p>This generator is used to produce individualized PDF files specifically for a test run.
-                                This
-                                ensures
-                                that each printed sample is marked with a unique QR code for traceability. The QR code
-                                is
-                                associated
-                                with a separate single-page PDF file used to document the printing system, substrate and
-                                colorants,
+                                This ensures that each printed sample is marked with a unique QR code for traceability.
+                            </p>
+                            <p>The QR code only includes the unique slug for each page along with the email address and
+                                generation timestamps.</p>
+                            <p>The QR code only includes the information necessary to identify the individualized
+                                version and the specific page when scanned. All other information collected is stored in
+                                a separate <code>metadata.json</code>, which includes the complete specifications for
+                                the printing system, substrate and colorants,
                                 along with other metadata.</p>
 
                             <p>The process is divided into two stages:
@@ -161,14 +162,8 @@
                                 <li>Validate the color-converted PDF. Then, fill in the information in the fields
                                     provided. Finally, generate and download the PDF and <code>metadata.json</code>
                                     file.
-                                    PDF.
                                 </li>
                             </ol>
-                            </p>
-
-                            <p>This tool is limited to the preparation and serialization stages only. Refer to the
-                                supplemental documentation for instructions related to the scanning and submission
-                                stages.
                             </p>
 
                             <article id="requirements">
@@ -386,13 +381,16 @@
                                 <p>Once generated, you should see two new files in your downloads, the labelled test
                                     form as a PDF and
                                     metadata in a JSON file. Make sure you keep them together.</p>
-                                <p><b>Note</b>:If you will be submitting those prints, the metadata file must by
+                                <p><b>Note</b>: If you will be submitting those prints, the metadata file must by
                                     submitted along with your prints.</p>
                             </div>
                             <div class="full-row">
-                                <label for="debugging-input"><input type="checkbox" id="test-form-generation-debugging-checkbox" class="full-row" /> Debugging</label>
+                                <label for="debugging-input"><input type="checkbox"
+                                        id="test-form-generation-debugging-checkbox" class="full-row" />
+                                    Debugging</label>
                                 <p>Enable debugging to see the generated PDF and metadata files in the console.</p>
-                                <p><b>Note</b>: This is only for testing purposes and should not be used in production.</p>
+                                <p><b>Note</b>: This is only for testing purposes and should not be used in production.
+                                </p>
                             </div>
                             <fieldset name="generation-progess-fieldset" style="opacity:0;" class="full-row">
                                 <progress id="test-form-generation-progress" name="test-form-generation-progress"
