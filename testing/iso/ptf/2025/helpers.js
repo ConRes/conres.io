@@ -367,15 +367,17 @@ export const dumpPDFDocument = pdfDocument => {
 
 };
 
-/** @type {typeof Promise.withResolvers} */
-export const PromiseWithResolvers = Promise.withResolvers ?? (() => {
-    const promiseWithResolvers = {};
-    promiseWithResolvers.promise = new Promise((resolve, reject) => {
-        promiseWithResolvers.resolve = resolve;
-        promiseWithResolvers.reject = reject;
-    });
-    return promiseWithResolvers;
-})
+
+export const PromiseWithResolvers =
+    /** @type {typeof Promise.withResolvers} */
+    (typeof Promise.withResolvers === 'function' ? (() => Promise.withResolvers()) : (() => {
+        const promiseWithResolvers = {};
+        promiseWithResolvers.promise = new Promise((resolve, reject) => {
+            promiseWithResolvers.resolve = resolve;
+            promiseWithResolvers.reject = reject;
+        });
+        return promiseWithResolvers;
+    }));
 
 /**
  * @param {ArrayBuffer} arrayBuffer 
@@ -384,7 +386,7 @@ export const PromiseWithResolvers = Promise.withResolvers ?? (() => {
  */
 export const downloadArrayBufferAs = (arrayBuffer, filename, type, timeout = 1000) => {
     // const {promise, resolve, reject} = Promise.withResolvers();
-    const {promise, resolve, reject} = PromiseWithResolvers();
+    const { promise, resolve, reject } = PromiseWithResolvers();
     const url = URL.createObjectURL(new Blob([arrayBuffer], { type }));
     const a = document.createElement('a');
     a.download = filename;
