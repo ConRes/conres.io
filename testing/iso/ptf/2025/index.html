@@ -182,6 +182,10 @@
                             </article>
 
                             <button id="test-form-overview-continue-button">Continue</button>
+
+                            <!-- <details open><summary>Experiments</summary>
+                                <button id="test-form-overview-test-decalibrate" onclick="(async () => (await import('./experiments/decalibrate/decalibrate.js')).default())()">Decalibrate</button>
+                            </details> -->
                         </div>
                     </fieldset>
                 </section>
@@ -192,11 +196,10 @@
                         <h2>Download</h2>
                         <fieldset name="download-fieldset">
                             <div class="full-row">
-                                <label for="test-form-version-select">Choose the version of the test form you
-                                    would
-                                    like to
-                                    use:</label>
+                                <label for="test-form-version-select">Choose the version of the test form you would like
+                                    to use:</label>
                                 <select id="test-form-version-select" name="test-form-version">
+                                    <option value="2025-04-25 - ISO PTF 2x-4x">2025-04-25 - ISO PTF 2x-4x</option>
                                     <option value="2025-03-22 - ISO PTF 2x-4x">2025-03-22 - ISO PTF 2x-4x</option>
                                 </select>
                                 <p>If you already downloaded the PDF and converted the colors in Acrobat, you can skip
@@ -207,7 +210,7 @@
                                 <button id="test-form-download-button">Download</button>
                                 <button id="test-form-download-skip-button">Skip</button>
                             </div>
-                            <p><small><b>Note</b>: There is only one test form at this time.</small></p>
+                            <!-- <p><small><b>Note</b>: There is only one test form at this time.</small></p> -->
                             <fieldset name="download-progress-fieldset" style="opacity:0;" class="full-row">
                                 <progress id="test-form-download-progress" name="test-form-download-progress" value="0"
                                     max="100"></progress>

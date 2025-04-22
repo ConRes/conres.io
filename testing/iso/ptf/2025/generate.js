@@ -2,36 +2,17 @@
 /// <reference lib="ESNext" />
 /// <reference types="emscripten" />
 
-import {
-    PDFDict,
-    PDFDocument,
-    PDFRawStream,
-    asPDFName,
-    PDFContext,
-    PDFObject,
-    PDFArray,
-    PDFName,
-    PDFString,
-    decodePDFRawStream,
-    PDFRef,
-} from "pdf-lib";
-// } from "./packages/pdf-lib/pdf-lib.esm.js";
+import { PDFDocument } from "pdf-lib";
 
-import { parse as parseICCHeaderFromBuffer } from "icc";
 import {
-    Buffer,
-    lookupPDFDocumentAttachementByName,
-    dumpPDFDocument,
     downloadArrayBufferAs,
-    prepareInputResources,
-    // prepareOutputResources,
-    mkdirRecursiveWithFS,
     uint8ArrayToBase64,
-    base64ToUint8Array,
     PromiseWithResolvers,
 } from "./helpers.js";
 
-import GhostscriptModule from "./packages/ghostscript-wasm/gs.js";
+import { PDFService } from "./services/PDFService.js";
+import { ICCService } from "./services/ICCService.js";
+import { GhostscriptService } from "./services/GhostscriptService.js";
 
 const assetLocations = {
     '2025-03-22 - ISO PTF 2x-4x.pdf.json': new URL('../../../../assets/testforms/2025-03-22 - ISO PTF 2x-4x.pdf.json', import.meta.url).href,
@@ -46,6 +27,13 @@ const assetLocations = {
     '2025-03-22 - ISO PTF 2x-4x/Barcode.ps': new URL('../../../../assets/testforms/2025-03-22 - ISO PTF 2x-4x/Barcode.ps', import.meta.url).href,
     '2025-03-22 - ISO PTF 2x-4x/Slug Template.ps': new URL('../../../../assets/testforms/2025-03-22 - ISO PTF 2x-4x/Slug Template.ps', import.meta.url).href,
     '2025-03-22 - ISO PTF 2x-4x/Slugs.json': new URL('../../../../assets/testforms/2025-03-22 - ISO PTF 2x-4x/Slugs.json', import.meta.url).href,
+
+    '2025-04-25 - ISO PTF 2x-4x/Test Form Template.pdf': /^https?:\/\/(?:www\.)?(?:conres\.io)\//.test(globalThis.location?.href ?? '')
+        ? 'https://media.githubusercontent.com/media/ConRes/conres.io/refs/heads/master/assets/testforms/2025-04-25 - ISO PTF 2x-4x.pdf'
+        : new URL('../../../../assets/testforms/2025-04-25 - ISO PTF 2x-4x.pdf', import.meta.url).href,
+    '2025-04-25 - ISO PTF 2x-4x/Barcode.ps': new URL('../../../../assets/testforms/2025-04-25 - ISO PTF 2x-4x/Barcode.ps', import.meta.url).href,
+    '2025-04-25 - ISO PTF 2x-4x/Slug Template.ps': new URL('../../../../assets/testforms/2025-04-25 - ISO PTF 2x-4x/Slug Template.ps', import.meta.url).href,
+    '2025-04-25 - ISO PTF 2x-4x/Slugs.json': new URL('../../../../assets/testforms/2025-04-25 - ISO PTF 2x-4x/Slugs.json', import.meta.url).href,
 };
 
 const DEBUG_FIELDSETS = false;
@@ -81,6 +69,7 @@ class TestFormGenerator {
 
     /** @type {AbortController?} */
     #abortController = new AbortController();
+
     #aborted = false;
 
     #assetLocations = { ...assetLocations };
@@ -89,15 +78,6 @@ class TestFormGenerator {
     #assetCache = {};
 
     #cache;
-
-    // /** 
-    //  * @type {Record<string, ArrayBuffer?>} 
-    //  */
-    #resources = {
-        'Slug Template.ps': /** @type {ArrayBuffer?} */ (null),
-        'Barcode.ps': /** @type {ArrayBuffer?} */ (null),
-        'Output.icc': /** @type {ArrayBuffer?} */ (null),
-    };
 
     constructor() {
         this.#abortController?.signal.addEventListener('abort', event => {
@@ -128,7 +108,6 @@ class TestFormGenerator {
         const steps = this.#allStages(state);
 
         try {
-
             for await (const step of steps) {
                 if (this.#aborted) break;
                 const state = await step;
@@ -151,8 +130,6 @@ class TestFormGenerator {
     async * #allStages(state) {
         for (const fieldset of Object.values(state.fieldsets))
             fieldset.setAttribute('disabled', '');
-        // for (const section of Object.values(state.sections))
-        //     section.setAttribute('disabled', '');
 
         state.stage = 'ready';
 
@@ -163,7 +140,6 @@ class TestFormGenerator {
         yield* this.#validationStage(state);
         yield* this.#documentationStage(state);
         yield* this.#generationStage(state);
-        // yield* this.#exportingStep(state);
         state.stage = 'done';
         yield state;
     }
@@ -341,15 +317,16 @@ class TestFormGenerator {
                         },
                     });
 
+                    /** @todo Embed Slug and Barcode */
+
                     const pdfDocument = await PDFDocument.load(downloadedTestFormArrayBuffer);
 
-                    pdfDocument.attach(
-                        downloadedTestFormManifestArrayBuffer,
-                        'test-form.manifest.json',
-                        { 'mimeType': 'application/json' }
-                    );
+                    // await pdfDocument.attach(downloadedTestFormManifestArrayBuffer, 'test-form.manifest.json', { 'mimeType': 'application/json' });
+                    await PDFService.attachManifestToPDF(pdfDocument, downloadedTestFormManifestArrayBuffer, 'test-form.manifest.json');
 
-                    const modifiedTestFormArrayBuffer = /** @type {ArrayBuffer} */ ((await pdfDocument.save()).buffer);
+                    const modifiedTestFormArrayBuffer = /** @type {ArrayBuffer} */ ((await pdfDocument.save({ addDefaultPage: false, updateFieldAppearances: false })).buffer);
+
+                    if (DEBUG_FETCH) await downloadArrayBufferAs(downloadedTestFormArrayBuffer, `${testFormName} (Fetched).pdf`, 'application/pdf');
 
                     await downloadArrayBufferAs(modifiedTestFormArrayBuffer, `${testFormName}.pdf`, 'application/pdf');
 
@@ -371,12 +348,8 @@ class TestFormGenerator {
     }
 
     /**
-     * @typedef {'Test Form.pdf'|'Slugs.json'|'input/Output.icc'} ValidationStageResources
-     */
-
-    /**
      * @param {TestFormGeneratorState} state 
-    */
+     */
     async * #validationStage(state) {
         state.stage = 'validation';
 
@@ -390,10 +363,10 @@ class TestFormGenerator {
         fieldset.removeAttribute('disabled');
         (fieldset.parentElement ?? fieldset).scrollIntoView({ behavior: 'smooth', 'block': 'center', 'inline': 'nearest' });
         await new Promise(resolve => requestAnimationFrame(resolve));
+
         if (DEBUG_FIELDSETS) {
             await new Promise(resolve => setTimeout(resolve, 1000));
         } else {
-            // const { promise, resolve, reject } = Promise.withResolvers();
             const { promise, resolve, reject } = PromiseWithResolvers();
 
             const preparedTestFormFileInput = /** @type {HTMLInputElement} */(state.form.elements.namedItem('prepared-test-form-file-input'));
@@ -409,15 +382,11 @@ class TestFormGenerator {
                 validationProgressOutput.value = `Validating…`;
 
                 try {
-
-                    const resources = { .../** @type {Record<ValidationStageResources,ArrayBuffer>} */ ({}) };
-
+                    const resources = {};
                     state.resources = resources;
-
                     await new Promise(resolve => requestAnimationFrame(resolve));
 
                     const preparedTestFormFile = preparedTestFormFileInput.files?.[0];
-
                     if (!preparedTestFormFile) {
                         validationProgressOutput.value = `The color converted test form must be provided above.`;
                         validationProgress.value = 0;
@@ -428,67 +397,23 @@ class TestFormGenerator {
                     const pdfDocumentBuffer = await preparedTestFormFile.arrayBuffer();
                     const pdfDocument = await PDFDocument.load(pdfDocumentBuffer);
 
-                    console.log(dumpPDFDocument(pdfDocument));
-
-                    const enumeratedIndirectObjects = /** @type {[PDFRef, PDFObject | PDFArray | PDFRawStream | PDFDict | PDFContext][]} */ (pdfDocument.context.enumerateIndirectObjects());
-
-                    const attachedManifestRecord = lookupPDFDocumentAttachementByName(pdfDocument, 'test-form.manifest.json');
-
-                    const attachedManifestBuffer = attachedManifestRecord?.contents?.buffer;
-                    const attachedManifest = attachedManifestBuffer && JSON.parse(new TextDecoder().decode(attachedManifestRecord.contents));
-
-                    if (!attachedManifest) throw new Error('The PDF does not have a valid manifest attached.');
-
-                    // @ts-ignore
-                    const iccBasedIndirectObjects = enumeratedIndirectObjects.filter(([ref, object]) => object.asArray?.()?.[0]?.asString?.() === '/ICCBased');
-                    // @ts-ignore
-                    const iccBasedObjectReferences = new Set(iccBasedIndirectObjects.map(([ref, object]) => object?.asArray?.()?.[1]).filter(Boolean));
-
-                    const iccBasedRawStreams = /** @type {(PDFRawStream | undefined)[]} */ ([...iccBasedObjectReferences].map(ref => pdfDocument.context.lookupMaybe(ref, /** @type {*} */(PDFRawStream))));
-
-                    /** @type {Map<PDFRef, { stream: PDFRawStream, buffer: Buffer, header: ReturnType<import('icc')['parse']> }>} */
-                    const iccProfilesMap = new Map();
-
-                    for (const reference of iccBasedObjectReferences) {
-                        const stream = /** @type {PDFRawStream | undefined} */ (pdfDocument.context.lookupMaybe(reference, /** @type {*} */(PDFRawStream)));
-
-                        if (!stream) continue;
-
-                        const buffer = /** @type {Buffer} */(Buffer.from(decodePDFRawStream(stream).decode()));
-
-                        const header = parseICCHeaderFromBuffer(/** @type {*} */(buffer));
-
-                        iccProfilesMap.set(reference, { header, buffer, stream });
+                    const manifestResult = PDFService.extractManifestFromPDF(pdfDocument);
+                    if (!manifestResult) {
+                        throw new Error('The PDF does not have a valid manifest attached.');
                     }
 
+                    const iccProfilesMap = PDFService.extractICCProfilesFromPDF(pdfDocument);
                     const iccProfilesSet = new Set(iccProfilesMap.values());
 
                     if (iccProfilesSet.size !== 1)
-                        throw new Error(`The PDF contains ${iccProfilesSet.size} ICC profiles. The PDF must contain exactly one ICC profile.`);
+                        throw new Error(`The PDF must contain exactly one ICC profile. Found ${iccProfilesSet.size} ICC profiles.`);
 
-                    const [outputIccProfile] = iccProfilesSet;
-
-                    // outputIccProfile.
-
-                    // const outputICCProfile = iccProfiles.get(iccBasedObjectReferences.values().next().value);
-
-                    console.log({
-                        pdfDocument,
-                        attachedManifestRecord, attachedManifest,
-                        enumeratedIndirectObjects,
-                        iccBasedIndirectObjects, iccBasedObjectReferences, iccBasedRawStreams, iccProfiles: iccProfilesMap,
-                    });
-
+                    const iccProfile = [...iccProfilesSet][0];
 
                     resources['Test Form.pdf'] = pdfDocumentBuffer.slice();
-                    resources['Slugs.json'] = attachedManifestBuffer.slice(attachedManifestRecord.contents.byteOffset, attachedManifestRecord.contents.byteOffset + attachedManifestRecord.contents.byteLength);
-                    resources['input/Output.icc'] = outputIccProfile.buffer.buffer.slice();
+                    resources['Slugs.json'] = manifestResult.buffer;
+                    resources['input/Output.icc'] = iccProfile.buffer.buffer.slice();
 
-                    // Object.assign(resources, {
-                    //     'Test Form.pdf': pdfDocumentBuffer.slice(),
-                    //     'Slugs.json': attachedManifestBuffer.slice(attachedManifestRecord.contents.byteOffset, attachedManifestRecord.contents.byteOffset + attachedManifestRecord.contents.byteLength),
-                    //     'input/Output.icc': outputIccProfile.buffer.buffer.slice(),
-                    // });
                 } catch (error) {
                     console.error('TestFormGenerator %o', error, { ...state });
                     validationProgressOutput.value = `Validation failed: ${error.message}`;
@@ -502,26 +427,21 @@ class TestFormGenerator {
                 validationProgressOutput.value = `100%`;
                 validationProgress.value = 100;
                 validationProgress.max = 100;
-
                 resolve(undefined);
-
-                // this.#resources
-
                 return;
             };
 
             await promise;
-
             validationButton.onclick = null;
-
         }
-        // fieldset.focus();
-        // yield state;
+
         fieldset.setAttribute('disabled', '');
     }
 
+
+
     /**
-     * @param {TestFormGeneratorState} state 
+    * @param {TestFormGeneratorState} state 
     */
     async * #documentationStage(state) {
         state.stage = 'documentation';
@@ -596,13 +516,11 @@ class TestFormGenerator {
         fieldset.setAttribute('disabled', '');
     }
 
-    /**
-     * @typedef {'Slug Template.ps'|'input/Barcode.ps'|'input/Slugs.ps'|`input/${'Barcode.ps'|'Slugs.ps'|'Output.icc'}`|'output/metadata.json'|'output/Test Form.pdf'} GenerationStageResources
-     */
+
 
     /**
      * @param {TestFormGeneratorState} state 
-    */
+     */
     async * #generationStage(state) {
         state.stage = 'generation';
 
@@ -616,271 +534,102 @@ class TestFormGenerator {
         fieldset.removeAttribute('disabled');
         (fieldset.parentElement ?? fieldset).scrollIntoView({ behavior: 'smooth', 'block': 'center', 'inline': 'nearest' });
         await new Promise(resolve => requestAnimationFrame(resolve));
+
         if (DEBUG_FIELDSETS) {
             await new Promise(resolve => setTimeout(resolve, 1000));
         } else {
-
             const generateTestFormButton = /** @type {HTMLButtonElement} */(state.form.elements.namedItem('test-form-generation-button'));
             const generateTestFormDebuggingCheckbox = /** @type {HTMLInputElement} */(state.form.elements.namedItem('test-form-generation-debugging-checkbox'));
-
-            // const { promise, resolve, reject } = Promise.withResolvers();
             const { promise, resolve, reject } = PromiseWithResolvers();
 
             generateTestFormButton.onclick = async () => {
-
                 try {
                     const resources = {
-                        .../** @type {Record<ValidationStageResources, ArrayBuffer>} */ (state.resources),
-                        .../** @type {Partial<Record<GenerationStageResources, ArrayBuffer>>} */ ({
+                        ...state.resources,
+                        ...{
                             'Slug Template.ps': await this.#loadAsset('2025-03-22 - ISO PTF 2x-4x/Slug Template.ps'),
                             'input/Barcode.ps': await this.#loadAsset('2025-03-22 - ISO PTF 2x-4x/Barcode.ps'),
-                        }),
+                        },
                     };
-
                     state.resources = resources;
 
-                    console.log({ resources: { ...state.resources } });
+                    // const iccValidation = ICCService.validateICCColorSpace(resources['input/Output.icc']);
 
-                    // ICCProfile:
-                    const iccProfileHeader = parseICCHeaderFromBuffer(/** @type {*} */(
-                        // Buffer.from(/** @type {*} */(resources['input/Output.icc']))
-                        new Buffer(/** @type {ArrayBuffer} */(resources['input/Output.icc']))
-                    ));
+                    const iccProfileHeader = ICCService.parseICCHeaderFromSource(resources['input/Output.icc']);
 
                     if (iccProfileHeader.colorSpace !== 'RGB' && iccProfileHeader.colorSpace !== 'CMYK')
                         throw new Error(`The ICC profile must be RGB or CMYK. The ICC profile is ${iccProfileHeader.colorSpace}.`);
 
-                    // /** @type {{default: import("./assets/2025-03-22 - 01 - AI-PDF - No 2x-4x (D) - Template.pdf.json")}} */
-                    // const { default: testFormDefinitions } = await import(`${assetURLs["TestFormTemplate.pdf"]}.json`, { with: { type: "json" } });
+                    const slugTemplateSourceBuffer = resources['Slug Template.ps'];
+                    if (!slugTemplateSourceBuffer) throw new Error('Missing Slug Template.ps');
 
+                    const slugTemplateSourceText = new TextDecoder().decode(new Uint8Array(slugTemplateSourceBuffer));
                     const attachedManifestBuffer = resources['Slugs.json'];
 
                     if (!attachedManifestBuffer) throw new Error('Missing Slugs.json');
 
                     const attachedManifestSourceText = new TextDecoder().decode(new Uint8Array(attachedManifestBuffer));
+                    const attachedManifest = JSON.parse(attachedManifestSourceText);
 
-                    console.log({ attachedManifestSourceText });
-
-                    /** @type {import("../../../../assets/testforms/2025-03-22 - ISO PTF 2x-4x.pdf.json")} */
-                    const attachedManifest = attachedManifestBuffer && JSON.parse(attachedManifestSourceText);
-
-                    const slugTemplateSourceBuffer = resources['Slug Template.ps'];
-
-                    if (!slugTemplateSourceBuffer) throw new Error('Missing Slug Template.ps');
-
-                    const slugTemplateSourceText = new TextDecoder().decode(new Uint8Array(slugTemplateSourceBuffer));
-                    let slugSourceText = slugTemplateSourceText;
-
-                    slugSourceText = /^(?<indent>[ \t]*)%\|[ \t]+\{\{Slugs\}\}.*?$/m[
-                        Symbol.replace
-                    ](
-                        slugSourceText,
-                        attachedManifest.pages
-                            .map(
-                                ({
-                                    metadata: {
-                                        title,
-                                        // @ts-ignore
-                                        variant,
-                                        colorSpace,
-                                        resolution: { value, unit } = {},
-                                    },
-                                }) =>
-                                    [
-                                        "$<indent><<",
-                                        title && `$<indent>  /Title (${title})`,
-                                        variant && `$<indent>  /Variant (${variant})`,
-                                        (colorSpace || value) &&
-                                        `$<indent>  /Parameters (${[
-                                            colorSpace,
-                                            `${value || ""}${unit || ""}`,
-                                        ]
-                                            .filter(Boolean)
-                                            .join(" - ")})`,
-                                        "$<indent>>>",
-                                    ]
-                                        .filter(Boolean)
-                                        .join("\n")
-                            )
-                            .join("\n")
+                    const slugSourceText = GhostscriptService.processSlugTemplate(
+                        slugTemplateSourceText,
+                        attachedManifest,
+                        state.metadata
                     );
 
-                    slugSourceText = /^(?<indent>[ \t]*)%\|[ \t]+\{\{Slug\}\}.*?$/m[Symbol.replace](
-                        slugSourceText,
-                        [
-                            `$<indent>/SlugHeader (Slug CR 20250322) def`,
-                            `$<indent>/SlugFooter (${[
-                                state.metadata?.slugs?.email ?? "user@example.com",
-                                /^(?<YYYY>\d{4})-(?<MM>\d{2})-(?<DD>\d{2})T(?<hh>\d{2}):(?<mm>\d{2}):(?<ss>\d{2})\.\d+Z$/[
-                                    Symbol.replace
-                                ](new Date().toISOString(), "$<YYYY>-$<MM>-$<DD> $<hh>:$<mm>:$<ss>"),
-                            ]
-                                .filter(Boolean)
-                                .join(" ")}) def`,
-                        ].join("\n")
+                    resources['input/Slugs.ps'] = new TextEncoder().encode(slugSourceText).buffer;
+
+                    const slugsOutputBuffer = await GhostscriptService.generateSlugsPDF(
+                        resources,
+                        iccProfileHeader.colorSpace,
+                        generateTestFormDebuggingCheckbox.checked
                     );
-
-                    slugSourceText = slugSourceText.replace(
-                        "(Barcode.ps)",
-                        "(/input/Barcode.ps)"
-                    );
-
-                    // console.log(slugSourceText);
-
-                    resources['input/Slugs.ps'] = /** @type {ArrayBuffer} */ (new TextEncoder().encode(slugSourceText).buffer);
-
-                    console.log({ resources: { ...state.resources } });
-
-                    // const buffer = /** @type {Buffer} */(Buffer.from(decodePDFRawStream(stream).decode()));
-
-                    /** @type {Record<string, import('./helpers.js').InputResource>} */
-                    const inputResources = {};
-
-                    // const assetPathnames = {
-                    //     'Barcode.ps', 
-                    //     'inputSlugs.ps': '/input/Slugs.ps',
-                    //     'input/Output.icc': '/input/Output.icc',
-                    // };
-
-                    for (const asset of ['Barcode.ps', 'Slugs.ps', 'Output.icc']) {
-                        const pathname = `/input/${asset}`;
-                        const buffer = resources[`input/${asset}`];
-
-                        if (!buffer) throw new Error(`Missing resource: input/${asset}`);
-
-                        inputResources[`input/${asset}`] = {
-                            pathname,
-                            data: new Uint8Array(buffer),
-                        };
-                    }
-
-                    const pendingPromises = [];
-
-                    /** @type {Promise<EmscriptenModule & { FS: typeof FS; callMain: (argv: string[]) => number}>} */
-                    const ghostscriptModulePromise = GhostscriptModule({ noInitialRun: true });
-
-                    pendingPromises.push(ghostscriptModulePromise);
-
-                    const ghostscriptModule = await ghostscriptModulePromise;
-
-                    pendingPromises.push(prepareInputResources(ghostscriptModule.FS, inputResources));
-
-                    await Promise.allSettled(pendingPromises.splice(0, pendingPromises.length));
-
-                    mkdirRecursiveWithFS(ghostscriptModule.FS, `/output/`);
-
-                    const exitCode = await ghostscriptModule.callMain([
-                        "-dBATCH",
-                        "-dNOPAUSE",
-                        "-dNOSAFER",
-                        "-sDEVICE=pdfwrite",
-                        "-sOutputFile=/output/Slugs.pdf",
-                        "-sOutputICCProfile=/input/Output.icc",
-                        // "-sPostRenderProfile=/input/Output.icc",
-                        // "-sBlendColorProfile=/input/Output.icc",
-                        // "-sProofProfile=Output.icc",
-                        // "-sICCProfilesDir=/input/",
-                        // "-dUseCIEColor",
-                        // "-sProofProfile=/input/Output.icc",
-                        // ...iccProfileHeader.colorSpace === 'RGB'
-                        //     ? "-sProcessColorModel=DeviceRGB -sColorConversionStrategy=RGB -dRenderIntent=1 -dBlackPtComp=1 -dKPreserve=2".split(' ')
-                        //     : "-sProcessColorModel=DeviceCMYK -sColorConversionStrategy=CMYK -dRenderIntent=1 -dBlackPtComp=1 -dKPreserve=2".split(' '),
-                        ...iccProfileHeader.colorSpace === 'RGB'
-                            ? "-sProcessColorModel=DeviceRGB -sPDFACompatibilityPolicy=1 -dRenderIntent=1 -dBlackPtComp=1 -dKPreserve=2".split(' ')
-                            : "-sProcessColorModel=DeviceCMYK -sPDFACompatibilityPolicy=1 -dRenderIntent=1 -dBlackPtComp=1 -dKPreserve=2".split(' '),
-                        // "-I/input",
-                        "/input/Slugs.ps",
-                    ]);
-
-                    if (exitCode !== 0) {
-                        throw new Error(`Ghostscript failed with exit code ${exitCode}`);
-                    }
-
-                    const slugsOutputBuffer = ghostscriptModule.FS.readFile("/output/Slugs.pdf").buffer.slice();
 
                     resources['output/Slugs.pdf'] = slugsOutputBuffer;
 
-                    // downloadArrayBufferAs(slugsOutputBuffer, "Slugs.pdf", "application/pdf");
+                    if (!resources['Test Form.pdf']) throw new Error('Missing Test Form Template.pdf');
 
-                    console.log({ resources: { ...state.resources } });
+                    const testFormDocument = await PDFDocument.load(resources['Test Form.pdf']);
+                    const slugsDocument = await PDFDocument.load(resources['output/Slugs.pdf']);
 
-                    if (!resources['Test Form.pdf'])
-                        throw new Error('Missing Test Form Template.pdf');
-                    if (!resources['output/Slugs.pdf'])
-                        throw new Error('Missing Slugs.pdf');
-
-                    const testFormDocument = await PDFDocument.load(new Uint8Array(
-                        resources['Test Form.pdf'].slice()
-                    ));
-                    const slugPDFDocument = await PDFDocument.load(new Uint8Array(resources['output/Slugs.pdf']));
-
-                    console.log({ testFormDocument, slugPDFDocument });
-
-                    for (let page = 0, pageCount = testFormDocument.getPageCount(); page < pageCount; page++) {
-                        const testFormPage = testFormDocument.getPage(page);
-                        const [embeddedSlugPage] = await testFormDocument.embedPdf(slugPDFDocument, [page]);
-
-                        testFormPage.drawPage(embeddedSlugPage);
-                    }
-
-                    resources['output/Test Form.pdf'] = /** @type {ArrayBuffer} */ ((await testFormDocument.save()).buffer.slice());
-
-                    // await downloadArrayBufferAs(resources['output/Test Form.pdf'], "Test Form.pdf", "application/pdf");
-                    // await downloadArrayBufferAs(resources['input/Output.icc'], "Output.icc", "application/vnd.iccprofile");
-                    // const iccProfileString = new TextDecoder().decode(new Uint8Array(resources['input/Output.icc']));
-                    // const iccProfileString2 = new TextDecoder('utf8').decode(new Uint8Array(resources['input/Output.icc']));
-                    // console.log({ iccProfileString, iccProfileString2, equal: iccProfileString === iccProfileString2 });
-                    // const iccProfileCharacters = Array.from(new Uint8Array(resources['input/Output.icc']), c => String.fromCharCode(c));
-                    // console.log({ iccProfileCharacters });
-                    // const iccProfileBase64String = btoa(iccProfileCharacters.join(''));
-                    // const iccProfileBase64String2 = btoa(iccProfileString2);
-                    // await downloadArrayBufferAs(new TextEncoder().encode(iccProfileBase64String).buffer, "Output.icc.base64-1", "application/vnd.iccprofile+base64");
-                    // await downloadArrayBufferAs(new TextEncoder().encode(iccProfileBase64String2).buffer, "Output.icc.base64-2", "application/vnd.iccprofile+base64");
-
-                    // console.log({ iccProfileBase64String, iccProfileBase64String2, equal: iccProfileBase64String === iccProfileBase64String2 });
-
-                    /** @type {Parameters<uint8ArrayToBase64>[1] | Parameters<base64ToUint8Array>[1]} */
-                    const base64Options = { 'alphabet': 'base64' };
+                    await PDFService.embedSlugsIntoPDF(testFormDocument, slugsDocument);
 
                     const iccProfileBytes = new Uint8Array(resources['input/Output.icc']);
+
+                    const iccProfilesMap = PDFService.extractICCProfilesFromPDF(testFormDocument);
+                    const iccProfileReference = [...iccProfilesMap.keys()][0];
+                    // const iccProfilesSet = new Set(iccProfilesMap.values());
+                    // const iccProfile = [...iccProfilesSet][0];
+
+                    await PDFService.decalibratePDFDocument(testFormDocument);
+
+                    console.time('PDFService.setOutputIntentForPDF');
+
+                    PDFService.setOutputIntentForPDF(testFormDocument, {
+                        // iccProfile: iccProfileBytes.slice(),
+                        iccProfile: iccProfileReference,
+                        identifier: iccProfileHeader.description || `ICCBased_${iccProfileHeader.colorSpace}`,
+                        subType: 'GTS_PDFX',
+                    });
+
+                    console.timeEnd('PDFService.setOutputIntentForPDF');
+
+                    resources['output/Test Form.pdf'] = (await testFormDocument.save()).buffer;
+
+                    /** @satisfies {Parameters<uint8ArrayToBase64>[1]} */
+                    const base64Options = { 'alphabet': 'base64' };
+
                     const iccProfileBase64 = uint8ArrayToBase64(iccProfileBytes, base64Options);
 
                     const slugsBytes = new Uint8Array(resources['output/Slugs.pdf']);
                     const slugsBase64 = uint8ArrayToBase64(slugsBytes, base64Options);
 
-                    const iccProfileDecodedBytes = base64ToUint8Array(iccProfileBase64, base64Options).bytes;
-                    const iccProfileBase64IsVerfied = iccProfileDecodedBytes.every((byte, index) => byte === iccProfileBytes[index]);
+                    // const iccProfileHeader = ICCService.parseICCHeader(resources['input/Output.icc']);
 
-                    const slugsDecodedBytes = base64ToUint8Array(slugsBase64, base64Options).bytes;
-                    const slugsBase64IsVerified = slugsDecodedBytes.every((byte, index) => byte === slugsBytes[index]);
-
-                    console.log({
-                        iccProfileBytes, slugsBytes,
-                        iccProfileBase64, slugsBase64,
-                        iccProfileDecodedBytes, slugsDecodedBytes,
-                        iccProfileBase64IsVerfied, slugsBase64IsVerified,
-                    });
-
-                    const stall = async (timeout = 1000) => {
-                        await new Promise(resolve => requestAnimationFrame(resolve));
-                        await new Promise(resolve => setTimeout(resolve, timeout));
-                    };
-
-                    const isDebugging = generateTestFormDebuggingCheckbox.checked;
-
-                    isDebugging && await downloadArrayBufferAs(resources['input/Output.icc'], "Output.icc", "application/vnd.iccprofile");
-                    isDebugging && await downloadArrayBufferAs(resources['output/Slugs.pdf'], "Slugs.pdf", "application/pdf");
-                    // await stall();
-                    // await downloadArrayBufferAs(new TextEncoder().encode(iccProfileBase64).buffer, "Output.icc.base64", "application/vnd.iccprofile+base64");
-                    // await stall();
-                    // await downloadArrayBufferAs(iccProfileDecodedBytes.buffer, "Output.icc.base64.icc", "application/vnd.iccprofile");
-                    // await stall();
-
-                    resources['output/metadata.json'] = /** @type {ArrayBuffer} */ (new TextEncoder().encode(JSON.stringify({
+                    resources['output/metadata.json'] = new TextEncoder().encode(JSON.stringify({
                         metadata: state.metadata,
                         manifest: attachedManifest,
                         slugs: {
-                            // contents: btoa(Array.from(new Uint8Array(resources['output/Slugs.pdf']), c => String.fromCharCode(c)).join('')),
                             contents: {
                                 type: 'application/pdf',
                                 base64: slugsBase64,
@@ -889,17 +638,22 @@ class TestFormGenerator {
                         color: {
                             profile: {
                                 ...iccProfileHeader,
-                                // contents: iccProfileBase64String,
                                 contents: {
                                     type: 'application/vnd.iccprofile',
                                     base64: iccProfileBase64,
                                 }
                             }
                         },
-                    }, null, 2)).buffer);
+                    }, null, 2)).buffer;
+
+                    const isDebugging = generateTestFormDebuggingCheckbox.checked;
+
+                    if (isDebugging) {
+                        await downloadArrayBufferAs(resources['input/Output.icc'], "Output.icc", "application/vnd.iccprofile");
+                        await downloadArrayBufferAs(resources['output/Slugs.pdf'], "Slugs.pdf", "application/pdf");
+                    }
 
                     await downloadArrayBufferAs(resources['output/metadata.json'], "metadata.json", "application/json");
-                    // await stall();
                     await downloadArrayBufferAs(resources['output/Test Form.pdf'], "Test Form.pdf", "application/pdf");
 
                     resolve(undefined);
@@ -911,57 +665,14 @@ class TestFormGenerator {
             };
 
             await promise;
-
             generateTestFormButton.onclick = null;
         }
-        // fieldset.focus();
-        // yield state;
+
         fieldset.setAttribute('disabled', '');
     }
 
-    /**
-     * @param {TestFormGeneratorState} state 
-     */
-    async * #exportingStep(state) {
-        state.stage = 'exporting';
-
-        /** @type {HTMLFieldSetElement} */
-        const fieldset = state.fieldsets['exporting-fieldset'];
-
-        yield state;
-
-        if (!fieldset) throw new Error('Export fieldset missing');
-
-        fieldset.removeAttribute('disabled');
-        (fieldset.parentElement ?? fieldset).scrollIntoView({ behavior: 'smooth', 'block': 'center', 'inline': 'nearest' });
-        await new Promise(resolve => requestAnimationFrame(resolve));
-        if (DEBUG_FIELDSETS) await new Promise(resolve => setTimeout(resolve, 1000));
-        // fieldset.focus();
-        // yield state;
-        fieldset.setAttribute('disabled', '');
-    }
-
-    async #downloadArrayBufferAs(arrayBuffer, filename, type = 'application/octet-stream') {
-        const blob = new Blob([arrayBuffer], { type });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.download = filename;
-        a.href = url;
-        a.click();
-        URL.revokeObjectURL(url);
-    }
-
-    /**
-     * 
-     * @param {*} assetName 
-     * @param {object} [options]
-     * @param {(fetchState: FetchState) => void} [options.update]
-     * @returns 
-     */
     async #loadAsset(assetName, options) {
         if (this.#aborted) throw new Error('Aborted');
-
-        // debugger;
 
         if (this.#assetCache[assetName] !== undefined) return this.#assetCache[assetName];
 
@@ -969,7 +680,6 @@ class TestFormGenerator {
 
         if (!assetLocation) throw new Error(`Asset location missing: ${assetName}`);
 
-        // const { promise, resolve, reject } = Promise.withResolvers();
         const { promise, resolve, reject } = PromiseWithResolvers();
 
         this.#assetCache[assetName] = promise;
@@ -989,10 +699,7 @@ class TestFormGenerator {
             aborted: false,
         };
 
-
         if (DEBUG_FETCH) fetchOptions['cache'] = 'reload';
-
-        console.log({ assetName, assetLocation, promise, fetchOptions });
 
         try {
             const fetchedHeaders = /^https?:\/\//.test(assetLocation)
@@ -1003,11 +710,9 @@ class TestFormGenerator {
             const cachedHeaders = cachedResponse?.headers ?? null;
 
             if (!(fetchOptions.cache === 'reload') && cachedResponse) {
-                console.log({ assetName, assetLocation, fetchedHeaders, cachedHeaders, cachedResponse });
-
                 const contentLength = cachedResponse.headers.get('content-length');
 
-                fetchState.receivedBytes = fetchState.totalBytes = contentLength ? parseInt(contentLength) :  NaN;
+                fetchState.receivedBytes = fetchState.totalBytes = contentLength ? parseInt(contentLength) : NaN;
                 fetchState.done = true;
 
                 options?.update?.(fetchState);
@@ -1015,8 +720,6 @@ class TestFormGenerator {
                 resolve(await cachedResponse.arrayBuffer());
 
                 return this.#assetCache[assetName];
-            } else {
-                console.log({ assetName, assetLocation, fetchedHeaders, cachedHeaders, cachedResponse });
             }
 
             const fetchedResponse = /^https?:\/\//.test(assetLocation)
@@ -1026,8 +729,6 @@ class TestFormGenerator {
             if (fetchedResponse) {
                 const contentLength = fetchedResponse.headers.get('content-length');
 
-                console.log(fetchState);
-
                 if (contentLength) {
                     fetchState.totalBytes = parseInt(contentLength, 10);
 
@@ -1036,8 +737,7 @@ class TestFormGenerator {
                         const reader = clonedResponse.body?.getReader?.();
 
                         if (!reader) throw new Error('Failed to read response body');
-                        
-                        // let chunks = [];
+
                         let lastProgress = 0;
 
                         while (!fetchState.done) {
@@ -1045,7 +745,6 @@ class TestFormGenerator {
 
                             fetchState.receivedBytes += value?.length ?? 0;
                             fetchState.done = done;
-                            // fetchState.progress = fetchState.receivedBytes / fetchState.totalBytes;
 
                             options?.update?.(fetchState);
 
@@ -1055,7 +754,6 @@ class TestFormGenerator {
 
                     })();
                 }
-                console.log({ assetName, assetLocation, fetchedHeaders, cachedHeaders, cachedResponse, fetchedResponse });
 
                 cache?.put?.(assetLocation, fetchedResponse.clone());
 
@@ -1070,54 +768,11 @@ class TestFormGenerator {
 
         return this.#assetCache[assetName];
     }
-
 }
 
 globalThis?.document?.addEventListener('DOMContentLoaded', async () => {
-
     const testFormGenerator = new TestFormGenerator();
-
-    const testFormGeneratorState = await testFormGenerator.execute(document.querySelector('form#test-form-generator-form'));
-
+    const testFormGeneratorState = await testFormGenerator.execute(
+        document.querySelector('form#test-form-generator-form')
+    );
 });
-
-
-// <article id="color-conversion">
-// <article id="documentation">
-// <article id="download">
-// <article id="exporting">
-// <article id="generation">
-// <article id="generator" style="text-align: center;">
-// <article id="requirements">
-// <article id="validation">
-// <button id="export-test-form-button" class="full-row">Export Test Form</button>
-// <button id="export-test-form-information-button">Export Test Form Information</button>
-// <button id="test-form-documentation-button">Generate</button>
-// <button id="test-form-documentation-reset-button">Reset</button>
-// <button id="test-form-documentation-save-button">Save</button>
-// <button id="test-form-download-button">Download</button>
-// <button id="test-form-validation-button">Validate</button>
-// <fieldset id=" generation-progess-fieldset" style="opacity:0;" class="full-row">
-// <fieldset id="documentation-fieldset">
-// <fieldset id="download-fieldset">
-// <fieldset id="download-progress-fieldset" style="opacity:0;" class="full-row">
-// <fieldset id="exporting-fieldset">
-// <fieldset id="generation-fieldset">
-// <fieldset id="validation-fieldset">
-// <fieldset id="valudation-progress-fieldset" style="opacity:0;" class="full-row">
-// <form id="test-form-generator-form" onsubmit="return false;">
-// <input type="file" id="prepared-test-form-file-input" class="full-row"
-// <input type="text" id="colorants-input" name="units-system" />
-// <input type="text" id="email-input" name="substrate" placeholder="" />
-// <input type="text" id="printing-system-input" name="printing-system"
-// <input type="text" id="substrate-input" name="substrate" />
-// <output id="test-form-download-progress-output">0%</output>
-// <output id="test-form-generation-progress-output">0%</output>
-// <output id="test-form-validation-progress-output">0%</output>
-// <progress id="test-form-download-progress" value="0" max="100"></progress>
-// <progress id="test-form-generation-progress" max="100"></progress>
-// <progress id="test-form-validation-progress" value="0" max="100"></progress>
-// <section id="overview">
-// <section id="preparation">
-// <section id="serialization">
-// <select id="test-form-version-select" name="test-form-version">
