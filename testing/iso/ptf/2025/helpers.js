@@ -454,9 +454,7 @@ export const mkdirRecursiveWithFS = (FS, path) => {
         { index: path.length },
     ]) {
         directoryName = path.slice(0, slash.index);
-        // console.log(parent);
         FS.analyzePath(directoryName).exists || FS.mkdir(directoryName);
-        // FS.analyzePath(parent = path.slice(0, slash.index)).exists || FS.mkdir(parent);
     }
 };
 
@@ -558,10 +556,5 @@ export const prepareOutputResources = async (FS, resources) => {
     }
     return files;
 };
-
-
-// export const base64FromUint8Array = (uint8Array) => {
-//     return btoa(Array.from(uint8Array).map((byte) => String.fromCharCode(byte)).join(''));
-// };
 
 export * from './helpers/tc39-proposal-arraybuffer-base64-polyfill-core.js';
