@@ -19,8 +19,8 @@
 import { CompositeColorConverter } from '../composite-color-converter.js';
 import { LegacyPDFImageColorConverter } from './legacy-pdf-image-color-converter.js';
 import { LegacyPDFContentStreamColorConverter } from './legacy-pdf-content-stream-color-converter.js';
-import { compressWithFlateDecode } from '../../services/helpers/pdf-lib.js';
-import { PDFName, PDFDict, PDFRef, decodePDFRawStream, arrayAsString, copyStringIntoBuffer } from 'pdf-lib';
+import { compressWithFlateDecode, bytesAsString } from '../../services/helpers/pdf-lib.js';
+import { PDFName, PDFDict, PDFRef, decodePDFRawStream, copyStringIntoBuffer } from 'pdf-lib';
 
 // ============================================================================
 // Type Definitions
@@ -579,7 +579,7 @@ export class LegacyPDFPageColorConverter extends CompositeColorConverter {
      */
     #getStreamText(stream) {
         const bytes = /** @type {Uint8Array} */ (decodePDFRawStream(stream).decode());
-        return arrayAsString(bytes);
+        return bytesAsString(bytes);
     }
 
     /**

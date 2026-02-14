@@ -1,0 +1,137 @@
+{
+    "settings": {
+        "colorManagement": {
+            "defaultSourceProfileForDeviceGray":       "../profiles/sGray.icc",
+            "defaultSourceProfileForDeviceGrayPolicy": {
+                "preferOutputIntent":     true,
+                "preferEmbeded":          true,
+                "preferGracefulFallback": false
+            },
+            "defaultSourceProfileForDeviceRGB":        "../profiles/sRGB IEC61966-2.1.icc",
+            "defaultSourceProfileForDeviceRGBPolicy":  {
+                "preferOutputIntent":     true,
+                "preferEmbeded":          true,
+                "preferGracefulFallback": false
+            },
+            "defaultSourceProfileForDeviceCMYK":       "../profiles/eciCMYK v2.icc",
+            "defaultSourceProfileForDeviceCMYKPolicy": {
+                "preferOutputIntent":     true,
+                "preferEmbeded":          true,
+                "preferGracefulFallback": false
+            }
+        }
+    },
+    "assets":   [
+        { "asset": "CR21",                    "colorSpace": "sRGB"  },
+        { "asset": "CR21",                    "colorSpace": "sGray" },
+        { "asset": "A - Vitznau Map",         "colorSpace": "sRGB"  },
+        { "asset": "A - Vitznau Map",         "colorSpace": "sGray" },
+        { "asset": "A - Interlaken Map",      "colorSpace": "sRGB"  },
+        { "asset": "A - Interlaken Map",      "colorSpace": "sGray" },
+        { "asset": "A - Interlaken Aerial",   "colorSpace": "sRGB"  }
+    ],
+    "colorSpaces":     {
+        "sRGB":  { "type": "RGB",     "profile": "../profiles/sRGB IEC61966-2.1.icc" },
+        "sGray": { "type": "Gray",    "profile": "../profiles/sGray.icc"             },
+        "Lab":   { "type": "Lab",     "profile": "Lab"                                  },
+        "SepK":  { "type": "DeviceN"                                                    }
+    },
+    "layouts":  [
+        {
+            "layout":     "P-30 Vitznau Map",
+            "colorSpace": "sRGB",
+            "assets":     [
+                { "asset": "CR21",            "colorSpace": "sRGB" },
+                { "asset": "A - Vitznau Map", "colorSpace": "sRGB" }
+            ]
+        },
+        {
+            "layout":     "P-30 Vitznau Map",
+            "colorSpace": "sGray",
+            "assets":     [
+                { "asset": "CR21",            "colorSpace": "sGray" },
+                { "asset": "A - Vitznau Map", "colorSpace": "sGray" }
+            ]
+        },
+        {
+            "layout":     "P-31 Interlaken Map",
+            "colorSpace": "sRGB",
+            "assets":     [
+                { "asset": "CR21",               "colorSpace": "sRGB" },
+                { "asset": "A - Interlaken Map", "colorSpace": "sRGB" }
+            ]
+        },
+        {
+            "layout":     "P-31 Interlaken Map",
+            "colorSpace": "sGray",
+            "assets":     [
+                { "asset": "CR21",               "colorSpace": "sGray" },
+                { "asset": "A - Interlaken Map", "colorSpace": "sGray" }
+            ]
+        },
+        {
+            "layout":     "P-32 Interlaken Aerial",
+            "colorSpace": "sRGB",
+            "assets":     [
+                { "asset": "CR21",                  "colorSpace": "sRGB" },
+                { "asset": "A - Interlaken Aerial", "colorSpace": "sRGB" }
+            ]
+        },
+        {
+            "layout":     "P-32 Interlaken Aerial",
+            "colorSpace": "sGray",
+            "assets":     [
+                { "asset": "CR21",                  "colorSpace": "sGray" },
+                { "asset": "A - Interlaken Aerial", "colorSpace": "sRGB"  }
+            ]
+        }
+    ],
+    "pages":    [
+        {
+            "layout":     "P-30 Vitznau Map",
+            "colorSpace": "sRGB",
+            "metadata":   {
+                "title":      "P-30 Vitznau Map",
+                "resolution": { "values": [ 900 ], "unit": "ppi" }
+            }
+        },
+        {
+            "layout":     "P-30 Vitznau Map",
+            "colorSpace": "sGray",
+            "metadata":   {
+                "title":      "P-30 Vitznau Map",
+                "resolution": { "values": [ 900 ], "unit": "ppi" }
+            }
+        },
+        {
+            "layout":     "P-31 Interlaken Map",
+            "colorSpace": "sRGB",
+            "metadata":   {
+                "title":      "P-31 Interlaken Map",
+                "resolution": { "values": [ 900 ], "unit": "ppi" }
+            }
+        },
+        {
+            "layout":     "P-31 Interlaken Map",
+            "colorSpace": "sGray",
+            "metadata":   {
+                "title":      "P-31 Interlaken Map",
+                "resolution": { "values": [ 900 ], "unit": "ppi" }
+            }
+        },
+        {
+            "metadata": {
+                "title":      "P-32 Interlaken Aerial",
+                "resolution": { "values": [ 900 ], "unit": "ppi" },
+                "colorSpace": "sRGB"
+            }
+        },
+        {
+            "metadata": {
+                "title":      "P-32 Interlaken Aerial",
+                "resolution": { "values": [ 900 ], "unit": "ppi" },
+                "colorSpace": "sGray"
+            }
+        }
+    ]
+}

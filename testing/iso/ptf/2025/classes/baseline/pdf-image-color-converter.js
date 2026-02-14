@@ -10,6 +10,7 @@
  */
 
 import { ImageColorConverter, PIXEL_FORMATS, RENDERING_INTENTS, INTENT_MAP } from './image-color-converter.js';
+import { CONTEXT_PREFIX } from '../../services/helpers/runtime.js';
 
 // Coerce Lab absolute-zero pixels (L=0, a=-128, b=-128) to Lab 0/0/0 before transform.
 // Photoshop uses 0/-128/-128 in mask images to represent black. Since a=-128, b=-128 are
@@ -28,6 +29,7 @@ const COERCE_LAB_ABSOLUTE_ZERO_PIXELS = true;
  *
  * @typedef {import('./image-color-converter.js').ImageColorConverterConfiguration & {
  *   compressOutput: boolean,
+ *   pakoPackageEntrypoint?: string,
  * }} PDFImageColorConverterConfiguration
  */
 
@@ -153,21 +155,16 @@ export class PDFImageColorConverter extends ImageColorConverter {
 
     /**
      * Loads pako library for compression.
+     *
+     * Uses the resolved entrypoint from configuration (propagated from
+     * PDFDocumentColorConverter, which resolves via import.meta.resolve).
+     * Falls back to bare 'pako' specifier if no entrypoint is configured.
+     *
      * @returns {Promise<void>}
      */
     async #loadPako() {
-        try {
-            // Try bare specifier first (works with importmap in main thread)
-            this.#pako = await import('pako');
-        } catch {
-            try {
-                // Fall back to relative path (works in Web Workers without importmap)
-                this.#pako = await import('../../packages/pako/dist/pako.mjs');
-            } catch {
-                // pako not available - compression will fail
-                console.warn('[PDFImageColorConverter] pako not available - compression disabled');
-            }
-        }
+        const entrypoint = this.configuration.pakoPackageEntrypoint;
+        this.#pako = await import(entrypoint ?? new URL('../../packages/pako/dist/pako.mjs', import.meta.url).href);
     }
 
     // ========================================
@@ -225,9 +222,9 @@ export class PDFImageColorConverter extends ImageColorConverter {
 
         // Log if verbose
         if (config.verbose) {
-            console.log(`[PDFImageColorConverter] Converting image ${streamRef}`);
-            console.log(`  Size: ${width}×${height}, ColorSpace: ${colorSpace}, BPC: ${bitsPerComponent}`);
-            console.log(`  Compressed: ${isCompressed}, Output compression: ${config.compressOutput}`);
+            console.log(`${CONTEXT_PREFIX} [PDFImageColorConverter] Converting image ${streamRef}`);
+            console.log(`${CONTEXT_PREFIX}   Size: ${width}×${height}, ColorSpace: ${colorSpace}, BPC: ${bitsPerComponent}`);
+            console.log(`${CONTEXT_PREFIX}   Compressed: ${isCompressed}, Output compression: ${config.compressOutput}`);
         }
 
         // Parent span for nested diagnostics (passed from concurrent image processing)
@@ -297,7 +294,7 @@ export class PDFImageColorConverter extends ImageColorConverter {
 
             if (coercedCount > 0) {
                 if (config.verbose) {
-                    console.log(`  [COERCE] Replaced ${coercedCount} Lab absolute-zero pixels (0/-128/-128 → 0/0/0)`);
+                    console.log(`${CONTEXT_PREFIX}   [COERCE] Replaced ${coercedCount} Lab absolute-zero pixels (0/-128/-128 → 0/0/0)`);
                 }
 
                 // For CMYK K-Only GCR: compute the profile's Relative Colorimetric black
@@ -321,7 +318,7 @@ export class PDFImageColorConverter extends ImageColorConverter {
 
                     if (config.verbose) {
                         const [c, m, y, k] = labAbsoluteZeroReplacementPixel;
-                        console.log(`  [COERCE] Relative Colorimetric black: CMYK(${c}, ${m}, ${y}, ${k}) [8-bit]`);
+                        console.log(`${CONTEXT_PREFIX}   [COERCE] Relative Colorimetric black: CMYK(${c}, ${m}, ${y}, ${k}) [8-bit]`);
                     }
                 }
             }
@@ -354,14 +351,14 @@ export class PDFImageColorConverter extends ImageColorConverter {
             // Check input endianness conflicts
             if (input.inputEndianness !== undefined && input.inputEndianness !== 'big') {
                 console.warn(
-                    `[PDFImageColorConverter] inputEndianness='${input.inputEndianness}' contradicts ` +
+                    `${CONTEXT_PREFIX} [PDFImageColorConverter] inputEndianness='${input.inputEndianness}' contradicts ` +
                     `PDF standard (ISO 32000) which specifies big-endian for ${bitsPerComponent}-bit data. ` +
                     `Using specified value, but this may produce incorrect results.`
                 );
             }
             if (input.endianness !== undefined && input.inputEndianness === undefined && input.endianness !== 'big') {
                 console.warn(
-                    `[PDFImageColorConverter] endianness='${input.endianness}' (used as inputEndianness) contradicts ` +
+                    `${CONTEXT_PREFIX} [PDFImageColorConverter] endianness='${input.endianness}' (used as inputEndianness) contradicts ` +
                     `PDF standard (ISO 32000) which specifies big-endian for ${bitsPerComponent}-bit data. ` +
                     `Using specified value, but this may produce incorrect results.`
                 );
@@ -419,7 +416,7 @@ export class PDFImageColorConverter extends ImageColorConverter {
         // Warn if 'little' endianness explicitly requested for 32-bit output (unusual for PDF)
         if (effectiveOutputBits === 32 && outputEndianness === 'little') {
             console.warn(
-                `[PDFImageColorConverter] outputEndianness='little' specified for 32-bit output. ` +
+                `${CONTEXT_PREFIX} [PDFImageColorConverter] outputEndianness='little' specified for 32-bit output. ` +
                 `PDF standard (ISO 32000) specifies big-endian. Output will be little-endian as requested.`
             );
         }
@@ -500,7 +497,7 @@ export class PDFImageColorConverter extends ImageColorConverter {
                     }
                 }
                 if (config.verbose) {
-                    console.log(`  [COERCE] Wrote Relative Colorimetric black at ${labAbsoluteZeroPositions.length} pixel positions`);
+                    console.log(`${CONTEXT_PREFIX}   [COERCE] Wrote Relative Colorimetric black at ${labAbsoluteZeroPositions.length} pixel positions`);
                 }
             } else {
                 // Lab output: write back all zeros (Lab 0/-128/-128)
@@ -512,7 +509,7 @@ export class PDFImageColorConverter extends ImageColorConverter {
                     }
                 }
                 if (config.verbose) {
-                    console.log(`  [COERCE] Restored ${labAbsoluteZeroPositions.length} Lab absolute-zero pixels in output`);
+                    console.log(`${CONTEXT_PREFIX}   [COERCE] Restored ${labAbsoluteZeroPositions.length} Lab absolute-zero pixels in output`);
                 }
             }
         }
@@ -700,7 +697,7 @@ export class PDFImageColorConverter extends ImageColorConverter {
             }
         } else {
             // Unknown BPC, return as-is
-            console.warn(`[PDFImageColorConverter] Unknown BitsPerComponent: ${bitsPerComponent}`);
+            console.warn(`${CONTEXT_PREFIX} [PDFImageColorConverter] Unknown BitsPerComponent: ${bitsPerComponent}`);
             return data;
         }
 

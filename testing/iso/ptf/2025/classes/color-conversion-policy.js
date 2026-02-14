@@ -387,8 +387,6 @@ const COLOR_ENGINE_POLICIES = await (async () => {
         { from: from.split(/\//g), relative: /** @type {string[]?} */ (null) }
     ).relative?.join('/') ?? './');
 
-    // NOTE: Uses fetch() instead of import() with { with: { type: "json" } }
-    // because import attributes are not supported in Firefox < 120.
     const importedRules = await fetch(resolvedRulesURL).then(response => response.json());
 
     /// JSON.parse(JSON.stringify([{1:['a']}]), function(key, value, { source } = {}) { console.log({ context: this, key, value, source}); return value; });

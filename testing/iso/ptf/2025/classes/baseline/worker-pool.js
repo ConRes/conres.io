@@ -160,6 +160,8 @@
  * }} WorkerPoolStats
  */
 
+import { CONTEXT_PREFIX } from '../../services/helpers/runtime.js';
+
 // ============================================================================
 // Environment Detection
 // ============================================================================
@@ -408,11 +410,15 @@ export class WorkerPool {
                 const readyHandler = (/** @type {any} */ msg) => {
                     if (msg?.type === 'ready') {
                         clearTimeout(timeout);
-                        // Send diagnostics port after ready
+                        // Send worker init with ID (and diagnostics port if enabled)
                         if (workerDiagnosticsPort) {
                             nodeWorker.postMessage(
-                                { type: 'diagnostics-port', port: workerDiagnosticsPort, workerId: `worker-${workerId}` },
+                                { type: 'worker-init', port: workerDiagnosticsPort, workerId: `worker-${workerId}` },
                                 [workerDiagnosticsPort]
+                            );
+                        } else {
+                            nodeWorker.postMessage(
+                                { type: 'worker-init', workerId: `worker-${workerId}` }
                             );
                         }
                         resolve();
@@ -426,11 +432,15 @@ export class WorkerPool {
                     if (event.data?.type === 'ready') {
                         clearTimeout(timeout);
                         browserWorker.onmessage = originalHandler;
-                        // Send diagnostics port after ready
+                        // Send worker init with ID (and diagnostics port if enabled)
                         if (workerDiagnosticsPort) {
                             browserWorker.postMessage(
-                                { type: 'diagnostics-port', port: workerDiagnosticsPort, workerId: `worker-${workerId}` },
+                                { type: 'worker-init', port: workerDiagnosticsPort, workerId: `worker-${workerId}` },
                                 [workerDiagnosticsPort]
+                            );
+                        } else {
+                            browserWorker.postMessage(
+                                { type: 'worker-init', workerId: `worker-${workerId}` }
                             );
                         }
                         resolve();
@@ -473,7 +483,7 @@ export class WorkerPool {
      * @param {Error} error
      */
     #handleWorkerError(workerInfo, error) {
-        console.error(`Worker ${workerInfo.id} error:`, error);
+        console.error(`${CONTEXT_PREFIX} [WorkerPool] Worker ${workerInfo.id} error:`, error);
         workerInfo.busy = false;
         this.#processQueue();
     }
@@ -772,7 +782,7 @@ export async function benchmarkOptimalWorkerCount(options = {}) {
 
     const results = [];
 
-    console.log(`Benchmarking worker counts from 1 to ${maxWorkers}...`);
+    console.log(`${CONTEXT_PREFIX} [WorkerPool] Benchmarking worker counts from 1 to ${maxWorkers}...`);
 
     for (let workerCount = 1; workerCount <= maxWorkers; workerCount++) {
         const pool = new WorkerPool({ workerCount });
@@ -805,7 +815,7 @@ export async function benchmarkOptimalWorkerCount(options = {}) {
         const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
         results.push({ workers: workerCount, avgTime });
 
-        console.log(`  ${workerCount} worker(s): ${avgTime.toFixed(2)}ms avg`);
+        console.log(`${CONTEXT_PREFIX} [WorkerPool]   ${workerCount} worker(s): ${avgTime.toFixed(2)}ms avg`);
     }
 
     // Find optimal (lowest average time)
@@ -813,7 +823,7 @@ export async function benchmarkOptimalWorkerCount(options = {}) {
         curr.avgTime < best.avgTime ? curr : best
     );
 
-    console.log(`\nOptimal worker count: ${optimal.workers} (${optimal.avgTime.toFixed(2)}ms)`);
+    console.log(`${CONTEXT_PREFIX} [WorkerPool] Optimal worker count: ${optimal.workers} (${optimal.avgTime.toFixed(2)}ms)`);
 
     return {
         optimalWorkers: optimal.workers,

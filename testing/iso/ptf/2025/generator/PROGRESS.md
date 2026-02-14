@@ -126,18 +126,34 @@ Refactor the test form generator to use the new `PDFDocumentColorConverter` (bas
 - [x] Fix worker importmap issues (bare specifiers fail in Web Workers) `DONE`
   - [x] Skip legacy `ColorEngineService` initialization when `colorEngineProvider` is supplied (avoids `pdf-lib` import in worker)
   - [x] Add pako relative-path fallback in `PDFImageColorConverter.#loadPako()`
-- [ ] Per-page progress reporting during color conversion `DONE`
+- [x] Per-page progress reporting during color conversion `DONE`
   - [x] Add `onPageConverted` callback to `PDFDocumentColorConverter.convertColor()` context
   - [x] Thread per-page progress from `AssetPagePreConverter` → generator → UI
   - [x] Full `await` chain ensures `requestAnimationFrame` yields propagate to browser
+- [x] Remove hardcoded pako path from baseline classes `DONE`
+  - [x] Resolve pako via `import.meta.resolve()` in `CompositeColorConverter`
+  - [x] Pass resolved entrypoint through `WorkerPool` → `worker-pool-entrypoint.js` → `PDFImageColorConverter`
+  - [x] Remove hardcoded `../../packages/pako/dist/pako.mjs` fallback from all baseline files
+- [x] Create staging sync and dependency tracing tools `DONE`
+  - [x] `sync-generator-to-staging.mjs` — safe file sync with parent-commit protection
+  - [x] `trace-dependencies.mjs` — runtime dependency graph tracing via tsc
+  - [x] `--runtime-only` flag to exclude JSDoc type-only imports
+  - [x] `--workspaceRoot` flag for cross-repo comparison
+- [x] Sync development changes to staging `DONE`
+  - [x] Traced runtime dependency graph (36 project files)
+  - [x] Identified safe sync groups: generator (5), assets (9), classes (7)
+  - [x] Confirmed packages and services already present in staging
+  - [x] Synced 20 files (1 symlink skipped — already correct in staging)
+- [x] Create `STAGING.md` deployment sync documentation `DONE`
 - [ ] Browser testing and verification `IN-PROGRESS`
+- [x] Fix `bytesAsString` content stream encoding regression `DONE`
 
 ---
 
 ## Current Status
 
-**Phase:** Shared PDFRawStream fix and memory optimization applied, browser verification in progress
-**Last Updated:** 2026-02-14 (session 5)
+**Phase:** Fixed `bytesAsString` regression (TextDecoder Windows-1252 corruption), browser verification continuing
+**Last Updated:** 2026-02-16 (session 10)
 
 ---
 
@@ -335,3 +351,71 @@ The following fixes from the prior compacted session were confirmed working inde
 - **Indexed image multiprofile bypass** (`pdf-image-color-converter.js`): `#convertIndexedImage()` now uses `this.convertColorsBuffer()` (respects `intermediateProfiles` + policy) instead of legacy `colorEngineService.convertColors()`
 - **Config propagation in derive methods** (`pdf-page-color-converter.js`, `pdf-document-color-converter.js`): `intermediateProfiles`, `outputBitsPerComponent`, `outputEndianness` explicitly listed in `derivePageConfiguration()`, `deriveImageConfiguration()`, and `deriveContentStreamConfiguration()`
 - **Progress UI** (`test-form-generator-app-element.js`): Stage-based progress with overall percentage, elapsed time, and sub-stage details
+
+### 2026-02-15 (session 6)
+
+#### Hardcoded Pako Path Removal (Baseline Classes)
+
+Removed hardcoded `../../packages/pako/dist/pako.mjs` fallback from baseline classes. Pako is now resolved via `import.meta.resolve()` in the main thread (`CompositeColorConverter`) and passed as a resolved URL through the configuration chain:
+
+- `CompositeColorConverter` → resolves `pakoPackageEntrypoint` via `import.meta.resolve()`
+- `WorkerPool` → accepts and stores `pakoPackageEntrypoint`, passes to `workerData`
+- `worker-pool-entrypoint.js` → uses `workerConfig?.pakoPackageEntrypoint ?? 'pako'`
+- `PDFImageColorConverter` → uses `configuration.pakoPackageEntrypoint`
+- `PDFDocumentColorConverter` / `PDFPageColorConverter` → propagate through `derivePageConfiguration()` / `deriveImageConfiguration()`
+
+No try/catch — if resolution or import fails, the error propagates so the cause is visible.
+
+#### Staging Sync Tools
+
+Created two tools for safe deployment to `conres.io-staging`:
+
+1. **`sync-generator-to-staging.mjs`** — Copies files with parent-commit protection (PROTECTED files are never auto-synced). Classifies operations as NEW, CHANGED, UNCHANGED, PROTECTED, or EXTRA.
+
+2. **`trace-dependencies.mjs`** — Traces runtime dependency graph via `tsc --explainFiles`. Key features:
+   - `--runtime-only` — Strips comments from source files and removes edges where the import specifier only appears in JSDoc comments (type-only imports)
+   - `--workspaceRoot=PATH` — Compare dependency graphs between repos
+   - `--tree` — Top-down hierarchy from entry points with cycle detection
+
+#### Dependency Analysis Results
+
+Runtime dependency trace from `generator/generator.js` (with `--runtime-only`): 36 project files.
+
+Key findings:
+- `services/ColorEngineService.js` references from baseline classes are **type-only** (9 JSDoc `@type`/`@param` annotations across 6 files) — zero runtime effect
+- The generator's only `services/` dependencies are `PDFService`, `ICCService`, `GhostscriptService` — all PROTECTED (already in staging)
+- The `packages/` group contains 518 files across all versioned color-engine directories — none referenced by the generator (it uses the `color-engine` symlink)
+
+#### Staging Sync Execution
+
+Cross-referenced dependency trace with sync dry-run. Synced 20 files across 3 groups:
+
+| Group | Files Synced | Notes |
+|-------|-------------|-------|
+| `generator` | 5 | 1 NEW (`assets.json`), 4 CHANGED |
+| `assets` | 8 | All NEW (F9e asset PDFs, manifests). Symlink skipped (real folder already in staging) |
+| `classes` | 7 | All CHANGED (6 baseline + 1 non-baseline `color-conversion-policy.js`) |
+
+Groups deliberately skipped:
+- `packages` — All 3 runtime dependencies (`color-engine`, `pako`, `ghostscript-wasm`) already present in staging with identical content
+- `services` — All 3 imported services are PROTECTED (in parent commit)
+
+#### Documentation
+
+Created `STAGING.md` at workspace root with complete instructions for the staging sync workflow, including tool usage, standard procedure, and which groups to sync.
+
+### 2026-02-16 (session 10)
+
+#### Fixed `bytesAsString` Content Stream Encoding Regression
+
+**Root cause:** `TextDecoder('latin1')` uses Windows-1252 per the WHATWG Encoding Standard, NOT ISO 8859-1. The label `"latin1"` (along with `"iso-8859-1"`, `"ascii"`, and all related aliases) maps to the Windows-1252 codec in every browser and Node.js. There is no `TextDecoder` label that provides true ISO 8859-1.
+
+**Impact:** Windows-1252 remaps 27 of 32 bytes in 0x80–0x9F to Unicode codepoints above U+00FF. The `charCodeAt()` round-trip then truncates them when stored in a `Uint8Array` (only the lowest 8 bits are kept). Affected characters include curly quotes (0x91–0x94), em/en dashes (0x96–0x97), bullet (0x95), euro sign (0x80), and trademark (0x99).
+
+**Symptom:** "St. Paul's Cathedral" → "St. Paul s Cathedral" — byte 0x92 (right single quotation mark in WinAnsiEncoding) was decoded as U+2019, then re-encoded as 0x19 (truncation of 8217 & 0xFF). Acrobat reports missing glyphs for the corrupted byte.
+
+**Introduced in:** Session 4 (2026-02-15), when pdf-lib's O(n^2) `arrayAsString` was replaced with `TextDecoder('latin1').decode(bytes)` for memory optimization.
+
+**Fix:** Replaced `TextDecoder('latin1').decode(bytes)` with chunked `String.fromCharCode.apply(null, bytes.subarray(...))` in `services/helpers/pdf-lib.js`. `String.fromCharCode(byte)` performs the true ISO 8859-1 identity mapping (byte N → U+00NN). Chunked in 8192-byte batches to stay within engine argument-count limits. Still O(n), zero intermediate string allocations per chunk. Old code commented out with full explanation.
+
+**Files changed:** `services/helpers/pdf-lib.js` — `bytesAsString()` function.

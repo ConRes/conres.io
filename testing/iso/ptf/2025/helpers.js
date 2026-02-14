@@ -14,7 +14,7 @@ import {
     PDFString,
     decodePDFRawStream,
     PDFRef,
-} from "pdf-lib";
+} from "./packages/pdf-lib/pdf-lib.esm.js";
 
 export class Buffer extends Uint8Array {
     #view = new DataView(this.buffer, this.byteOffset, this.byteLength);
@@ -384,12 +384,67 @@ export const PromiseWithResolvers =
  * @param {string} filename 
  * @param {`${string}/${string}` | undefined} [type] 
  */
-export const downloadArrayBufferAs = (arrayBuffer, filename, type, timeout = 1000) => {
+export const downloadArrayBufferAs = async (arrayBuffer, filename, type, timeout = 1000) => {
     // const {promise, resolve, reject} = Promise.withResolvers();
     const { promise, resolve, reject } = PromiseWithResolvers();
-    const url = URL.createObjectURL(new Blob([arrayBuffer], { type }));
+
+    // Firefox blob URL downloads silently fail for total Blob sizes >= 2 GB.
+    // The Blob constructor accepts sub-2 GB parts, but the download via
+    // URL.createObjectURL + anchor click is the bottleneck.
+    // Workaround: deflate the buffer in Firefox when it exceeds 2 GB,
+    // and download as .gz — the user decompresses manually.
+    const MAX_BLOB_DOWNLOAD = 2 * 1024 * 1024 * 1024 - 1; // 2 GB - 1
+    const isFirefox = typeof navigator !== 'undefined' && /Firefox\//.test(navigator.userAgent);
+    const isSafari = typeof navigator !== 'undefined' && /Safari\//.test(navigator.userAgent) && !/Chrome\//.test(navigator.userAgent);
+    let downloadBytes = new Uint8Array(arrayBuffer);
+    let downloadFilename = filename;
+    let downloadType = type;
+
+    if (isFirefox && downloadBytes.length > MAX_BLOB_DOWNLOAD) {
+        try {
+            const pako = await import('./packages/pako/dist/pako.mjs');
+            console.warn(
+                `[downloadArrayBufferAs] Buffer is ${(downloadBytes.length / (1024 * 1024 * 1024)).toFixed(2)} GB — ` +
+                `exceeds Firefox 2 GB blob URL download limit. Compressing with gzip…`
+            );
+            const compressed = pako.gzip(downloadBytes);
+            if (compressed.length <= MAX_BLOB_DOWNLOAD) {
+                downloadBytes = compressed;
+                downloadFilename = filename + '.gz';
+                downloadType = 'application/gzip';
+                console.warn(
+                    `[downloadArrayBufferAs] Compressed to ${(downloadBytes.length / (1024 * 1024)).toFixed(1)} MB. ` +
+                    `Downloading as "${downloadFilename}" — decompress with: gzip -d "${downloadFilename}"`
+                );
+            } else {
+                console.warn(
+                    `[downloadArrayBufferAs] Compressed size (${(compressed.length / (1024 * 1024 * 1024)).toFixed(2)} GB) ` +
+                    `still exceeds 2 GB limit. Falling back to uncompressed download (may fail silently in Firefox).`
+                );
+            }
+        } catch (error) {
+            console.warn('[downloadArrayBufferAs] pako not available for gzip compression, falling back to uncompressed.', error);
+        }
+    }
+
+    // Split into sub-2 GB zero-copy subarrays for the Blob constructor.
+    // Firefox limits individual ArrayBuffer/View parts to 2 GB (2^31 bytes).
+    // Uint8Array.subarray() shares the backing ArrayBuffer — no data copied.
+    /** @type {BlobPart[]} */
+    const parts = [];
+    
+    if (!isSafari && downloadBytes.length > MAX_BLOB_DOWNLOAD) {
+        const MAX_BLOB_PART = MAX_BLOB_DOWNLOAD;
+        for (let offset = 0; offset < downloadBytes.length; offset += MAX_BLOB_PART) {
+            parts.push(downloadBytes.subarray(offset, Math.min(offset + MAX_BLOB_PART, downloadBytes.length)));
+        }
+    } else {
+        parts.push(downloadBytes);
+    }
+    
+    const url = URL.createObjectURL(new Blob(parts, { type: downloadType }));
     const a = document.createElement('a');
-    a.download = filename;
+    a.download = downloadFilename;
     a.href = url;
     a.onclick = async () => {
         await new Promise(resolve => requestAnimationFrame(resolve));

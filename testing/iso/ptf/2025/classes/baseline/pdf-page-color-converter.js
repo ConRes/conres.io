@@ -11,8 +11,9 @@
 import { CompositeColorConverter } from './composite-color-converter.js';
 import { PDFImageColorConverter } from './pdf-image-color-converter.js';
 import { PDFContentStreamColorConverter } from './pdf-content-stream-color-converter.js';
-import { compressWithFlateDecode } from '../../services/helpers/pdf-lib.js';
-import { PDFName, PDFDict, PDFRef, decodePDFRawStream, arrayAsString, copyStringIntoBuffer } from 'pdf-lib';
+import { CONTEXT_PREFIX } from '../../services/helpers/runtime.js';
+import { compressSegmentsWithFlateDecode, bytesAsString } from '../../services/helpers/pdf-lib.js';
+import { PDFName, PDFDict, PDFRef, decodePDFRawStream } from '../../packages/pdf-lib/pdf-lib.esm.js';
 
 /**
  * @typedef {import('./color-converter.js').ColorConverterConfiguration & {
@@ -21,11 +22,13 @@ import { PDFName, PDFDict, PDFRef, decodePDFRawStream, arrayAsString, copyString
  *   useWorkers: boolean,
  *   workerPool?: import('./worker-pool.js').WorkerPool,
  *   colorEnginePath?: string,
+ *   pakoPackageEntrypoint?: string,
  *   imageConfiguration?: Partial<import('./pdf-image-color-converter.js').PDFImageColorConverterConfiguration>,
  *   contentStreamConfiguration?: Partial<import('./pdf-content-stream-color-converter.js').PDFContentStreamColorConverterConfiguration>,
  *   sourceRGBProfile?: ArrayBuffer,
  *   sourceGrayProfile?: ArrayBuffer,
  *   bufferRegistry?: import('./buffer-registry.js').BufferRegistry,
+ *   interConversionDelay?: number,
  * }} PDFPageColorConverterConfiguration
  */
 
@@ -192,6 +195,9 @@ export class PDFPageColorConverter extends CompositeColorConverter {
             // Diagnostics collector (propagate to child converters)
             diagnostics: this.diagnostics,
 
+            // Resolved pako entrypoint (propagate to image converter)
+            pakoPackageEntrypoint: base.pakoPackageEntrypoint,
+
             // Image-specific defaults
             compressOutput: true,
             inputType: 'RGB', // Will be determined per-image
@@ -257,7 +263,7 @@ export class PDFPageColorConverter extends CompositeColorConverter {
      * 
      * @param {object} parameters 
      * @param {PDFPageColorConverterInputImage} parameters.imageData
-     * @param {import('./diagnostics-collector.js').SpanHandle} parameters.imageBatchSpan
+     * @param {import('../diagnostics/diagnostics-collector.js').SpanHandle} parameters.imageBatchSpan
      * @param {object} parameters.context
      * @param {Array<string>} parameters.errors
      * 
@@ -416,10 +422,19 @@ export class PDFPageColorConverter extends CompositeColorConverter {
 
             // Strip shared profiles from tasks to avoid per-task structured clone overhead.
             // Workers fall back to broadcasted sharedConfig when these fields are undefined.
+            // Only strip when the task's profile matches the document-level shared profile —
+            // per-image overrides (via getConfigurationFor) may provide different profiles
+            // that must be preserved for the worker to use.
             if (workerPool.hasSharedProfiles) {
+                const sharedDestination = this.configuration.destinationProfile;
+                const sharedIntermediates = this.configuration.intermediateProfiles;
                 for (const { task } of preparedTasks) {
-                    task.destinationProfile = undefined;
-                    task.intermediateProfiles = undefined;
+                    if (task.destinationProfile === sharedDestination) {
+                        task.destinationProfile = undefined;
+                    }
+                    if (task.intermediateProfiles === sharedIntermediates) {
+                        task.intermediateProfiles = undefined;
+                    }
                 }
             }
 
@@ -533,9 +548,11 @@ export class PDFPageColorConverter extends CompositeColorConverter {
                     );
                 } else {
                     // Main thread mode: convert sequentially
+                    const yieldMs = /** @type {PDFPageColorConverterConfiguration} */ (this.configuration).interConversionDelay;
                     for (const imageData of input.images) {
                         await this.#convertImage({ imageData, imageBatchSpan, context, errors });
                         imagesConverted++;
+                        if (yieldMs > 0) await new Promise(resolve => setTimeout(resolve, yieldMs));
                     }
                 }
             } finally {
@@ -605,13 +622,20 @@ export class PDFPageColorConverter extends CompositeColorConverter {
                         }
 
                         // Apply converted content stream back to the PDF
-                        if (streamResult && streamResult.newText) {
+                        if (streamResult && streamResult.replacementCount > 0) {
                             await this.#applyContentStreamResult(streamData.stream, streamResult);
+
+                            // Release references to large strings for GC.
+                            // The segments generator has been consumed and the stream
+                            // has been compressed — these are no longer needed.
+                            streamResult.originalText = null;
+                            streamResult.newTextSegments = null;
+
                             streamResults.push(streamResult);
                             contentStreamsConverted++;
                             this.diagnostics.updateSpan(streamSpan, {
                                 ops: streamResult.colorConversions || 0,
-                                bytes: streamResult.newText.length,
+                                bytes: streamResult.newTextLength,
                             });
                         } else {
                             this.diagnostics.updateSpan(streamSpan, { skipped: true });
@@ -621,6 +645,8 @@ export class PDFPageColorConverter extends CompositeColorConverter {
                         this.diagnostics.abortSpan(streamSpan, { reason: `${error}` });
                     } finally {
                         this.diagnostics.endSpan(streamSpan);
+                        const yieldMs = /** @type {PDFPageColorConverterConfiguration} */ (this.configuration).interConversionDelay;
+                        if (yieldMs > 0) await new Promise(resolve => setTimeout(resolve, yieldMs));
                     }
                 }
             } finally {
@@ -655,7 +681,7 @@ export class PDFPageColorConverter extends CompositeColorConverter {
     #getStreamText(stream) {
         // Decompress the stream (handles FlateDecode, etc.)
         const bytes = /** @type {Uint8Array} */ (decodePDFRawStream(stream).decode());
-        return arrayAsString(bytes);
+        return bytesAsString(bytes);
     }
 
     /**
@@ -853,12 +879,16 @@ export class PDFPageColorConverter extends CompositeColorConverter {
             return;
         }
 
-        // Encode the new text to bytes (using pdf-lib's Latin-1 identity mapping)
-        const uncompressedData = new Uint8Array(result.newText.length);
-        copyStringIntoBuffer(result.newText, uncompressedData, 0);
-
-        // Compress the content stream
-        const { compressed, wasCompressed } = await compressWithFlateDecode(uncompressedData);
+        // Encode and compress the rebuilt content stream incrementally.
+        // The segments generator yields string slices that are encoded to
+        // Latin-1 bytes and fed into pako's streaming Deflate in ~5 MB chunks.
+        // This avoids materializing the full rebuilt string (~213 MB for large
+        // map content streams) and the corresponding Uint8Array, preventing
+        // OOM crashes in Firefox where GC cannot reclaim intermediate strings
+        // from tight concatenation loops fast enough.
+        const { compressed, wasCompressed } = await compressSegmentsWithFlateDecode(
+            result.newTextSegments
+        );
 
         // Update stream contents
         // @ts-ignore - Accessing internal property
@@ -896,7 +926,7 @@ export class PDFPageColorConverter extends CompositeColorConverter {
 
         if (!lookupData || !baseComponents) {
             if (config.verbose) {
-                console.warn(`[PDFPageColorConverter] Indexed image ${imageData.ref.toString()} missing lookup data`);
+                console.warn(`${CONTEXT_PREFIX} [PDFPageColorConverter] Indexed image ${imageData.ref.toString()} missing lookup data`);
             }
             return;
         }
@@ -906,14 +936,14 @@ export class PDFPageColorConverter extends CompositeColorConverter {
 
         if (lookupData.length < expectedBytes) {
             if (config.verbose) {
-                console.warn(`[PDFPageColorConverter] Indexed image ${imageData.ref.toString()} lookup table too small: ${lookupData.length} < ${expectedBytes}`);
+                console.warn(`${CONTEXT_PREFIX} [PDFPageColorConverter] Indexed image ${imageData.ref.toString()} lookup table too small: ${lookupData.length} < ${expectedBytes}`);
             }
             return;
         }
 
         if (config.verbose) {
-            console.log(`[PDFPageColorConverter] Converting Indexed image ${imageData.ref.toString()}`);
-            console.log(`  Base color space: ${colorSpace}, ${numColors} colors`);
+            console.log(`${CONTEXT_PREFIX} [PDFPageColorConverter] Converting Indexed image ${imageData.ref.toString()}`);
+            console.log(`${CONTEXT_PREFIX}   Base color space: ${colorSpace}, ${numColors} colors`);
         }
 
         // Use convertColorsBuffer (inherited from ColorConverter) for multiprofile support.
@@ -935,7 +965,7 @@ export class PDFPageColorConverter extends CompositeColorConverter {
 
         if (!effectiveSourceProfile) {
             if (config.verbose) {
-                console.warn(`[PDFPageColorConverter] No source profile for Indexed image ${imageData.ref.toString()} (${colorSpace})`);
+                console.warn(`${CONTEXT_PREFIX} [PDFPageColorConverter] No source profile for Indexed image ${imageData.ref.toString()} (${colorSpace})`);
             }
             return;
         }
@@ -960,7 +990,7 @@ export class PDFPageColorConverter extends CompositeColorConverter {
                     : new Uint8Array(result.outputPixels.buffer, result.outputPixels.byteOffset, result.outputPixels.byteLength);
 
                 // Apply the converted lookup table to the PDF
-                const { PDFName, PDFNumber, PDFHexString } = await import('pdf-lib');
+                const { PDFName, PDFNumber, PDFHexString } = await import('../../packages/pdf-lib/pdf-lib.esm.js');
 
                 const pdfContext = imageData.stream.dict.context;
 
@@ -997,12 +1027,12 @@ export class PDFPageColorConverter extends CompositeColorConverter {
                 });
 
                 if (config.verbose) {
-                    console.log(`  Converted ${numColors} palette colors to ${outputColorSpace} and applied to PDF`);
+                    console.log(`${CONTEXT_PREFIX}   Converted ${numColors} palette colors to ${outputColorSpace} and applied to PDF`);
                 }
             }
         } catch (error) {
             if (config.verbose) {
-                console.error(`[PDFPageColorConverter] Failed to convert Indexed image ${imageData.ref.toString()}: ${error}`);
+                console.error(`${CONTEXT_PREFIX} [PDFPageColorConverter] Failed to convert Indexed image ${imageData.ref.toString()}: ${error}`);
             }
         }
     }
@@ -1078,7 +1108,7 @@ export class PDFPageColorConverter extends CompositeColorConverter {
 
         if (!workerResult.success) {
             if (config.verbose) {
-                console.warn(`[PDFPageColorConverter] Worker failed for page ${input.pageIndex}: ${workerResult.error}`);
+                console.warn(`${CONTEXT_PREFIX} [PDFPageColorConverter] Worker failed for page ${input.pageIndex}: ${workerResult.error}`);
             }
             return;
         }
@@ -1090,9 +1120,9 @@ export class PDFPageColorConverter extends CompositeColorConverter {
         const contentStreamResults = workerResult.contentStreamResults ?? [];
 
         if (config.verbose) {
-            console.log(`[PDFPageColorConverter] Applying worker results for page ${input.pageIndex}`);
-            console.log(`  Image results: ${imageResults.length}`);
-            console.log(`  Content stream results: ${contentStreamResults.length}`);
+            console.log(`${CONTEXT_PREFIX} [PDFPageColorConverter] Applying worker results for page ${input.pageIndex}`);
+            console.log(`${CONTEXT_PREFIX}   Image results: ${imageResults.length}`);
+            console.log(`${CONTEXT_PREFIX}   Content stream results: ${contentStreamResults.length}`);
         }
 
         // Apply image results
@@ -1214,7 +1244,7 @@ export class PDFPageColorConverter extends CompositeColorConverter {
             }
 
             if (this.configuration.verbose) {
-                console.log(`[PDFPageColorConverter] Added Lab color space '${descriptor.name}' to page resources`);
+                console.log(`${CONTEXT_PREFIX} [PDFPageColorConverter] Added Lab color space '${descriptor.name}' to page resources`);
             }
         }
 

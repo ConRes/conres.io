@@ -18,14 +18,14 @@
     ],
     // Classes-specific entry points
     "entryPoints": [
-        "./auxiliary-diagnostics-collector.js",
+        "../diagnostics/auxiliary-diagnostics-collector.js",
         "./buffer-registry.js",
         "./color-converter.js",
         "./composite-color-converter.js",
-        "./diagnostics-collector.js",
+        "../diagnostics/diagnostics-collector.js",
         "./image-color-converter.js",
         "./lookup-table-color-converter.js",
-        "./main-diagnostics-collector.js",
+        "../diagnostics/main-diagnostics-collector.js",
         "./pdf-content-stream-color-converter.js",
         "./pdf-document-color-converter.js",
         "./pdf-image-color-converter.js",

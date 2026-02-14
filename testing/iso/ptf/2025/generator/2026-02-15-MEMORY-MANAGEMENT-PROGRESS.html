@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="en" data-color-mode="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2026-02-15 Memory Management Progress</title>
+<style>
+.markdown-body{-ms-text-size-adjust:100%;-webkit-text-size-adjust:100%;margin:0;color:#1f2328;background-color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";font-size:16px;line-height:1.5;word-wrap:break-word}.markdown-body .octicon{display:inline-block;fill:currentColor;vertical-align:text-bottom}.markdown-body h1:hover .anchor .octicon-link:before,.markdown-body h2:hover .anchor .octicon-link:before,.markdown-body h3:hover .anchor .octicon-link:before,.markdown-body h4:hover .anchor .octicon-link:before,.markdown-body h5:hover .anchor .octicon-link:before,.markdown-body h6:hover .anchor .octicon-link:before{width:16px;height:16px;content:' ';display:inline-block;background-color:currentColor;-webkit-mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' version='1.1' aria-hidden='true'><path fill-rule='evenodd' d='M7.775 3.275a.75.75 0 001.06 1.06l1.25-1.25a2 2 0 112.83 2.83l-2.5 2.5a2 2 0 01-2.83 0 .75.75 0 00-1.06 1.06 3.5 3.5 0 004.95 0l2.5-2.5a3.5 3.5 0 00-4.95-4.95l-1.25 1.25zm-4.69 9.64a2 2 0 010-2.83l2.5-2.5a2 2 0 012.83 0 .75.75 0 001.06-1.06 3.5 3.5 0 00-4.95 0l-2.5 2.5a3.5 3.5 0 004.95 4.95l1.25-1.25a.75.75 0 00-1.06-1.06l-1.25 1.25a2 2 0 01-2.83 0z'></path></svg>");mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' version='1.1' aria-hidden='true'><path fill-rule='evenodd' d='M7.775 3.275a.75.75 0 001.06 1.06l1.25-1.25a2 2 0 112.83 2.83l-2.5 2.5a2 2 0 01-2.83 0 .75.75 0 00-1.06 1.06 3.5 3.5 0 004.95 0l2.5-2.5a3.5 3.5 0 00-4.95-4.95l-1.25 1.25zm-4.69 9.64a2 2 0 010-2.83l2.5-2.5a2 2 0 012.83 0 .75.75 0 001.06-1.06 3.5 3.5 0 00-4.95 0l-2.5 2.5a3.5 3.5 0 004.95 4.95l1.25-1.25a.75.75 0 00-1.06-1.06l-1.25 1.25a2 2 0 01-2.83 0z'></path></svg>")}.markdown-body details,.markdown-body figcaption,.markdown-body figure{display:block}.markdown-body summary{display:list-item}.markdown-body [hidden]{display:none!important}.markdown-body a{background-color:transparent;color:#0969da;text-decoration:none}.markdown-body abbr[title]{border-bottom:none;-webkit-text-decoration:underline dotted;text-decoration:underline dotted}.markdown-body b,.markdown-body strong{font-weight:600}.markdown-body dfn{font-style:italic}.markdown-body h1{margin:.67em 0;font-weight:600;padding-bottom:.3em;font-size:2em;border-bottom:1px solid #d7dde3}.markdown-body mark{background-color:#fff8c5;color:#1f2328}.markdown-body small{font-size:90%}.markdown-body sub,.markdown-body sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}.markdown-body sub{bottom:-.25em}.markdown-body sup{top:-.5em}.markdown-body img{border-style:none;max-width:100%;box-sizing:content-box;background-color:#fff}.markdown-body code,.markdown-body kbd,.markdown-body pre,.markdown-body samp{font-family:monospace;font-size:1em}.markdown-body figure{margin:1em 40px}.markdown-body hr{box-sizing:content-box;overflow:hidden;background:0 0;border-bottom:1px solid #d7dde3;height:.25em;padding:0;margin:24px 0;background-color:#d0d7de;border:0}.markdown-body input{font:inherit;margin:0;overflow:visible;font-family:inherit;font-size:inherit;line-height:inherit}.markdown-body [type=button],.markdown-body [type=reset],.markdown-body [type=submit]{-webkit-appearance:button;appearance:button}.markdown-body [type=checkbox],.markdown-body [type=radio]{box-sizing:border-box;padding:0}.markdown-body [type=number]::-webkit-inner-spin-button,.markdown-body [type=number]::-webkit-outer-spin-button{height:auto}.markdown-body [type=search]::-webkit-search-cancel-button,.markdown-body [type=search]::-webkit-search-decoration{-webkit-appearance:none;appearance:none}.markdown-body ::-webkit-input-placeholder{color:inherit;opacity:.54}.markdown-body ::-webkit-file-upload-button{-webkit-appearance:button;appearance:button;font:inherit}.markdown-body a:hover{text-decoration:underline}.markdown-body ::placeholder{color:#6e7781;opacity:1}.markdown-body hr::before{display:table;content:""}.markdown-body hr::after{display:table;clear:both;content:""}.markdown-body table{border-spacing:0;border-collapse:collapse;display:block;width:max-content;max-width:100%;overflow:auto}.markdown-body td,.markdown-body th{padding:0}.markdown-body details summary{cursor:pointer}.markdown-body details:not([open])>:not(summary){display:none!important}.markdown-body [role=button]:focus,.markdown-body a:focus,.markdown-body input[type=checkbox]:focus,.markdown-body input[type=radio]:focus{outline:2px solid #0969da;outline-offset:-2px;box-shadow:none}.markdown-body [role=button]:focus:not(:focus-visible),.markdown-body a:focus:not(:focus-visible),.markdown-body input[type=checkbox]:focus:not(:focus-visible),.markdown-body input[type=radio]:focus:not(:focus-visible){outline:solid 1px transparent}.markdown-body [role=button]:focus-visible,.markdown-body a:focus-visible,.markdown-body input[type=checkbox]:focus-visible,.markdown-body input[type=radio]:focus-visible{outline:2px solid #0969da;outline-offset:-2px;box-shadow:none}.markdown-body a:not([class]):focus,.markdown-body a:not([class]):focus-visible,.markdown-body input[type=checkbox]:focus,.markdown-body input[type=checkbox]:focus-visible,.markdown-body input[type=radio]:focus,.markdown-body input[type=radio]:focus-visible{outline-offset:0}.markdown-body kbd{display:inline-block;padding:3px 5px;font:11px ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;line-height:10px;color:#1f2328;vertical-align:middle;background-color:#f6f8fa;border:solid 1px rgba(175,184,193,.2);border-bottom-color:rgba(175,184,193,.2);border-radius:6px;box-shadow:inset 0 -1px 0 rgba(175,184,193,.2)}.markdown-body h1,.markdown-body h2,.markdown-body h3,.markdown-body h4,.markdown-body h5,.markdown-body h6{margin-top:24px;margin-bottom:16px;font-weight:600;line-height:1.25}.markdown-body h2{font-weight:600;padding-bottom:.3em;font-size:1.5em;border-bottom:1px solid #d7dde3}.markdown-body h3{font-weight:600;font-size:1.25em}.markdown-body h4{font-weight:600;font-size:1em}.markdown-body h5{font-weight:600;font-size:.875em}.markdown-body h6{font-weight:600;font-size:.85em;color:#656d76}.markdown-body p{margin-top:0;margin-bottom:10px}.markdown-body blockquote{margin:0;padding:0 1em;color:#656d76;border-left:.25em solid #d0d7de}.markdown-body ol,.markdown-body ul{margin-top:0;margin-bottom:0;padding-left:2em}.markdown-body ol ol,.markdown-body ul ol{list-style-type:lower-roman}.markdown-body ol ol ol,.markdown-body ol ul ol,.markdown-body ul ol ol,.markdown-body ul ul ol{list-style-type:lower-alpha}.markdown-body dd{margin-left:0}.markdown-body code,.markdown-body samp,.markdown-body tt{font-family:ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;font-size:12px}.markdown-body pre{margin-top:0;margin-bottom:0;font-family:ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;font-size:12px;word-wrap:normal}.markdown-body .octicon{display:inline-block;overflow:visible!important;vertical-align:text-bottom;fill:currentColor}.markdown-body input::-webkit-inner-spin-button,.markdown-body input::-webkit-outer-spin-button{margin:0;-webkit-appearance:none;appearance:none}.markdown-body .mr-2{margin-right:8px!important}.markdown-body::before{display:table;content:""}.markdown-body::after{display:table;clear:both;content:""}.markdown-body>:first-child{margin-top:0!important}.markdown-body>:last-child{margin-bottom:0!important}.markdown-body a:not([href]){color:inherit;text-decoration:none}.markdown-body .absent{color:#d1242f}.markdown-body .anchor{float:left;padding-right:4px;margin-left:-20px;line-height:1}.markdown-body .anchor:focus{outline:0}.markdown-body blockquote,.markdown-body details,.markdown-body dl,.markdown-body ol,.markdown-body p,.markdown-body pre,.markdown-body table,.markdown-body ul{margin-top:0;margin-bottom:16px}.markdown-body blockquote>:first-child{margin-top:0}.markdown-body blockquote>:last-child{margin-bottom:0}.markdown-body h1 .octicon-link,.markdown-body h2 .octicon-link,.markdown-body h3 .octicon-link,.markdown-body h4 .octicon-link,.markdown-body h5 .octicon-link,.markdown-body h6 .octicon-link{color:#1f2328;vertical-align:middle;visibility:hidden}.markdown-body h1:hover .anchor,.markdown-body h2:hover .anchor,.markdown-body h3:hover .anchor,.markdown-body h4:hover .anchor,.markdown-body h5:hover .anchor,.markdown-body h6:hover .anchor{text-decoration:none}.markdown-body h1:hover .anchor .octicon-link,.markdown-body h2:hover .anchor .octicon-link,.markdown-body h3:hover .anchor .octicon-link,.markdown-body h4:hover .anchor .octicon-link,.markdown-body h5:hover .anchor .octicon-link,.markdown-body h6:hover .anchor .octicon-link{visibility:visible}.markdown-body h1 code,.markdown-body h1 tt,.markdown-body h2 code,.markdown-body h2 tt,.markdown-body h3 code,.markdown-body h3 tt,.markdown-body h4 code,.markdown-body h4 tt,.markdown-body h5 code,.markdown-body h5 tt,.markdown-body h6 code,.markdown-body h6 tt{padding:0 .2em;font-size:inherit}.markdown-body summary h1,.markdown-body summary h2,.markdown-body summary h3,.markdown-body summary h4,.markdown-body summary h5,.markdown-body summary h6{display:inline-block}.markdown-body summary h1 .anchor,.markdown-body summary h2 .anchor,.markdown-body summary h3 .anchor,.markdown-body summary h4 .anchor,.markdown-body summary h5 .anchor,.markdown-body summary h6 .anchor{margin-left:-40px}.markdown-body summary h1,.markdown-body summary h2{padding-bottom:0;border-bottom:0}.markdown-body ol.no-list,.markdown-body ul.no-list{padding:0;list-style-type:none}.markdown-body ol[type="a s"]{list-style-type:lower-alpha}.markdown-body ol[type="A s"]{list-style-type:upper-alpha}.markdown-body ol[type="i s"]{list-style-type:lower-roman}.markdown-body ol[type="I s"]{list-style-type:upper-roman}.markdown-body ol[type="1"]{list-style-type:decimal}.markdown-body div>ol:not([type]){list-style-type:decimal}.markdown-body ol ol,.markdown-body ol ul,.markdown-body ul ol,.markdown-body ul ul{margin-top:0;margin-bottom:0}.markdown-body li>p{margin-top:16px}.markdown-body li+li{margin-top:.25em}.markdown-body dl{padding:0}.markdown-body dl dt{padding:0;margin-top:16px;font-size:1em;font-style:italic;font-weight:600}.markdown-body dl dd{padding:0 16px;margin-bottom:16px}.markdown-body table th{font-weight:600}.markdown-body table td,.markdown-body table th{padding:6px 13px;border:1px solid #d0d7de}.markdown-body table td>:last-child{margin-bottom:0}.markdown-body table tr{background-color:#fff;border-top:1px solid #d7dde3}.markdown-body table tr:nth-child(2n){background-color:#f6f8fa}.markdown-body table img{background-color:transparent}.markdown-body img[align=right]{padding-left:20px}.markdown-body img[align=left]{padding-right:20px}.markdown-body .emoji{max-width:none;vertical-align:text-top;background-color:transparent}.markdown-body span.frame{display:block;overflow:hidden}.markdown-body span.frame>span{display:block;float:left;width:auto;padding:7px;margin:13px 0 0;overflow:hidden;border:1px solid #d0d7de}.markdown-body span.frame span img{display:block;float:left}.markdown-body span.frame span span{display:block;padding:5px 0 0;clear:both;color:#1f2328}.markdown-body span.align-center{display:block;overflow:hidden;clear:both}.markdown-body span.align-center>span{display:block;margin:13px auto 0;overflow:hidden;text-align:center}.markdown-body span.align-center span img{margin:0 auto;text-align:center}.markdown-body span.align-right{display:block;overflow:hidden;clear:both}.markdown-body span.align-right>span{display:block;margin:13px 0 0;overflow:hidden;text-align:right}.markdown-body span.align-right span img{margin:0;text-align:right}.markdown-body span.float-left{display:block;float:left;margin-right:13px;overflow:hidden}.markdown-body span.float-left span{margin:13px 0 0}.markdown-body span.float-right{display:block;float:right;margin-left:13px;overflow:hidden}.markdown-body span.float-right>span{display:block;margin:13px auto 0;overflow:hidden;text-align:right}.markdown-body code,.markdown-body tt{padding:.2em .4em;margin:0;font-size:85%;white-space:break-spaces;background-color:rgba(175,184,193,.2);border-radius:6px}.markdown-body code br,.markdown-body tt br{display:none}.markdown-body del code{text-decoration:inherit}.markdown-body samp{font-size:85%}.markdown-body pre code{font-size:100%}.markdown-body pre>code{padding:0;margin:0;word-break:normal;white-space:pre;background:0 0;border:0}.markdown-body .highlight{margin-bottom:16px}.markdown-body .highlight pre{margin-bottom:0;word-break:normal}.markdown-body .highlight pre,.markdown-body pre{padding:16px;overflow:auto;font-size:85%;line-height:1.45;color:#1f2328;background-color:#f6f8fa;border-radius:6px}.markdown-body pre code,.markdown-body pre tt{display:inline;max-width:auto;padding:0;margin:0;overflow:visible;line-height:inherit;word-wrap:normal;background-color:transparent;border:0}.markdown-body .csv-data td,.markdown-body .csv-data th{padding:5px;overflow:hidden;font-size:12px;line-height:1;text-align:left;white-space:nowrap}.markdown-body .csv-data .blob-num{padding:10px 8px 9px;text-align:right;background:#fff;border:0}.markdown-body .csv-data tr{border-top:0}.markdown-body .csv-data th{font-weight:600;background:#f6f8fa;border-top:0}.markdown-body [data-footnote-ref]::before{content:"["}.markdown-body [data-footnote-ref]::after{content:"]"}.markdown-body .footnotes{font-size:12px;color:#656d76;border-top:1px solid #d0d7de}.markdown-body .footnotes ol{padding-left:16px}.markdown-body .footnotes ol ul{display:inline-block;padding-left:16px;margin-top:16px}.markdown-body .footnotes li{position:relative}.markdown-body .footnotes li:target::before{position:absolute;top:-8px;right:-8px;bottom:-8px;left:-24px;pointer-events:none;content:"";border:2px solid #0969da;border-radius:6px}.markdown-body .footnotes li:target{color:#1f2328}.markdown-body .footnotes .data-footnote-backref g-emoji{font-family:monospace}.markdown-body .pl-c{color:#57606a}.markdown-body .pl-c1,.markdown-body .pl-s .pl-v{color:#0550ae}.markdown-body .pl-e,.markdown-body .pl-en{color:#6639ba}.markdown-body .pl-s .pl-s1,.markdown-body .pl-smi{color:#24292f}.markdown-body .pl-ent{color:#116329}.markdown-body .pl-k{color:#cf222e}.markdown-body .pl-pds,.markdown-body .pl-s,.markdown-body .pl-s .pl-pse .pl-s1,.markdown-body .pl-sr,.markdown-body .pl-sr .pl-cce,.markdown-body .pl-sr .pl-sra,.markdown-body .pl-sr .pl-sre{color:#0a3069}.markdown-body .pl-smw,.markdown-body .pl-v{color:#953800}.markdown-body .pl-bu{color:#82071e}.markdown-body .pl-ii{color:#f6f8fa;background-color:#82071e}.markdown-body .pl-c2{color:#f6f8fa;background-color:#cf222e}.markdown-body .pl-sr .pl-cce{font-weight:700;color:#116329}.markdown-body .pl-ml{color:#3b2300}.markdown-body .pl-mh,.markdown-body .pl-mh .pl-en,.markdown-body .pl-ms{font-weight:700;color:#0550ae}.markdown-body .pl-mi{font-style:italic;color:#24292f}.markdown-body .pl-mb{font-weight:700;color:#24292f}.markdown-body .pl-md{color:#82071e;background-color:#ffebe9}.markdown-body .pl-mi1{color:#116329;background-color:#dafbe1}.markdown-body .pl-mc{color:#953800;background-color:#ffd8b5}.markdown-body .pl-mi2{color:#eaeef2;background-color:#0550ae}.markdown-body .pl-mdr{font-weight:700;color:#8250df}.markdown-body .pl-ba{color:#57606a}.markdown-body .pl-sg{color:#8c959f}.markdown-body .pl-corl{text-decoration:underline;color:#0a3069}.markdown-body g-emoji{display:inline-block;min-width:1ch;font-family:"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";font-size:1em;font-style:normal!important;font-weight:400;line-height:1;vertical-align:-.075em}.markdown-body g-emoji img{width:1em;height:1em}.markdown-body .task-list-item{list-style-type:none}.markdown-body .task-list-item label{font-weight:400}.markdown-body .task-list-item.enabled label{cursor:pointer}.markdown-body .task-list-item+.task-list-item{margin-top:4px}.markdown-body .task-list-item .handle{display:none}.markdown-body .task-list-item-checkbox{margin:0 .2em .25em -1.4em;vertical-align:middle}.markdown-body .contains-task-list:dir(rtl) .task-list-item-checkbox{margin:0 -1.6em .25em .2em}.markdown-body .contains-task-list{position:relative}.markdown-body .contains-task-list:focus-within .task-list-item-convert-container,.markdown-body .contains-task-list:hover .task-list-item-convert-container{display:block;width:auto;height:24px;overflow:visible;clip:auto}.markdown-body ::-webkit-calendar-picker-indicator{filter:invert(50%)}.markdown-body .markdown-alert{padding:8px 16px;margin-bottom:16px;color:inherit;border-left:.25em solid #d0d7de}.markdown-body .markdown-alert>:first-child{margin-top:0}.markdown-body .markdown-alert>:last-child{margin-bottom:0}.markdown-body .markdown-alert .markdown-alert-title{display:flex;font-weight:500;align-items:center;line-height:1}.markdown-body .markdown-alert.markdown-alert-note{border-left-color:#0969da}.markdown-body .markdown-alert.markdown-alert-note .markdown-alert-title{color:#0969da}.markdown-body .markdown-alert.markdown-alert-important{border-left-color:#8250df}.markdown-body .markdown-alert.markdown-alert-important .markdown-alert-title{color:#8250df}.markdown-body .markdown-alert.markdown-alert-warning{border-left-color:#9a6700}.markdown-body .markdown-alert.markdown-alert-warning .markdown-alert-title{color:#9a6700}.markdown-body .markdown-alert.markdown-alert-tip{border-left-color:#1f883d}.markdown-body .markdown-alert.markdown-alert-tip .markdown-alert-title{color:#1a7f37}.markdown-body .markdown-alert.markdown-alert-caution{border-left-color:#cf222e}.markdown-body .markdown-alert.markdown-alert-caution .markdown-alert-title{color:#d1242f}
+</style>
+<style>
+/* Layout styles for markdown-body container */
+.markdown-body {
+	box-sizing: border-box;
+	min-width: 200px;
+	max-width: 980px;
+	margin: 0 auto;
+	padding: 45px;
+}
+
+@media (max-width: 767px) {
+	.markdown-body {
+		padding: 15px;
+	}
+}
+
+</style>
+<style>
+/* Print optimization styles */
+@media print {
+	/* Avoid breaking headings from following content */
+	h1, h2, h3, h4, h5, h6 {
+		page-break-after: avoid;
+		break-after: avoid-page;
+	}
+
+	/* Keep these elements together */
+	table, figure, div.no-break, pre {
+		page-break-inside: avoid;
+		break-inside: avoid-page;
+	}
+
+	/* Don't orphan paragraphs before kept-together elements */
+	p:has(+ table, + figure, + div.no-break, + pre) {
+		page-break-after: avoid;
+		break-after: avoid-page;
+	}
+
+	/* Ensure code blocks don't overflow */
+	pre {
+		white-space: pre-wrap;
+		word-wrap: break-word;
+	}
+}
+
+</style>
+<style>
+/* Mermaid diagram styling */
+.mermaid svg {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+	width: auto;
+	max-width: 100%;
+}
+
+/* Style for pre blocks before mermaid upgrade */
+pre.mermaid {
+	background: transparent;
+	border: none;
+	padding: 0;
+}
+
+/* Server-side rendered mermaid container */
+.mermaid-container {
+	position: relative;
+	display: block;
+	margin: 1rem 0;
+}
+
+.mermaid-container .mermaid-diagram {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+	width: auto;
+	max-width: 100%;
+}
+
+/* Show source button - appears on hover */
+.mermaid-show-source {
+	position: absolute;
+	top: 0.5rem;
+	right: 0.5rem;
+	padding: 0.25rem 0.5rem;
+	font-size: 0.75rem;
+	background: var(--bgColor-muted, rgba(175, 184, 193, 0.2));
+	border: 1px solid var(--borderColor-default, rgba(31, 35, 40, 0.15));
+	border-radius: 6px;
+	cursor: pointer;
+	opacity: 0;
+	transition: opacity 0.2s ease-in-out;
+	color: var(--fgColor-muted, #636c76);
+}
+
+.mermaid-container:hover .mermaid-show-source,
+.mermaid-container:focus-within .mermaid-show-source {
+	opacity: 1;
+}
+
+.mermaid-show-source:hover {
+	background: var(--bgColor-accent-muted, rgba(9, 105, 218, 0.1));
+	border-color: var(--borderColor-accent-emphasis, #0969da);
+	color: var(--fgColor-accent, #0969da);
+}
+
+/* Mermaid source dialog (popover) */
+dialog[popover].mermaid-source,
+dialog#[id$="-source"] {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	max-width: 90vw;
+	max-height: 80vh;
+	width: 600px;
+	padding: 0;
+	border: 1px solid var(--borderColor-default, rgba(31, 35, 40, 0.15));
+	border-radius: 12px;
+	box-shadow: 0 8px 24px rgba(140, 149, 159, 0.2);
+	background: var(--bgColor-default, #ffffff);
+	overflow: hidden;
+}
+
+/* Dark mode support */
+[data-color-mode="dark"] dialog[popover],
+[data-color-mode="dark"] dialog#[id$="-source"] {
+	background: var(--bgColor-default, #0d1117);
+	border-color: var(--borderColor-default, #30363d);
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.mermaid-source-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 0.75rem 1rem;
+	background: var(--bgColor-muted, #f6f8fa);
+	border-bottom: 1px solid var(--borderColor-default, rgba(31, 35, 40, 0.15));
+	font-weight: 600;
+}
+
+[data-color-mode="dark"] .mermaid-source-header {
+	background: var(--bgColor-muted, #161b22);
+	border-bottom-color: var(--borderColor-default, #30363d);
+}
+
+.mermaid-source-header button {
+	padding: 0.25rem 0.5rem;
+	font-size: 0.75rem;
+	background: transparent;
+	border: 1px solid var(--borderColor-default, rgba(31, 35, 40, 0.15));
+	border-radius: 6px;
+	cursor: pointer;
+	color: var(--fgColor-muted, #636c76);
+}
+
+.mermaid-source-header button:hover {
+	background: var(--bgColor-danger-muted, rgba(248, 81, 73, 0.1));
+	border-color: var(--borderColor-danger-emphasis, #cf222e);
+	color: var(--fgColor-danger, #cf222e);
+}
+
+/* Dialog pre/code styling */
+dialog[popover] pre,
+dialog#[id$="-source"] pre {
+	margin: 0;
+	padding: 1rem;
+	max-height: calc(80vh - 60px);
+	overflow: auto;
+	background: var(--bgColor-muted, #f6f8fa);
+}
+
+[data-color-mode="dark"] dialog[popover] pre,
+[data-color-mode="dark"] dialog#[id$="-source"] pre {
+	background: var(--bgColor-muted, #161b22);
+}
+
+dialog[popover] code,
+dialog#[id$="-source"] code {
+	font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+	font-size: 0.875rem;
+	line-height: 1.5;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+/* Backdrop styling */
+dialog[popover]::backdrop,
+dialog#[id$="-source"]::backdrop {
+	background: rgba(0, 0, 0, 0.4);
+}
+
+/* Print: hide interactive elements */
+@media print {
+	.mermaid-show-source {
+		display: none;
+	}
+
+	dialog[popover],
+	dialog#[id$="-source"] {
+		display: none;
+	}
+}
+
+</style>
+</head>
+<body>
+<article class="markdown-body">
+<h1 id="2026-02-15-memory-management-progress">2026-02-15 Memory Management Progress</h1>
+<h2 id="overview">Overview</h2>
+<p>Memory profiling and optimization for the ConRes PDF Test Form Generator. Tests use Playwright with Chrome DevTools Protocol (CDP) to measure JS heap during generation. The primary issue is that headless Chrome's renderer process crashes (OOM) when processing the Maps asset (346 MB, 7 pages including 16-bit images).</p>
+<p><strong>Test file:</strong> <code class="notranslate">tests/generator/memory-management.test.js</code><br>
+<strong>Progress file:</strong> <code class="notranslate">generator/2026-02-15-MEMORY-MANAGEMENT-PROGRESS.md</code></p>
+<hr>
+<h2 id="roadmap">Roadmap</h2>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> <strong>Task 1</strong>: Wire up <code class="notranslate">workers-checkbox</code> in generator UI <code class="notranslate">DONE</code></li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Incomplete task"> <strong>Task 2</strong>: Memory management tests and optimization <code class="notranslate">IN-PROGRESS</code>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Create test file with CDP-based heap profiling</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> <code class="notranslate">__measureHeapFromCDP</code> bridge for mid-generation snapshots</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Skip-by-default via <code class="notranslate">TESTS_MEMORY=true</code></li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Chrome launch: <code class="notranslate">--max-old-space-size=8192</code>, <code class="notranslate">--disable-dev-shm-usage</code></li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Crash detection via <code class="notranslate">page.on('crash')</code></li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Fix worker pako resolution (see baseline cleanup)</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Fix <code class="notranslate">import.meta.resolve</code> conditional logic for explicit consumer URLs</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Fix shared profile stripping safety (conditional <code class="notranslate">===</code> check)</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Audit ArrayBuffer neutering (SAFE — <code class="notranslate">.buffer.slice()</code> copies)</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Fix worker count reporting mismatch (<code class="notranslate">cpus().length / 2</code>)</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Investigate pdf-lib memory internals</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Investigate worker pool ArrayBuffer lifecycle</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Trace generator document lifecycle (two-document problem)</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Design single-document architecture (progressive chain conversion)</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Restructure <code class="notranslate">AssetPagePreConverter.convertAll()</code> for single-document operation</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Restructure <code class="notranslate">TestFormPDFDocumentGenerator.#assemblePages()</code> to work in <code class="notranslate">assetDocument</code></li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Replace pdf-lib <code class="notranslate">arrayAsString</code> with O(n) <code class="notranslate">bytesAsString</code> (<code class="notranslate">TextDecoder('latin1')</code>) — <strong>REGRESSED, fixed in session 10</strong></li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Add <code class="notranslate">interConversionDelay</code> (500ms) between conversion steps for browser responsiveness</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Add post-processing yields (500ms) before finalization and before <code class="notranslate">save()</code></li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Firefox Maps 8-bit generation successful</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Investigate pdf-lib <code class="notranslate">save()</code> internals and GitHub issues for memory optimization</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Patch pdf-lib: <code class="notranslate">buffer.set()</code> instead of byte-by-byte loop in <code class="notranslate">PDFStream.copyBytesInto</code></li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Patch pdf-lib: Remove <code class="notranslate">console.trace</code> from <code class="notranslate">arrayAsString</code></li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Patch generator: Pass <code class="notranslate">objectsPerTick: 20</code> to <code class="notranslate">save()</code> for browser responsiveness</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Full 16-bit PDF main-thread conversion memory profile analysis</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Ranked memory optimization recommendations (9 strategies, most to least effective)</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Chunked <code class="notranslate">matchAll</code> generator for large content streams (Firefox regex limit fix)</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Streaming content stream rebuild + compression (Firefox OOM fix for <code class="notranslate">rebuildContentStream</code> + <code class="notranslate">#applyContentStreamResult</code>)</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Incomplete task"> Add worker task concurrency cap to <code class="notranslate">WorkerPool</code> (memory-aware deferral)</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Incomplete task"> Run tests and verify they complete without OOM</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Incomplete task"> Analyze results and document baseline memory behavior</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> <strong>Task 3</strong>: Separate-chains feature — per-chain PDF output <code class="notranslate">DONE</code>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Add <code class="notranslate">separateChains</code> option to <code class="notranslate">TestFormPDFDocumentGenerator</code> constructor</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Add <code class="notranslate">onChainOutput</code> callback to <code class="notranslate">GenerationCallbacks</code> typedef</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Extract <code class="notranslate">#generateSlugsPDF()</code> helper (slugs generated once, extracted per chain)</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Extract <code class="notranslate">#postProcess()</code> helper (decalibrate, blending space, output intent, manifest)</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Extract <code class="notranslate">#buildMetadataJSON()</code> helper</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Implement <code class="notranslate">#generateSeparateChains()</code> — per-chain loop: filter manifest, fresh <code class="notranslate">PDFDocument.load()</code>, convert, assemble, embed slug subset, post-process, save, callback</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Branch <code class="notranslate">generate()</code> before pre-conversion when <code class="notranslate">separateChains</code> is true</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Update <code class="notranslate">TestFormGeneratorAppElement</code> — read checkbox, pass option, implement <code class="notranslate">onChainOutput</code> with first-chain debugging guard</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Add <code class="notranslate">chains</code> stage to progress display with conditional stage ranges</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Incomplete task"> <strong>Task 4</strong>: Add <code class="notranslate">perPageConfigurations</code> to <code class="notranslate">PDFDocumentColorConverter</code></li>
+</ul>
+<h2 id="current-status">Current Status</h2>
+<p><strong>Focus:</strong> Implemented streaming content stream rebuild + compression pipeline. <code class="notranslate">rebuildContentStream</code> now yields string segments via a generator instead of concatenating a single ~213 MB string. <code class="notranslate">#applyContentStreamResult</code> encodes segments to Latin-1 bytes in 5 MB chunks and feeds them into pako's streaming Deflate — no intermediate full-size string or Uint8Array. Fixes Firefox OOM during content stream write-back. Next: explicit buffer nulling (recommendation 4) and worker task concurrency cap.<br>
+<strong>Last Updated:</strong> 2026-02-15 (session 9)</p>
+<hr>
+<h2 id="architecture-single-document-progressive-conversion">Architecture: Single-Document Progressive Conversion</h2>
+<h3 id="problem-current-two-document-approach">Problem (current two-document approach)</h3>
+<p>The current implementation creates a second <code class="notranslate">PDFDocument</code> (<code class="notranslate">assembledDocument</code>) and copies ALL asset pages into it upfront via <code class="notranslate">copyPages()</code>. This doubles memory (~35 MB asset + ~35 MB copies = ~700 MB) before any conversion starts.</p>
+<h3 id="solution-single-document-approach">Solution (single-document approach)</h3>
+<p>Work entirely in <code class="notranslate">assetDocument</code>. Copy only pages that appear in multiple chains. Convert per chain, delete unneeded pages between chains, then assemble layout pages in the same document.</p>
+<h3 id="step-by-step-flow">Step-by-Step Flow</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Step</th>
+<th>Class</th>
+<th>What</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code class="notranslate">TestFormPDFDocumentGenerator.generate()</code></td>
+<td><code class="notranslate">PDFDocument.load(assetPDFBuffer)</code> → <code class="notranslate">assetDocument</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td><code class="notranslate">AssetPagePreConverter.convertAll()</code></td>
+<td>Scan layouts, group by chain, identify multi-chain pages</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code class="notranslate">AssetPagePreConverter.convertAll()</code></td>
+<td><code class="notranslate">assetDocument.copyPages(assetDocument, ...)</code> — copy only multi-chain pages, append to end</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code class="notranslate">AssetPagePreConverter.convertAll()</code></td>
+<td>Create <code class="notranslate">PDFDocumentColorConverter</code> for chain A, convert its pages in <code class="notranslate">assetDocument</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td><code class="notranslate">PDFDocumentColorConverter.convertColor()</code></td>
+<td>Pages converted via <code class="notranslate">PDFPageColorConverter</code> → <code class="notranslate">PDFImageColorConverter</code> → <code class="notranslate">WorkerPool</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td><code class="notranslate">AssetPagePreConverter.convertAll()</code></td>
+<td><code class="notranslate">assetDocument.removePage()</code> — delete originals no longer needed by remaining chains</td>
+</tr>
+<tr>
+<td>7</td>
+<td></td>
+<td>Repeat steps 4-6 for chain B, C, ...</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code class="notranslate">AssetPagePreConverter.convertAll()</code></td>
+<td>All asset pages now in output color space. Return page mapping.</td>
+</tr>
+<tr>
+<td>9</td>
+<td><code class="notranslate">TestFormPDFDocumentGenerator.#assemblePages()</code></td>
+<td><code class="notranslate">assetDocument.embedPage()</code> + <code class="notranslate">drawPage()</code> — assemble layout pages in same document</td>
+</tr>
+<tr>
+<td>10</td>
+<td><code class="notranslate">TestFormPDFDocumentGenerator.#assemblePages()</code></td>
+<td><code class="notranslate">assetDocument.removePage()</code> — delete converted asset pages (Form XObjects survive)</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 id="memory-timeline-single-document">Memory Timeline (single-document)</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Phase</th>
+<th>Document Memory</th>
+<th>Conversion Buffers</th>
+<th>Total</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>After load</td>
+<td>~35 MB</td>
+<td>0</td>
+<td>~35 MB</td>
+</tr>
+<tr>
+<td>After multi-chain copies</td>
+<td>~35 MB + copies</td>
+<td>0</td>
+<td>~380 MB (few copies)</td>
+</tr>
+<tr>
+<td>During chain A conversion</td>
+<td>~380 MB</td>
+<td>per-image</td>
+<td>~380 MB + per-image</td>
+</tr>
+<tr>
+<td>After chain A + delete originals</td>
+<td>~35 MB (freed originals)</td>
+<td>0</td>
+<td>~35 MB</td>
+</tr>
+<tr>
+<td>During page 5 (1 image at a time)</td>
+<td>~35 MB</td>
+<td>~243 MB</td>
+<td>~593 MB</td>
+</tr>
+<tr>
+<td>During page 5 (3 images parallel)</td>
+<td>~35 MB</td>
+<td>~729 MB</td>
+<td>~1,079 MB</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 id="memory-timeline-current-two-document">Memory Timeline (current two-document)</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Phase</th>
+<th>Document Memory</th>
+<th>Conversion Buffers</th>
+<th>Total</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>After load + copy all</td>
+<td>~700 MB</td>
+<td>0</td>
+<td>~700 MB</td>
+</tr>
+<tr>
+<td>During page 5 (3 images parallel)</td>
+<td>~700 MB</td>
+<td>~729 MB</td>
+<td>~1,429 MB</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 id="what-changes-per-class">What Changes Per Class</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Class</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">TestFormPDFDocumentGenerator.#assemblePages()</code></td>
+<td>Remove <code class="notranslate">PDFDocument.create()</code>. Pass <code class="notranslate">assetDocument</code> directly. Assembly happens in <code class="notranslate">assetDocument</code>.</td>
+</tr>
+<tr>
+<td><code class="notranslate">AssetPagePreConverter.convertAll()</code></td>
+<td>Self-copy (<code class="notranslate">doc.copyPages(doc, ...)</code>) only for multi-chain pages. Convert per chain with deletion between chains. Track which originals are still needed via reference counting.</td>
+</tr>
+<tr>
+<td><code class="notranslate">PDFDocumentColorConverter</code></td>
+<td>None — already receives <code class="notranslate">{ pdfDocument }</code> and works on it</td>
+</tr>
+<tr>
+<td><code class="notranslate">PDFPageColorConverter</code></td>
+<td>None</td>
+</tr>
+<tr>
+<td><code class="notranslate">PDFImageColorConverter</code></td>
+<td>None</td>
+</tr>
+<tr>
+<td><code class="notranslate">WorkerPool</code></td>
+<td>Separate concern — concurrency cap is independent of this restructure</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 id="self-copy-constraint">Self-Copy Constraint</h3>
+<p>When calling <code class="notranslate">assetDocument.copyPages(assetDocument, indices)</code>, pdf-lib's <code class="notranslate">PDFObjectCopier</code> deep-clones via <code class="notranslate">.slice()</code>. This produces independent copies even though source and target are the same document. The CRITICAL requirement is that each chain's copies are independent object graphs (the shared <code class="notranslate">PDFRawStream</code> bug from session 4) — separate <code class="notranslate">copyPages</code> calls per chain group still apply.</p>
+<hr>
+<h2 id="architecture-separate-chains-per-chain-pdf-output">Architecture: Separate-Chains Per-Chain PDF Output</h2>
+<h3 id="problem">Problem</h3>
+<p>The Maps asset (346 MB, 7 pages including 16-bit images) requires holding all chains' conversion buffers in memory simultaneously when generating a single output PDF. This causes OOM crashes in Firefox/Chrome.</p>
+<h3 id="solution">Solution</h3>
+<p>The <code class="notranslate">Separate Chains</code> checkbox splits generation into one PDF per layout color space group, processing each sequentially and downloading immediately.</p>
+<h3 id="separation-key">Separation Key</h3>
+<p>Group output pages by <code class="notranslate">page.colorSpace</code> from <code class="notranslate">manifest.pages</code>:</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Group</th>
+<th>Suffix</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>sRGB</td>
+<td><code class="notranslate"> - sRGB</code></td>
+<td>Pages with <code class="notranslate">colorSpace: "sRGB"</code></td>
+</tr>
+<tr>
+<td>sGray</td>
+<td><code class="notranslate"> - sGray</code></td>
+<td>Pages with <code class="notranslate">colorSpace: "sGray"</code></td>
+</tr>
+<tr>
+<td>Lab</td>
+<td><code class="notranslate"> - Lab</code></td>
+<td>Pages with <code class="notranslate">colorSpace: "Lab"</code></td>
+</tr>
+<tr>
+<td>SepK</td>
+<td><code class="notranslate"> - SepK</code></td>
+<td>Pages with <code class="notranslate">colorSpace: "SepK"</code></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 id="per-chain-loop">Per-Chain Loop</h3>
+<pre class="notranslate"><code class="notranslate">load manifest → download assets → parse ICC → generate full slugs PDF once
+→ for each colorSpace group:
+    PDFDocument.load(assetPDFBuffer) → fresh pre-converter → convert → assemble
+    → embedPdf(fullSlugsDocument, [originalPageIndices]) → post-process → save
+    → onChainOutput(colorSpace, pdfBuffer) → 500ms GC yield
+→ download metadata JSON
+</code></pre>
+<h3 id="key-design-decisions">Key Design Decisions</h3>
+<ol>
+<li><strong>Slugs generated ONCE</strong> before chain loop (Ghostscript runs once, not per chain)</li>
+<li><strong>Full <code class="notranslate">manifest.assets</code> array preserved</strong> in filtered manifest (index alignment with PDF pages)</li>
+<li><strong>Fresh <code class="notranslate">PDFDocument.load()</code> per chain</strong> — each chain gets independent document</li>
+<li><strong>Debugging downloads deferred to first chain output</strong> — profile + manifest download before first chain PDF; never fires if no chain completes</li>
+<li><strong>Branch before pre-conversion</strong> — separate-chains path skips single-document assembly entirely</li>
+</ol>
+<h3 id="memory-impact">Memory Impact</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Phase</th>
+<th>Single-Document</th>
+<th>Separate-Chains</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Peak during one chain</td>
+<td>All chains' buffers</td>
+<td>One chain's buffers only</td>
+</tr>
+<tr>
+<td>Between chains</td>
+<td>N/A</td>
+<td>~0 (GC opportunity)</td>
+</tr>
+<tr>
+<td>During save()</td>
+<td>Full output buffer</td>
+<td>Chain-only output buffer</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<hr>
+<h2 id="design-worker-task-concurrency-cap">Design: Worker Task Concurrency Cap</h2>
+<p>Separate from the single-document restructure. Prevents OOM from parallel image conversion.</p>
+<h3 id="approach">Approach</h3>
+<p>Add a configuration to cap concurrent in-flight worker task memory. When the cap would be exceeded, defer new submissions until active tasks complete.</p>
+<h3 id="name-candidates">Name Candidates</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Name</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">maxConcurrentTaskMemory</code></td>
+<td>Clear but long</td>
+</tr>
+<tr>
+<td><code class="notranslate">taskMemoryBudget</code></td>
+<td>Concise, budget metaphor</td>
+</tr>
+<tr>
+<td><code class="notranslate">concurrencyMemoryBudget</code></td>
+<td>Most precise — limits concurrency based on memory</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 id="implementation-points">Implementation Points</h3>
+<ol>
+<li><strong>Estimate task memory</strong> — at submission time: <code class="notranslate">width * height * channels * bytesPerChannel * OVERHEAD_FACTOR</code></li>
+<li><strong>Track in-flight memory</strong> — <code class="notranslate">#inFlightMemory</code> counter in <code class="notranslate">WorkerPool</code></li>
+<li><strong>Gate submissions</strong> — <code class="notranslate">submitImage()</code> waits if <code class="notranslate">#inFlightMemory + estimate &gt; budget</code></li>
+<li><strong>Replace <code class="notranslate">Promise.all()</code></strong> in <code class="notranslate">pdf-page-color-converter.js:440</code> with controlled submission loop</li>
+</ol>
+<hr>
+<h2 id="investigation-pdf-lib-memory-architecture">Investigation: pdf-lib Memory Architecture</h2>
+<h3 id="key-findings">Key Findings</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Capability</th>
+<th>Available</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">flush()</code></td>
+<td>Yes</td>
+<td>Does NOT release memory — only embeds pending objects</td>
+</tr>
+<tr>
+<td><code class="notranslate">save()</code></td>
+<td>Yes</td>
+<td>Creates new output buffer; input document stays in memory</td>
+</tr>
+<tr>
+<td><code class="notranslate">dispose()</code> / <code class="notranslate">release()</code></td>
+<td><strong>No</strong></td>
+<td>No explicit memory release mechanism</td>
+</tr>
+<tr>
+<td>Incremental writes</td>
+<td><strong>No</strong></td>
+<td>Always produces complete PDF</td>
+</tr>
+<tr>
+<td>Lazy loading</td>
+<td><strong>No</strong></td>
+<td>All objects loaded at parse time</td>
+</tr>
+<tr>
+<td>Page unloading</td>
+<td><strong>No</strong></td>
+<td>Pages stay in cache indefinitely</td>
+</tr>
+<tr>
+<td>Cache invalidation</td>
+<td>Partial</td>
+<td>Manual <code class="notranslate">.invalidate()</code> on <code class="notranslate">Cache</code> instances</td>
+</tr>
+<tr>
+<td><code class="notranslate">objectsPerTick</code></td>
+<td>Yes</td>
+<td>Yields during serialization only</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 id="internal-structure">Internal Structure</h3>
+<pre class="notranslate"><code class="notranslate">PDFDocument
+  └─ PDFContext
+       ├─ indirectObjects: Map&lt;PDFRef, PDFObject&gt;  ← ALL objects, never pruned
+       ├─ header, trailer, crossRefSections
+       └─ enumerateIndirectObjects()               ← iterates all
+  └─ pageCache: Cache                              ← computed pages, invalidatable
+  └─ pages: PDFPage[]                              ← wrappers around PDFPageLeaf
+</code></pre>
+<ul>
+<li><code class="notranslate">PDFRawStream.contents</code> holds raw bytes (compressed or decompressed)</li>
+<li>Decompression via <code class="notranslate">decodePDFRawStream()</code> creates NEW <code class="notranslate">Uint8Array</code> on each access (not cached in PDFRawStream)</li>
+<li><code class="notranslate">PDFObjectCopier</code> deep-clones with <code class="notranslate">.slice()</code> on stream contents</li>
+</ul>
+<h3 id="parser-buffer-gc-eligibility">Parser Buffer GC-Eligibility</h3>
+<p>The original input buffer CAN be garbage-collected after <code class="notranslate">PDFDocument.load()</code>:</p>
+<ol>
+<li><code class="notranslate">PDFParser</code> wraps input in <code class="notranslate">ByteStream</code> (line 29393: <code class="notranslate">this.bytes = bytes</code>)</li>
+<li><code class="notranslate">ByteStream.slice()</code> creates independent copies for each <code class="notranslate">PDFRawStream.contents</code> (line 29432)</li>
+<li>After <code class="notranslate">parseDocument()</code> returns, only <code class="notranslate">PDFContext</code> is stored (line 36514)</li>
+<li><code class="notranslate">PDFParser</code> instance is NOT stored — becomes GC-eligible with its <code class="notranslate">ByteStream</code> and original buffer</li>
+</ol>
+<h3 id="removepage-does-not-free-objects"><code class="notranslate">removePage()</code> Does Not Free Objects</h3>
+<p><code class="notranslate">removePage()</code> removes pages from the page tree but <code class="notranslate">PDFContext.indirectObjects</code> retains all objects. There is no mechanism to evict unreferenced objects from the Map.</p>
+<hr>
+<h2 id="investigation-worker-pool-memory-lifecycle">Investigation: Worker Pool Memory Lifecycle</h2>
+<h3 id="arraybuffer-transfer-flow">ArrayBuffer Transfer Flow</h3>
+<pre class="notranslate"><code class="notranslate">Main Thread                          Worker Thread
+─────────────                        ─────────────
+prepareWorkerTask()
+  ├─ .buffer.slice() on all inputs
+  ├─ creates ImageTask
+  └─ returns task
+
+submitImage(task)
+  ├─ #collectTransferables()
+  │   └─ compressedData OR pixelBuffer
+  ├─ postMessage(task, [transferables])  ──→  handleMessage(task)
+  │   (source ArrayBuffers neutered)          ├─ inflate → transform → compress
+  │                                           └─ sendResult(result, [transferables])
+  ├─ await result                    ←──  postMessage(result, [pixelBuffer])
+  └─ resolve(result)                      (output ArrayBuffer neutered in worker)
+</code></pre>
+<h3 id="no-back-pressure-current">No Back-Pressure (current)</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Mechanism</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Task queue size limit</td>
+<td>None — <code class="notranslate">#taskQueue = []</code> grows unbounded</td>
+</tr>
+<tr>
+<td>Concurrent task limit</td>
+<td>Only by worker count (pool size)</td>
+</tr>
+<tr>
+<td>Buffer size tracking</td>
+<td>None — <code class="notranslate">#pendingTasks</code> stores resolve/reject only</td>
+</tr>
+<tr>
+<td>Memory monitoring</td>
+<td>None — no threshold checks</td>
+</tr>
+<tr>
+<td>Submission backpressure</td>
+<td>None — <code class="notranslate">Promise.all()</code> submits all at once</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<hr>
+<h2 id="oom-crash-analysis">OOM Crash Analysis</h2>
+<h3 id="crash-timeline">Crash Timeline</h3>
+<p>The test processes the Maps asset (<code class="notranslate">2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets - Maps</code>):</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Page</th>
+<th>Content</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1-4</td>
+<td>Gray 8-bit images (small)</td>
+<td>Completes successfully</td>
+</tr>
+<tr>
+<td>5</td>
+<td>3x RGB 16-bit images (3813x4875 each)</td>
+<td>Renderer crashes</td>
+</tr>
+<tr>
+<td>6-7</td>
+<td>Additional images</td>
+<td>Never reached</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 id="per-image-conversion-memory-3813x4875-rgb-16-bit">Per-Image Conversion Memory (3813x4875 RGB 16-bit)</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Stage</th>
+<th>Memory</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Compressed stream</td>
+<td>~2 MB</td>
+<td>FlateDecode data from PDF</td>
+</tr>
+<tr>
+<td>Inflated pixels</td>
+<td>~55.8 MB</td>
+<td>3813 x 4875 x 3 channels x 2 bytes</td>
+</tr>
+<tr>
+<td>Byte-swapped input</td>
+<td>~55.8 MB</td>
+<td>Native-endian copy for color engine</td>
+</tr>
+<tr>
+<td>Output CMYK array</td>
+<td>~74.4 MB</td>
+<td>4 channels x 2 bytes per pixel</td>
+</tr>
+<tr>
+<td>pako compress overhead</td>
+<td>~55 MB</td>
+<td>Intermediate during deflate</td>
+</tr>
+<tr>
+<td><strong>Per-image peak</strong></td>
+<td><strong>~243 MB</strong></td>
+<td>All stages overlapping</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<hr>
+<h2 id="pdf-lib-vendored-patches-session-5">pdf-lib Vendored Patches (session 5)</h2>
+<p>Applied to <code class="notranslate">packages/pdf-lib/pdf-lib.esm.js</code>. Upstream backup at <code class="notranslate">packages/pdf-lib-upstream/pdf-lib.esm.js</code>.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Patch</th>
+<th>Line</th>
+<th>Change</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A: <code class="notranslate">buffer.set()</code> for stream copy</td>
+<td>15916</td>
+<td>Replace byte-by-byte loop with <code class="notranslate">buffer.set(contents, offset)</code> in <code class="notranslate">PDFStream.copyBytesInto</code></td>
+<td><strong>High</strong> — eliminates millions of individual byte assignments for large image streams during <code class="notranslate">save()</code></td>
+</tr>
+<tr>
+<td>B: <code class="notranslate">objectsPerTick: 20</code></td>
+<td>generator</td>
+<td>Pass <code class="notranslate">objectsPerTick: 20</code> to <code class="notranslate">save()</code> (default: 50)</td>
+<td><strong>Medium</strong> — more frequent event loop yields during serialization, prevents "page unresponsive" in browser</td>
+</tr>
+<tr>
+<td>C: Remove <code class="notranslate">console.trace</code></td>
+<td>375</td>
+<td>Remove debug instrumentation from <code class="notranslate">arrayAsString</code></td>
+<td><strong>Low</strong> — removes overhead from any remaining internal callers</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 id="pdf-lib-architectural-limitations-cannot-patch">pdf-lib Architectural Limitations (cannot patch)</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Limitation</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dual memory during <code class="notranslate">save()</code></td>
+<td>Document model + full output buffer coexist; no streaming serialization</td>
+</tr>
+<tr>
+<td><code class="notranslate">indirectObjects</code> never pruned</td>
+<td><code class="notranslate">removePage()</code> removes from page tree but objects remain in <code class="notranslate">PDFContext.indirectObjects</code> Map</td>
+</tr>
+<tr>
+<td>No <code class="notranslate">dispose()</code> / release</td>
+<td>No explicit memory release mechanism; GC only</td>
+</tr>
+<tr>
+<td>No incremental writes</td>
+<td>Always produces complete PDF; fork <code class="notranslate">remdra/pdf-lib-incremental-save</code> exists</td>
+</tr>
+<tr>
+<td>No lazy object loading</td>
+<td>All objects parsed and held in memory at load time</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 id="github-issues-referenced">GitHub Issues Referenced</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Issue</th>
+<th>Summary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/Hopding/pdf-lib/issues/197" data-hovercard-type="issue" data-hovercard-url="/Hopding/pdf-lib/issues/197/hovercard">#197</a></td>
+<td>OOM with 20k pages — <code class="notranslate">save()</code> allocates full buffer</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Hopding/pdf-lib/issues/470" data-hovercard-type="issue" data-hovercard-url="/Hopding/pdf-lib/issues/470/hovercard">#470</a></td>
+<td>6 GB for 200 pages — individual <code class="notranslate">copyPages</code> loops duplicate shared objects</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Hopding/pdf-lib/issues/639" data-hovercard-type="issue" data-hovercard-url="/Hopding/pdf-lib/issues/639/hovercard">#639</a></td>
+<td><code class="notranslate">embedPage()</code> decompresses FlateDecode streams (inflates file size 7-10x)</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Hopding/pdf-lib/issues/914" data-hovercard-type="issue" data-hovercard-url="/Hopding/pdf-lib/issues/914/hovercard">#914</a></td>
+<td>No <code class="notranslate">destroy()</code> method requested; closed without implementation</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Hopding/pdf-lib/issues/816" data-hovercard-type="issue" data-hovercard-url="/Hopding/pdf-lib/issues/816/hovercard">#816</a> / <a href="https://github.com/Hopding/pdf-lib/issues/1418" data-hovercard-type="issue" data-hovercard-url="/Hopding/pdf-lib/issues/1418/hovercard">#1418</a></td>
+<td>Incremental save — fork available</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<hr>
+<h2 id="investigation-full-16-bit-pdf-main-thread-conversion-memory-profile">Investigation: Full 16-bit PDF Main-Thread Conversion Memory Profile</h2>
+<p>The complete 16-bit PDF is ~1.5 GB with images ZIP-compressed. The 8-bit PDF is ~75 MB. The map asset alone is ~300 MB compressed. Uncompressing those ZIP streams and holding buffers needlessly creates a ticking bomb of leaks.</p>
+<h3 id="assumptions">Assumptions</h3>
+<ul>
+<li><strong>Input PDF:</strong> ~1.5 GB (16-bit, FlateDecode compressed)</li>
+<li><strong>Per-stream copies after parse:</strong> ~1.5 GB total (independent <code class="notranslate">.slice()</code> copies — original buffer IS GC-eligible per Parser Buffer GC-Eligibility finding above)</li>
+<li><strong>Typical image (RGB 16-bit, 3813×4875):</strong> ~2 MB compressed, ~55.8 MB uncompressed, ~74.4 MB as CMYK output</li>
+<li><strong>Map image (CMYK 16-bit, large):</strong> ~300 MB compressed, ~690 MB uncompressed</li>
+<li><strong>WASM linear memory:</strong> ~64 MB per ColorEngine instance (grows, never shrinks)</li>
+<li><strong>Output color space:</strong> CMYK 16-bit</li>
+</ul>
+<h3 id="memory-profile-main-thread-single-document-conversion">Memory Profile — Main-Thread Single-Document Conversion</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Stage</th>
+<th>Description</th>
+<th>Buffers Held</th>
+<th>Total Memory</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td><code class="notranslate">PDFDocument.load(buffer)</code> — parsing in progress</td>
+<td>Original (1.5 GB) + per-stream copies accumulating</td>
+<td>~3.0 GB peak (momentary)</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Parse complete, GC reclaims original</td>
+<td>Per-stream PDFRawStream copies (~1.5 GB) + PDFContext overhead</td>
+<td>~1.6 GB</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code class="notranslate">PDFDocumentColorConverter.ensureReady()</code> — WASM init</td>
+<td>Document (1.6 GB) + ColorEngine WASM (~64 MB) + ProfilePool</td>
+<td>~1.7 GB</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Image 1 inflate</strong> (typical RGB 16-bit)</td>
+<td>Document + WASM + inflated pixels (55.8 MB)</td>
+<td>~1.76 GB</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Image 1 transform</strong></td>
+<td>Document + WASM + input (55.8 MB) + output (74.4 MB)</td>
+<td>~1.83 GB</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Image 1 deflate</strong></td>
+<td>Document + WASM + input + output + compress overhead (~55 MB)</td>
+<td>~1.89 GB</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>Image 1 write-back</strong> — compressed output replaces original stream</td>
+<td>Document + WASM (input/output/overhead should be GC-eligible)</td>
+<td>~1.7 GB</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>Images 2-15</strong> (small/medium) — sequential, same pattern</td>
+<td>Accumulates if GC doesn't run between images</td>
+<td>~1.7–2.2 GB</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>Map image inflate</strong> (~300 MB → ~690 MB)</td>
+<td>Document + WASM + inflated map (690 MB)</td>
+<td>~2.4 GB</td>
+</tr>
+<tr>
+<td>9</td>
+<td><strong>Map image transform</strong></td>
+<td>Document + WASM + map input (690 MB) + map output (690 MB)</td>
+<td>~3.1 GB</td>
+</tr>
+<tr>
+<td>10</td>
+<td><strong>Map image deflate</strong></td>
+<td>Document + WASM + input + output + compress overhead (~300 MB)</td>
+<td>~3.4 GB</td>
+</tr>
+<tr>
+<td>11</td>
+<td><strong>Map image write-back</strong></td>
+<td>Document + WASM + new compressed map (~300 MB replacing original)</td>
+<td>~2.0 GB</td>
+</tr>
+<tr>
+<td>12</td>
+<td>All images done, converter disposed</td>
+<td>Document with converted streams (~1.5 GB) + overhead</td>
+<td>~1.6 GB</td>
+</tr>
+<tr>
+<td>13</td>
+<td><strong><code class="notranslate">pdfDocument.save()</code></strong> — serializes to new <code class="notranslate">Uint8Array</code></td>
+<td>Document model (1.6 GB) + output buffer (~1.5 GB)</td>
+<td>~3.1 GB</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Save complete, document released</td>
+<td>Output buffer only</td>
+<td>~1.5 GB</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 id="gc-delayed-worst-case">GC-Delayed Worst Case</h3>
+<p>V8/SpiderMonkey do NOT guarantee GC runs between sequential image conversions. When prior images' transient buffers are not collected:</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Peak Memory</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Best case</strong> (GC between every image)</td>
+<td>~3.4 GB</td>
+<td>Map deflate peak (stage 10)</td>
+</tr>
+<tr>
+<td><strong>Typical</strong> (GC misses 2-3 images)</td>
+<td>~3.8 GB</td>
+<td>Prior image buffers linger during map processing</td>
+</tr>
+<tr>
+<td><strong>Worst case</strong> (no GC until pressure)</td>
+<td>~4.5 GB+</td>
+<td>All transient buffers from images 2-15 accumulate before map starts</td>
+</tr>
+<tr>
+<td><strong><code class="notranslate">save()</code> worst case</strong> (GC-delayed + save)</td>
+<td>~4.5 GB+</td>
+<td>Document model + output buffer + lingering transients</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 id="key-observations">Key Observations</h3>
+<ol>
+<li><strong><code class="notranslate">save()</code> creates a hidden second peak</strong> — the entire document model and serialized output coexist. For a 1.5 GB PDF, this alone is ~3.1 GB.</li>
+<li><strong>Transient buffers are the ticking bomb</strong> — each image conversion creates 3-4 large buffers (inflate, transform input, transform output, deflate overhead) that become GC-eligible but may not be collected promptly.</li>
+<li><strong>The map image dominates</strong> — its ~690 MB uncompressed size means transient peak during transform is ~1.4 GB for that single image.</li>
+<li><strong>WASM linear memory only grows</strong> — <code class="notranslate">dispose()</code> drops JS references but cannot reclaim WASM heap pages.</li>
+<li><strong><code class="notranslate">AssetPagePreConverter</code> creates separate WASM instances</strong> — each <code class="notranslate">PDFDocumentColorConverter</code> (one per chain group) instantiates its own <code class="notranslate">ColorEngineProvider</code>. Multiple chains = multiple ~64 MB WASM heaps.</li>
+<li><strong>No explicit buffer nulling</strong> — <code class="notranslate">pdf-image-color-converter.js</code> does not null local variables after write-back, relying entirely on function scope exit for GC eligibility.</li>
+</ol>
+<hr>
+<h2 id="recommendations-memory-optimization-most-to-least-effective">Recommendations: Memory Optimization (Most to Least Effective)</h2>
+<h3 id="1-separate-chains-mode-done">1. Separate-Chains Mode — <code class="notranslate">DONE</code></h3>
+<p><strong>Impact:</strong> Highest. <strong>Effort:</strong> Done.</p>
+<p>Already implemented (Task 3). Each color space group loads a fresh <code class="notranslate">PDFDocument</code>, converts only its subset, saves, and releases before the next chain. Eliminates cross-chain memory accumulation entirely. The remaining recommendations target within-chain memory.</p>
+<h3 id="2-chunked-inflate-transform-deflate-pipeline">2. Chunked Inflate-Transform-Deflate Pipeline</h3>
+<p><strong>Impact:</strong> Very high — eliminates the 690 MB uncompressed map buffer. <strong>Effort:</strong> High (baseline class change, justified by ecosystem-wide benefit).</p>
+<p>Instead of inflating the entire image, transforming, then deflating, process in fixed-size chunks (e.g., 64 KB rows). At any moment, only the current chunk's inflate output, transform output, and deflate input are in memory. The map image's transient peak drops from ~1,680 MB to ~tens of MB.</p>
+<p><strong>Where:</strong> <code class="notranslate">pdf-image-color-converter.js</code> — replace the current inflate-all → transform-all → deflate-all pattern with a streaming pipeline.</p>
+<h3 id="3-share-colorengineprovider-across-chain-converters">3. Share ColorEngineProvider Across Chain Converters</h3>
+<p><strong>Impact:</strong> Medium — saves ~64 MB per additional chain. <strong>Effort:</strong> Low (generator-only change).</p>
+<p><code class="notranslate">AssetPagePreConverter</code> currently lets each <code class="notranslate">PDFDocumentColorConverter</code> create its own <code class="notranslate">ColorEngineProvider</code> → WASM instance. Pass a shared <code class="notranslate">ColorEngineProvider</code> via configuration so all chains in a single-document run reuse one WASM instance.</p>
+<p><strong>Where:</strong> <code class="notranslate">generator/classes/asset-page-pre-converter.js</code> — create <code class="notranslate">ColorEngineProvider</code> once, pass to each converter config.</p>
+<h3 id="4-explicit-buffer-nulling-after-image-completion">4. Explicit Buffer Nulling After Image Completion</h3>
+<p><strong>Impact:</strong> Medium — makes transient buffers GC-eligible immediately instead of waiting for function scope exit. <strong>Effort:</strong> Very low (baseline class change, trivially justified).</p>
+<p>After <code class="notranslate">pdfStream.contents = compressedOutput</code>, explicitly null the local variables holding the inflated input, transform output, and deflate overhead. This allows GC to reclaim them before the next image starts.</p>
+<p><strong>Where:</strong> <code class="notranslate">pdf-image-color-converter.js</code> — add <code class="notranslate">inflatedPixels = null; outputPixels = null;</code> after write-back.</p>
+<h3 id="5-pdfdocument-save-memory-mitigation">5. <code class="notranslate">pdfDocument.save()</code> Memory Mitigation</h3>
+<p><strong>Impact:</strong> High for the save peak (~3.1 GB → could halve). <strong>Effort:</strong> High (requires pdf-lib fork or significant patch).</p>
+<p>Options:</p>
+<ul>
+<li><strong>Streaming serialization</strong> — write to a <code class="notranslate">WritableStream</code> instead of accumulating a <code class="notranslate">Uint8Array</code>. Requires deep pdf-lib modification.</li>
+<li><strong>Incremental save</strong> — use the <code class="notranslate">remdra/pdf-lib-incremental-save</code> fork. Appends changes only.</li>
+<li><strong>Pre-save GC yield</strong> — already implemented (500ms yield before <code class="notranslate">save()</code>), but cannot guarantee GC.</li>
+</ul>
+<h3 id="6-worker-concurrency-cap-memory-aware-deferral">6. Worker Concurrency Cap (Memory-Aware Deferral)</h3>
+<p><strong>Impact:</strong> Medium — prevents parallel image submissions from multiplying transient buffers. <strong>Effort:</strong> Medium (baseline class change, already designed above).</p>
+<p>The <code class="notranslate">WorkerPool</code> currently accepts all submissions immediately. Adding a <code class="notranslate">concurrencyMemoryBudget</code> threshold defers new image submissions until active tasks complete and free memory.</p>
+<p><strong>Where:</strong> <code class="notranslate">worker-pool.js</code> — add <code class="notranslate">#inFlightMemory</code> tracking and gate in <code class="notranslate">submitImage()</code>.</p>
+<h3 id="7-pre-flight-memory-estimation-and-gc-yield">7. Pre-Flight Memory Estimation and GC Yield</h3>
+<p><strong>Impact:</strong> Low-medium — reduces GC-delayed accumulation. <strong>Effort:</strong> Low-medium (baseline class change).</p>
+<p>Before processing each image, estimate its transient memory requirement (<code class="notranslate">width × height × channels × bytesPerChannel × 4</code>). If the estimate exceeds a threshold, insert a <code class="notranslate">setTimeout(0)</code> yield to give GC an opportunity. For the map image, this could trigger a forced GC pause via <code class="notranslate">performance.measureUserAgentSpecificMemory()</code> (Chrome only).</p>
+<p><strong>Where:</strong> <code class="notranslate">pdf-page-color-converter.js</code> — before <code class="notranslate">convertPDFImageColor()</code> call.</p>
+<h3 id="8-wasm-instance-recycling-after-large-images">8. WASM Instance Recycling After Large Images</h3>
+<p><strong>Impact:</strong> Low — saves ~64 MB per recycle. <strong>Effort:</strong> Medium (baseline class change).</p>
+<p>After processing an image exceeding a size threshold, dispose the current <code class="notranslate">ColorEngineProvider</code> and create a fresh one. This releases the grown WASM linear memory and starts with a minimal heap.</p>
+<p><strong>Where:</strong> <code class="notranslate">composite-color-converter.js</code> — add threshold check after image conversion.</p>
+<h3 id="9-pdf-lib-object-pruning-after-removepage">9. pdf-lib Object Pruning After <code class="notranslate">removePage()</code></h3>
+<p><strong>Impact:</strong> Low-medium — reclaims orphaned objects. <strong>Effort:</strong> Medium (pdf-lib patch).</p>
+<p><code class="notranslate">removePage()</code> leaves objects in <code class="notranslate">PDFContext.indirectObjects</code>. A sweep-and-collect pass could identify objects unreachable from any remaining page's resource tree and remove them from the Map.</p>
+<p><strong>Where:</strong> Vendored <code class="notranslate">pdf-lib.esm.js</code> — add <code class="notranslate">pruneUnreferencedObjects()</code> method to <code class="notranslate">PDFContext</code>.</p>
+<hr>
+<h2 id="fix-chunked-content-stream-regex-firefox-128-mb-limit">Fix: Chunked Content Stream Regex (Firefox ~128 MB Limit)</h2>
+<h3 id="problem-1">Problem</h3>
+<p>Firefox's regex engine returns <code class="notranslate">null</code> when <code class="notranslate">matchAll</code> is called on strings exceeding ~128 MB. One content stream in the 16-bit PDF unpacks to ~213 MB (213,435,426 characters), causing the color operator regex to silently fail — no matches returned, no error thrown. This fix resolved the regex parsing stage; the subsequent rebuild and compression stage required a separate streaming fix (see next section).</p>
+<h3 id="solution-1">Solution</h3>
+<p>A <code class="notranslate">matchAll</code> generator function in <code class="notranslate">pdf-content-stream-color-converter.js</code> that:</p>
+<ol>
+<li><strong>Fast path</strong> — strings under 5 MB delegate directly via <code class="notranslate">yield*</code> to native <code class="notranslate">String.prototype.matchAll</code> (zero overhead for the vast majority of streams)</li>
+<li><strong>Chunked path</strong> — splits at the last space before each 5 MB boundary, runs <code class="notranslate">matchAll</code> on each chunk, adjusts <code class="notranslate">match.index</code> by the chunk's offset, and <code class="notranslate">yield</code>s each match</li>
+<li><strong>Consumed in <code class="notranslate">for...of</code></strong> — no intermediate array materialization (<code class="notranslate">Array.from</code> removed), matches are processed one at a time</li>
+</ol>
+<h3 id="why-space-boundaries-are-safe">Why Space Boundaries Are Safe</h3>
+<ul>
+<li>PDF color operators are whitespace-delimited (<code class="notranslate">0.5 0.3 0.2 rg</code>). Splitting at a space never cuts a token.</li>
+<li>Each regex match is self-contained — operands and operator are captured in a single match. No multi-match dependencies.</li>
+<li>The <code class="notranslate">(?&lt;=[\s\n]|^)</code> lookbehind in the regex works at chunk boundaries because position 0 of each non-first chunk matches <code class="notranslate">^</code>, and the preceding character in the original string is always a space.</li>
+<li>Parser state (<code class="notranslate">currentStrokeColorSpace</code>, <code class="notranslate">currentFillColorSpace</code>) propagates naturally since the <code class="notranslate">for...of</code> loop is the same scope.</li>
+</ul>
+<h3 id="file-changed">File Changed</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>File</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">classes/baseline/pdf-content-stream-color-converter.js</code></td>
+<td>Added <code class="notranslate">matchAll</code> generator function. Replaced <code class="notranslate">Array.from(streamText.matchAll(regex))</code> + <code class="notranslate">for (const match of matches)</code> with <code class="notranslate">for (const match of matchAll(streamText, regex))</code>.</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<hr>
+<h2 id="fix-streaming-content-stream-rebuild-compression-firefox-oom">Fix: Streaming Content Stream Rebuild + Compression (Firefox OOM)</h2>
+<blockquote>
+<p><strong>Combined with the chunked <code class="notranslate">matchAll</code> fix above</strong>, these two changes make the entire content stream pipeline streaming — from regex parsing through to compressed output. The ~213 MB content stream is never materialized as a single intermediate string at any stage.</p>
+</blockquote>
+<h3 id="problem-2">Problem</h3>
+<p>After the chunked <code class="notranslate">matchAll</code> fix (session 8), Firefox still crashed on the same ~213 MB content stream. The crash occurs AFTER parsing completes — during <code class="notranslate">rebuildContentStream</code> and <code class="notranslate">#applyContentStreamResult</code>.</p>
+<p><strong>Three OOM pressure points in the old code:</strong></p>
+<ol>
+<li><strong><code class="notranslate">rebuildContentStream</code> string concatenation</strong> — 1021 replacements on a 213 MB string via <code class="notranslate">result = result.slice(0, index) + replacement + result.slice(index + length)</code>. Each iteration creates a new ~213 MB string. SpiderMonkey's GC cannot reclaim them mid-loop.</li>
+<li><strong>Result retains both <code class="notranslate">originalText</code> + <code class="notranslate">newText</code></strong> — 426 MB of live strings simultaneously.</li>
+<li><strong><code class="notranslate">#applyContentStreamResult</code></strong> — <code class="notranslate">new Uint8Array(213MB)</code> via <code class="notranslate">copyStringIntoBuffer</code>, then <code class="notranslate">pako.deflate()</code> creates another ~213 MB of transient buffers.</li>
+</ol>
+<h3 id="solution-2">Solution</h3>
+<p><strong><code class="notranslate">rebuildContentStream</code></strong> (in <code class="notranslate">pdf-content-stream-color-converter.js</code>) now returns a segment generator instead of a concatenated string:</p>
+<ul>
+<li>Insertions are sorted ascending by position</li>
+<li>A <code class="notranslate">generateSegments()</code> generator yields unchanged text slices between replacements and the replacement strings themselves</li>
+<li><code class="notranslate">totalLength</code> is computed arithmetically without materializing</li>
+<li>Return type changed: <code class="notranslate">{ text, finalColorSpaceState }</code> → <code class="notranslate">{ segments, totalLength, finalColorSpaceState }</code></li>
+</ul>
+<p><strong>Result typedef</strong> updated: <code class="notranslate">newText: string</code> → <code class="notranslate">newTextSegments: Iterable&lt;string&gt; | null</code> + <code class="notranslate">newTextLength: number</code></p>
+<p><strong><code class="notranslate">#applyContentStreamResult</code></strong> (in <code class="notranslate">pdf-page-color-converter.js</code>) now uses <code class="notranslate">compressSegmentsWithFlateDecode(segments)</code>:</p>
+<ul>
+<li>New function in <code class="notranslate">services/helpers/pdf-lib.js</code> that encodes segments to Latin-1 in ~5 MB chunks</li>
+<li>Each chunk is fed into pako's streaming <code class="notranslate">Deflate.push()</code> — no full-size Uint8Array</li>
+<li>Compressed result replaces stream contents directly</li>
+</ul>
+<p><strong>After applying:</strong> <code class="notranslate">originalText</code> and <code class="notranslate">newTextSegments</code> are nulled on the result object for immediate GC eligibility.</p>
+<p><strong>Worker entrypoint</strong> materializes segments to a string for structured clone transfer (workers have their own heap, so the OOM is not a concern there).</p>
+<h3 id="memory-impact-1">Memory Impact</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Metric</th>
+<th>Before</th>
+<th>After</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Peak during rebuild (213 MB stream, 1021 ops)</td>
+<td>~1+ GB (1021 intermediate strings)</td>
+<td>~segment size (max gap between replacements)</td>
+</tr>
+<tr>
+<td>Encoding buffer</td>
+<td>~213 MB Uint8Array</td>
+<td>~5 MB chunks</td>
+</tr>
+<tr>
+<td>Compression overhead</td>
+<td>~213 MB pako internal</td>
+<td>Streaming — ~5 MB at a time</td>
+</tr>
+<tr>
+<td><code class="notranslate">result.originalText</code> after apply</td>
+<td>Retained (213 MB)</td>
+<td>Nulled</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 id="files-changed">Files Changed</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>File</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">classes/baseline/pdf-content-stream-color-converter.js</code></td>
+<td><code class="notranslate">rebuildContentStream</code> returns <code class="notranslate">{ segments, totalLength, finalColorSpaceState }</code>. <code class="notranslate">convertColor</code> result uses <code class="notranslate">newTextSegments</code> + <code class="notranslate">newTextLength</code> instead of <code class="notranslate">newText</code>.</td>
+</tr>
+<tr>
+<td><code class="notranslate">classes/baseline/pdf-page-color-converter.js</code></td>
+<td><code class="notranslate">#applyContentStreamResult</code> uses <code class="notranslate">compressSegmentsWithFlateDecode</code>. Nulls <code class="notranslate">originalText</code> and <code class="notranslate">newTextSegments</code> after applying. Removed unused <code class="notranslate">copyStringIntoBuffer</code> and <code class="notranslate">compressWithFlateDecode</code> imports.</td>
+</tr>
+<tr>
+<td><code class="notranslate">services/helpers/pdf-lib.js</code></td>
+<td>Added <code class="notranslate">compressSegmentsWithFlateDecode(segments)</code> — streaming Latin-1 encode + pako Deflate in 5 MB chunks. Node.js fallback uses <code class="notranslate">Buffer.from(segment, 'latin1')</code> + <code class="notranslate">zlib.deflateSync</code>.</td>
+</tr>
+<tr>
+<td><code class="notranslate">classes/baseline/worker-pool-entrypoint.js</code></td>
+<td>Materializes <code class="notranslate">newTextSegments</code> to string for structured clone transfer. Updated diagnostics to use <code class="notranslate">newTextLength</code>.</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<hr>
+<h2 id="baseline-cleanup-completed-tracked-in-2026-02-15-baseline-cleanup-progress-md">Baseline Cleanup (completed, tracked in <code class="notranslate">2026-02-15-BASELINE-CLEANUP-PROGRESS.md</code>)</h2>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Fix</th>
+<th>Status</th>
+<th>Summary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fix 1: Pako hardcoded path</td>
+<td>Done</td>
+<td><code class="notranslate">worker-pool-entrypoint.js</code> — extract <code class="notranslate">pakoPackageEntrypoint</code> from shared-config</td>
+</tr>
+<tr>
+<td>Fix 2: Shared profile stripping</td>
+<td>Done</td>
+<td><code class="notranslate">pdf-page-color-converter.js:421-438</code> — conditional <code class="notranslate">===</code> check</td>
+</tr>
+<tr>
+<td>Fix 3: ArrayBuffer neutering</td>
+<td>Done (SAFE)</td>
+<td><code class="notranslate">prepareWorkerTask</code> uses <code class="notranslate">.buffer.slice()</code></td>
+</tr>
+<tr>
+<td>Fix 4: Worker count mismatch</td>
+<td>Done</td>
+<td><code class="notranslate">convert-pdf-color-baseline.js</code> — <code class="notranslate">cpus().length / 2</code></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<hr>
+<h2 id="activity-log">Activity Log</h2>
+<ul>
+<li><strong>2026-02-15 (session 1)</strong>: Created test file with CDP profiling, <code class="notranslate">__measureHeapFromCDP</code> bridge, crash detection, Chrome args. Tests crash at page 5 with or without workers.</li>
+<li><strong>2026-02-15 (session 1)</strong>: Fixed worker pako resolution (<code class="notranslate">worker-pool-entrypoint.js</code> missing <code class="notranslate">pakoPackageEntrypoint</code> extraction). Fixed <code class="notranslate">import.meta.resolve</code> conditional (<code class="notranslate">pdf-document-color-converter.js</code>). Verified workers process pages 1-4 successfully.</li>
+<li><strong>2026-02-15 (session 1)</strong>: Completed baseline cleanup fixes 2-4.</li>
+<li><strong>2026-02-15 (session 2)</strong>: Investigated pdf-lib internals — no <code class="notranslate">dispose()</code>, no page unloading. Original parse buffer IS GC-eligible (parser not stored). Investigated worker pool — no back-pressure, <code class="notranslate">Promise.all()</code> submits all images simultaneously.</li>
+<li><strong>2026-02-15 (session 2)</strong>: Traced generator document lifecycle. Identified two-document problem: <code class="notranslate">assembledDocument</code> duplicates all asset streams (~35 MB extra). <code class="notranslate">assetDocument</code> reference held throughout conversion but unused after <code class="notranslate">copyPages()</code>.</li>
+<li><strong>2026-02-15 (session 2)</strong>: Designed single-document architecture. Work entirely in <code class="notranslate">assetDocument</code>: self-copy only multi-chain pages, convert per chain with progressive deletion, assemble layouts in same document. Eliminates ~35 MB overhead. Changes scoped to <code class="notranslate">AssetPagePreConverter</code> and <code class="notranslate">TestFormPDFDocumentGenerator</code> — no ecosystem class modifications.</li>
+<li><strong>2026-02-15 (session 3)</strong>: Restructured <code class="notranslate">AssetPagePreConverter.convertAll()</code> — changed signature from <code class="notranslate">(assetDocument, manifest, targetDocument, onProgress)</code> to <code class="notranslate">(document, manifest, onProgress)</code>. New implementation: passthrough claims originals first, first chain to claim gets original, rest get copies via separate <code class="notranslate">copyPages</code> calls per chain. No second document created.</li>
+<li><strong>2026-02-15 (session 3)</strong>: Restructured <code class="notranslate">TestFormPDFDocumentGenerator.#assemblePages()</code> — removed <code class="notranslate">PDFDocument.create()</code>, assembly now operates in <code class="notranslate">assetDocument</code>. <code class="notranslate">embedPage()</code> creates Form XObjects that survive <code class="notranslate">removePage()</code>. Asset pages removed at end; layout pages remain. <code class="notranslate">generate()</code> caller unchanged — <code class="notranslate">assembledDocument</code> variable now points to same object as <code class="notranslate">assetDocument</code>.</li>
+<li><strong>2026-02-15 (session 4)</strong>: Replaced pdf-lib's O(n^2) <code class="notranslate">arrayAsString</code> with O(n) <code class="notranslate">bytesAsString</code> helper using <code class="notranslate">TextDecoder('latin1').decode(bytes)</code>. All 4 consumers in our code updated: <code class="notranslate">pdf-page-color-converter.js</code> (baseline + non-baseline + legacy), <code class="notranslate">ColorSpaceUtils.js</code>. Added <code class="notranslate">console.trace</code> to pdf-lib's <code class="notranslate">arrayAsString</code> to detect remaining internal callers.</li>
+<li><strong>2026-02-15 (session 4)</strong>: Added <code class="notranslate">interConversionDelay</code> configuration (500ms) — yields between conversion steps to prevent Chrome/Firefox "page taking too long" warnings. Propagated through full chain: <code class="notranslate">TestFormPDFDocumentGenerator</code> → <code class="notranslate">AssetPagePreConverter</code> → <code class="notranslate">PDFDocumentColorConverter</code> → <code class="notranslate">PDFPageColorConverter</code> (between pages, between images in main-thread mode, between content streams).</li>
+<li><strong>2026-02-15 (session 4)</strong>: Added 500ms post-processing yields in <code class="notranslate">TestFormPDFDocumentGenerator.generate()</code> — before post-processing (after GhostScript WASM work) and before <code class="notranslate">save()</code> serialization. Firefox needs time for GC after heavy WASM operations.</li>
+<li><strong>2026-02-15 (session 4)</strong>: <strong>Firefox first win</strong> — Firefox successfully generated the Maps test form (8-bit). Crashed on 16-bit. Last logs show page 14 content stream processing (stream 111 0 R) before crash. Investigating pdf-lib <code class="notranslate">save()</code> memory patterns and GitHub issues for optimization opportunities.</li>
+<li><strong>2026-02-15 (session 5)</strong>: Completed pdf-lib research. Synthesized findings from two research agents (pdf-lib internals exploration + GitHub issues search). Key finding: <code class="notranslate">PDFStream.copyBytesInto</code> uses byte-by-byte loop instead of <code class="notranslate">buffer.set()</code> for stream content — the single biggest serialization bottleneck for large image PDFs.</li>
+<li><strong>2026-02-15 (session 5)</strong>: Applied three patches to vendored pdf-lib: (A) <code class="notranslate">buffer.set()</code> in <code class="notranslate">PDFStream.copyBytesInto</code> replacing byte-by-byte loop, (B) <code class="notranslate">objectsPerTick: 20</code> passed to <code class="notranslate">save()</code> for browser responsiveness, (C) removed <code class="notranslate">console.trace</code> debug instrumentation from <code class="notranslate">arrayAsString</code>. Documented all patches and architectural limitations in progress file.</li>
+<li><strong>2026-02-15 (session 6)</strong>: Implemented separate-chains feature — highest-impact memory optimization. Instead of converting all chains at once, each color space group (sRGB, sGray, Lab, SepK) loads a fresh <code class="notranslate">PDFDocument</code>, converts only its subset, saves, and frees memory before the next chain starts. Changes: <code class="notranslate">test-form-pdf-document-generator.js</code> (new <code class="notranslate">#generateSeparateChains()</code>, <code class="notranslate">#generateSlugsPDF()</code>, <code class="notranslate">#postProcess()</code>, <code class="notranslate">#buildMetadataJSON()</code> methods; <code class="notranslate">separateChains</code> constructor option; early branch in <code class="notranslate">generate()</code>), <code class="notranslate">test-form-generator-app-element.js</code> (read checkbox, pass option, <code class="notranslate">onChainOutput</code> callback with first-chain debugging guard, conditional stage ranges). Slugs generated once before chain loop, extracted per chain via <code class="notranslate">embedPdf(fullSlugsDocument, [originalPageIndex])</code>.</li>
+<li><strong>2026-02-15 (session 8)</strong>: Implemented chunked <code class="notranslate">matchAll</code> generator in <code class="notranslate">pdf-content-stream-color-converter.js</code>. Firefox's regex engine returns null on strings exceeding ~128 MB — one content stream unpacked to ~213 MB (213,435,426 chars). The generator splits at the last space before each 5 MB boundary and yields matches with <code class="notranslate">index</code> offset to original string positions. Consumed directly in <code class="notranslate">for...of</code> (no <code class="notranslate">Array.from</code> materialization). Fast path: strings under 5 MB delegate via <code class="notranslate">yield*</code> to native <code class="notranslate">matchAll</code>. This fixed the regex parsing stage; Firefox still crashed afterward during rebuild + compression (fixed in session 9).</li>
+<li><strong>2026-02-15 (session 9)</strong>: Implemented streaming content stream rebuild + compression. Root cause: <code class="notranslate">rebuildContentStream</code> performed 1021 string concatenations on a ~213 MB string (each creating a new ~213 MB intermediate), then <code class="notranslate">#applyContentStreamResult</code> created a ~213 MB Uint8Array for <code class="notranslate">copyStringIntoBuffer</code> + pako compression. Fix: <code class="notranslate">rebuildContentStream</code> now yields string segments via generator (no concatenation), new <code class="notranslate">compressSegmentsWithFlateDecode</code> encodes segments to Latin-1 in 5 MB chunks fed into pako's streaming Deflate. Result fields nulled after applying for GC. Worker entrypoint materializes segments for transfer. Four files changed: <code class="notranslate">pdf-content-stream-color-converter.js</code>, <code class="notranslate">pdf-page-color-converter.js</code>, <code class="notranslate">worker-pool-entrypoint.js</code>, <code class="notranslate">services/helpers/pdf-lib.js</code>.</li>
+<li><strong>2026-02-15 (session 7)</strong>: Created full 16-bit PDF main-thread conversion memory profile — 14-stage table tracking buffer counts and total memory from <code class="notranslate">PDFDocument.load()</code> through <code class="notranslate">save()</code>. Key finding: map image (300 MB compressed → 690 MB uncompressed) creates ~3.4 GB transient peak during deflate; <code class="notranslate">save()</code> creates a second ~3.1 GB peak. GC-delayed worst case exceeds 4.5 GB. Corrected earlier assumption: original parse buffer IS GC-eligible (per session 2 investigation). Produced 9 ranked recommendations from most to least effective: (1) separate-chains DONE, (2) chunked inflate-transform-deflate pipeline, (3) shared ColorEngineProvider, (4) explicit buffer nulling, (5) save() memory mitigation, (6) worker concurrency cap, (7) pre-flight memory estimation, (8) WASM instance recycling, (9) pdf-lib object pruning.</li>
+<li><strong>2026-02-16 (session 10)</strong>: <strong>Fixed <code class="notranslate">bytesAsString</code> regression</strong> — content stream encoding corruption introduced in session 4. Root cause: <code class="notranslate">TextDecoder('latin1')</code> uses Windows-1252 per the WHATWG Encoding Standard, NOT ISO 8859-1. Windows-1252 remaps 27 of 32 bytes in 0x80–0x9F to Unicode codepoints above U+00FF (e.g., byte 0x92 → U+2019). The <code class="notranslate">charCodeAt()</code> round-trip then truncates them when stored in a Uint8Array (U+2019 → 0x19). Symptom: "St. Paul's Cathedral" → "St. Paul s Cathedral" (Acrobat reports missing glyphs). Fix: replaced <code class="notranslate">TextDecoder('latin1').decode(bytes)</code> with chunked <code class="notranslate">String.fromCharCode.apply(null, bytes.subarray(...))</code> which performs the true ISO 8859-1 identity mapping (byte N → U+00NN). Still O(n) — single native call per 8192-byte chunk. Old code commented out with explanation in <code class="notranslate">services/helpers/pdf-lib.js</code>.</li>
+</ul>
+</article>
+
+
+<script type="module">
+function t(t){if("clipboard"in navigator)return navigator.clipboard.writeText(t.textContent||"");const e=getSelection();if(null==e)return Promise.reject(new Error);e.removeAllRanges();const i=document.createRange();return i.selectNodeContents(t),e.addRange(i),document.execCommand("copy"),e.removeAllRanges(),Promise.resolve()}function e(e){if("clipboard"in navigator)return navigator.clipboard.writeText(e);const i=document.body;if(!i)return Promise.reject(new Error);const s=function(t){const e=document.createElement("pre");return e.style.width="1px",e.style.height="1px",e.style.position="fixed",e.style.top="5px",e.textContent=t,e}(e);return i.appendChild(s),t(s),i.removeChild(s),Promise.resolve()}async function i(i){const s=i.getAttribute("for"),n=i.getAttribute("value");function r(){i.dispatchEvent(new CustomEvent("clipboard-copy",{bubbles:!0}))}var o;if("true"!==i.getAttribute("aria-disabled"))if(n)await e(n),r();else if(s){const n="getRootNode"in Element.prototype?i.getRootNode():i.ownerDocument;if(!(n instanceof Document||"ShadowRoot"in window&&n instanceof ShadowRoot))return;const a=n.getElementById(s);a&&(await(o=a,o instanceof HTMLInputElement||o instanceof HTMLTextAreaElement?e(o.value):o instanceof HTMLAnchorElement&&o.hasAttribute("href")?e(o.href):t(o)),r())}}function s(t){const e=t.currentTarget;e instanceof HTMLElement&&i(e)}function n(t){if(" "===t.key||"Enter"===t.key){const e=t.currentTarget;e instanceof HTMLElement&&(t.preventDefault(),i(e))}}function r(t){t.currentTarget.addEventListener("keydown",n)}function o(t){t.currentTarget.removeEventListener("keydown",n)}class a extends HTMLElement{static define(t="clipboard-copy",e=customElements){return e.define(t,this),this}constructor(){super(),this.addEventListener("click",s),this.addEventListener("focus",r),this.addEventListener("blur",o)}connectedCallback(){this.hasAttribute("tabindex")||this.setAttribute("tabindex","0"),this.hasAttribute("role")||this.setAttribute("role","button")}get value(){return this.getAttribute("value")||""}set value(t){this.setAttribute("value",t)}}const h="undefined"!=typeof globalThis?globalThis:window;try{h.ClipboardCopyElement=a.define()}catch(t){if(!(h.DOMException&&t instanceof DOMException&&"NotSupportedError"===t.name||t instanceof ReferenceError))throw t}var u,l=function(t,e,i,s){if("a"===i&&!s)throw new TypeError("Private accessor was defined without a getter");if("function"==typeof e?t!==e||!s:!e.has(t))throw new TypeError("Cannot read private member from an object whose class did not declare it");return"m"===i?s:"a"===i?s.call(t):s?s.value:e.get(t)};const c="undefined"!=typeof Intl&&Intl.ListFormat||class{formatToParts(t){const e=[];for(const i of t)e.push({type:"element",value:i}),e.push({type:"literal",value:", "});return e.slice(0,-1)}},m=[["years","year"],["months","month"],["weeks","week"],["days","day"],["hours","hour"],["minutes","minute"],["seconds","second"],["milliseconds","millisecond"]],d={minimumIntegerDigits:2};class f{constructor(t,e={}){u.set(this,void 0);let i=String(e.style||"short");"long"!==i&&"short"!==i&&"narrow"!==i&&"digital"!==i&&(i="short");let s="digital"===i?"numeric":i;const n=e.hours||s;s="2-digit"===n?"numeric":n;const r=e.minutes||s;s="2-digit"===r?"numeric":r;const o=e.seconds||s;s="2-digit"===o?"numeric":o;const a=e.milliseconds||s;!function(t,e,i,s,n){if("m"===s)throw new TypeError("Private method is not writable");if("a"===s&&!n)throw new TypeError("Private accessor was defined without a setter");if("function"==typeof e?t!==e||!n:!e.has(t))throw new TypeError("Cannot write private member to an object whose class did not declare it");"a"===s?n.call(t,i):n?n.value=i:e.set(t,i)}(this,u,{locale:t,style:i,years:e.years||"digital"===i?"short":i,yearsDisplay:"always"===e.yearsDisplay?"always":"auto",months:e.months||"digital"===i?"short":i,monthsDisplay:"always"===e.monthsDisplay?"always":"auto",weeks:e.weeks||"digital"===i?"short":i,weeksDisplay:"always"===e.weeksDisplay?"always":"auto",days:e.days||"digital"===i?"short":i,daysDisplay:"always"===e.daysDisplay?"always":"auto",hours:n,hoursDisplay:"always"===e.hoursDisplay||"digital"===i?"always":"auto",minutes:r,minutesDisplay:"always"===e.minutesDisplay||"digital"===i?"always":"auto",seconds:o,secondsDisplay:"always"===e.secondsDisplay||"digital"===i?"always":"auto",milliseconds:a,millisecondsDisplay:"always"===e.millisecondsDisplay?"always":"auto"},"f")}resolvedOptions(){return l(this,u,"f")}formatToParts(t){const e=[],i=l(this,u,"f"),s=i.style,n=i.locale;for(const[r,o]of m){const a=t[r];if("auto"===i[`${r}Display`]&&!a)continue;const h=i[r],u="2-digit"===h?d:"numeric"===h?{}:{style:"unit",unit:o,unitDisplay:h};let l=new Intl.NumberFormat(n,u).format(a);"months"===r&&("narrow"===h||"narrow"===s&&l.endsWith("m"))&&(l=l.replace(/(\d+)m$/,"$1mo")),e.push(l)}return new c(n,{type:"unit",style:"digital"===s?"short":s}).formatToParts(e)}format(t){return this.formatToParts(t).map(t=>t.value).join("")}}u=new WeakMap;const g=/^[-+]?P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/,w=["year","month","week","day","hour","minute","second","millisecond"];class y{constructor(t=0,e=0,i=0,s=0,n=0,r=0,o=0,a=0){this.years=t,this.months=e,this.weeks=i,this.days=s,this.hours=n,this.minutes=r,this.seconds=o,this.milliseconds=a,this.years||(this.years=0),this.sign||(this.sign=Math.sign(this.years)),this.months||(this.months=0),this.sign||(this.sign=Math.sign(this.months)),this.weeks||(this.weeks=0),this.sign||(this.sign=Math.sign(this.weeks)),this.days||(this.days=0),this.sign||(this.sign=Math.sign(this.days)),this.hours||(this.hours=0),this.sign||(this.sign=Math.sign(this.hours)),this.minutes||(this.minutes=0),this.sign||(this.sign=Math.sign(this.minutes)),this.seconds||(this.seconds=0),this.sign||(this.sign=Math.sign(this.seconds)),this.milliseconds||(this.milliseconds=0),this.sign||(this.sign=Math.sign(this.milliseconds)),this.blank=0===this.sign}abs(){return new y(Math.abs(this.years),Math.abs(this.months),Math.abs(this.weeks),Math.abs(this.days),Math.abs(this.hours),Math.abs(this.minutes),Math.abs(this.seconds),Math.abs(this.milliseconds))}static from(t){var e;if("string"==typeof t){const i=String(t).trim(),s=i.startsWith("-")?-1:1,n=null===(e=i.match(g))||void 0===e?void 0:e.slice(1).map(t=>(Number(t)||0)*s);return n?new y(...n):new y}if("object"==typeof t){const{years:e,months:i,weeks:s,days:n,hours:r,minutes:o,seconds:a,milliseconds:h}=t;return new y(e,i,s,n,r,o,a,h)}throw new RangeError("invalid duration")}static compare(t,e){const i=Date.now(),s=Math.abs(p(i,y.from(t)).getTime()-i),n=Math.abs(p(i,y.from(e)).getTime()-i);return s>n?-1:s<n?1:0}toLocaleString(t,e){return new f(t,e).format(this)}}function p(t,e){const i=new Date(t);return e.sign<0?(i.setUTCSeconds(i.getUTCSeconds()+e.seconds),i.setUTCMinutes(i.getUTCMinutes()+e.minutes),i.setUTCHours(i.getUTCHours()+e.hours),i.setUTCDate(i.getUTCDate()+7*e.weeks+e.days),i.setUTCMonth(i.getUTCMonth()+e.months),i.setUTCFullYear(i.getUTCFullYear()+e.years)):(i.setUTCFullYear(i.getUTCFullYear()+e.years),i.setUTCMonth(i.getUTCMonth()+e.months),i.setUTCDate(i.getUTCDate()+7*e.weeks+e.days),i.setUTCHours(i.getUTCHours()+e.hours),i.setUTCMinutes(i.getUTCMinutes()+e.minutes),i.setUTCSeconds(i.getUTCSeconds()+e.seconds)),i}function b(t,{relativeTo:e=Date.now()}={}){if(e=new Date(e),t.blank)return t;const i=t.sign;let s=Math.abs(t.years),n=Math.abs(t.months),r=Math.abs(t.weeks),o=Math.abs(t.days),a=Math.abs(t.hours),h=Math.abs(t.minutes),u=Math.abs(t.seconds),l=Math.abs(t.milliseconds);l>=900&&(u+=Math.round(l/1e3)),(u||h||a||o||r||n||s)&&(l=0),u>=55&&(h+=Math.round(u/60)),(h||a||o||r||n||s)&&(u=0),h>=55&&(a+=Math.round(h/60)),(a||o||r||n||s)&&(h=0),o&&a>=12&&(o+=Math.round(a/24)),!o&&a>=21&&(o+=Math.round(a/24)),(o||r||n||s)&&(a=0);const c=e.getFullYear(),m=e.getMonth(),d=e.getDate();if(o>=27||s+n+o){const t=new Date(e);t.setDate(1),t.setMonth(m+n*i+1),t.setDate(0);const a=Math.max(0,d-t.getDate()),h=new Date(e);h.setFullYear(c+s*i),h.setDate(d-a),h.setMonth(m+n*i),h.setDate(d-a+o*i);const u=h.getFullYear()-e.getFullYear(),l=h.getMonth()-e.getMonth(),f=Math.abs(Math.round((Number(h)-Number(e))/864e5))+a,g=Math.abs(12*u+l);f<27?(o>=6?(r+=Math.round(o/7),o=0):o=f,n=s=0):g<=11?(n=g,s=0):(n=0,s=u*i),(n||s)&&(o=0)}return s&&(n=0),r>=4&&(n+=Math.round(r/4)),(n||s)&&(r=0),o&&r&&!n&&!s&&(r+=Math.round(o/7),o=0),new y(s*i,n*i,r*i,o*i,a*i,h*i,u*i,l*i)}var v,T,M,D,A,C,E,k,x,U,S,F,I,L,R,N,P=function(t,e,i,s){if("a"===i&&!s)throw new TypeError("Private accessor was defined without a getter");if("function"==typeof e?t!==e||!s:!e.has(t))throw new TypeError("Cannot read private member from an object whose class did not declare it");return"m"===i?s:"a"===i?s.call(t):s?s.value:e.get(t)},Z=function(t,e,i,s,n){if("m"===s)throw new TypeError("Private method is not writable");if("a"===s&&!n)throw new TypeError("Private accessor was defined without a setter");if("function"==typeof e?t!==e||!n:!e.has(t))throw new TypeError("Cannot write private member to an object whose class did not declare it");return"a"===s?n.call(t,i):n?n.value=i:e.set(t,i),i};const j=globalThis.HTMLElement||null,O=new y,H=new y(0,0,0,0,0,1);class Y extends Event{constructor(t,e,i,s){super("relative-time-updated",{bubbles:!0,composed:!0}),this.oldText=t,this.newText=e,this.oldTitle=i,this.newTitle=s}}function $(t){if(!t.date)return 1/0;if("duration"===t.format||"elapsed"===t.format){const e=t.precision;if("second"===e)return 1e3;if("minute"===e)return 6e4}const e=Math.abs(Date.now()-t.date.getTime());return e<6e4?1e3:e<36e5?6e4:36e5}const W=new class{constructor(){this.elements=new Set,this.time=1/0,this.timer=-1}observe(t){if(this.elements.has(t))return;this.elements.add(t);const e=t.date;if(e&&e.getTime()){const e=$(t),i=Date.now()+e;i<this.time&&(clearTimeout(this.timer),this.timer=setTimeout(()=>this.update(),e),this.time=i)}}unobserve(t){this.elements.has(t)&&this.elements.delete(t)}update(){if(clearTimeout(this.timer),!this.elements.size)return;let t=1/0;for(const e of this.elements)t=Math.min(t,$(e)),e.update();this.time=Math.min(36e5,t),this.timer=setTimeout(()=>this.update(),this.time),this.time+=Date.now()}};class z extends j{constructor(){super(...arguments),v.add(this),T.set(this,!1),M.set(this,!1),A.set(this,this.shadowRoot?this.shadowRoot:this.attachShadow?this.attachShadow({mode:"open"}):this),N.set(this,null)}static define(t="relative-time",e=customElements){return e.define(t,this),this}get timeZone(){var t;return(null===(t=this.closest("[time-zone]"))||void 0===t?void 0:t.getAttribute("time-zone"))||this.ownerDocument.documentElement.getAttribute("time-zone")||void 0}static get observedAttributes(){return["second","minute","hour","weekday","day","month","year","time-zone-name","prefix","threshold","tense","precision","format","format-style","no-title","datetime","lang","title","aria-hidden","time-zone"]}get onRelativeTimeUpdated(){return P(this,N,"f")}set onRelativeTimeUpdated(t){P(this,N,"f")&&this.removeEventListener("relative-time-updated",P(this,N,"f")),Z(this,N,"object"==typeof t||"function"==typeof t?t:null,"f"),"function"==typeof t&&this.addEventListener("relative-time-updated",t)}get second(){const t=this.getAttribute("second");if("numeric"===t||"2-digit"===t)return t}set second(t){this.setAttribute("second",t||"")}get minute(){const t=this.getAttribute("minute");if("numeric"===t||"2-digit"===t)return t}set minute(t){this.setAttribute("minute",t||"")}get hour(){const t=this.getAttribute("hour");if("numeric"===t||"2-digit"===t)return t}set hour(t){this.setAttribute("hour",t||"")}get weekday(){const t=this.getAttribute("weekday");return"long"===t||"short"===t||"narrow"===t?t:"datetime"===this.format&&""!==t?this.formatStyle:void 0}set weekday(t){this.setAttribute("weekday",t||"")}get day(){var t;const e=null!==(t=this.getAttribute("day"))&&void 0!==t?t:"numeric";if("numeric"===e||"2-digit"===e)return e}set day(t){this.setAttribute("day",t||"")}get month(){const t=this.format;let e=this.getAttribute("month");if(""!==e)return null!=e||(e="datetime"===t?this.formatStyle:"short"),"numeric"===e||"2-digit"===e||"short"===e||"long"===e||"narrow"===e?e:void 0}set month(t){this.setAttribute("month",t||"")}get year(){var t;const e=this.getAttribute("year");return"numeric"===e||"2-digit"===e?e:this.hasAttribute("year")||(new Date).getUTCFullYear()===(null===(t=this.date)||void 0===t?void 0:t.getUTCFullYear())?void 0:"numeric"}set year(t){this.setAttribute("year",t||"")}get timeZoneName(){const t=this.getAttribute("time-zone-name");if("long"===t||"short"===t||"shortOffset"===t||"longOffset"===t||"shortGeneric"===t||"longGeneric"===t)return t}set timeZoneName(t){this.setAttribute("time-zone-name",t||"")}get prefix(){var t;return null!==(t=this.getAttribute("prefix"))&&void 0!==t?t:"datetime"===this.format?"":"on"}set prefix(t){this.setAttribute("prefix",t)}get threshold(){const t=this.getAttribute("threshold");return t&&(e=t,g.test(e))?t:"P30D";var e}set threshold(t){this.setAttribute("threshold",t)}get tense(){const t=this.getAttribute("tense");return"past"===t?"past":"future"===t?"future":"auto"}set tense(t){this.setAttribute("tense",t)}get precision(){const t=this.getAttribute("precision");return w.includes(t)?t:"micro"===this.format?"minute":"second"}set precision(t){this.setAttribute("precision",t)}get format(){const t=this.getAttribute("format");return"datetime"===t?"datetime":"relative"===t?"relative":"duration"===t?"duration":"micro"===t?"micro":"elapsed"===t?"elapsed":"auto"}set format(t){this.setAttribute("format",t)}get formatStyle(){const t=this.getAttribute("format-style");if("long"===t)return"long";if("short"===t)return"short";if("narrow"===t)return"narrow";const e=this.format;return"elapsed"===e||"micro"===e?"narrow":"datetime"===e?"short":"long"}set formatStyle(t){this.setAttribute("format-style",t)}get noTitle(){return this.hasAttribute("no-title")}set noTitle(t){this.toggleAttribute("no-title",t)}get datetime(){return this.getAttribute("datetime")||""}set datetime(t){this.setAttribute("datetime",t)}get date(){const t=Date.parse(this.datetime);return Number.isNaN(t)?null:new Date(t)}set date(t){this.datetime=(null==t?void 0:t.toISOString())||""}connectedCallback(){this.update()}disconnectedCallback(){W.unobserve(this)}attributeChangedCallback(t,e,i){e!==i&&("title"===t&&Z(this,T,null!==i&&(this.date&&P(this,v,"m",C).call(this,this.date))!==i,"f"),P(this,M,"f")||"title"===t&&P(this,T,"f")||Z(this,M,(async()=>{await Promise.resolve(),this.update(),Z(this,M,!1,"f")})(),"f"))}update(){const t=P(this,A,"f").textContent||this.textContent||"",e=this.getAttribute("title")||"";let i=e;const s=this.date;if("undefined"==typeof Intl||!Intl.DateTimeFormat||!s)return void(P(this,A,"f").textContent=t);const n=Date.now();P(this,T,"f")||(i=P(this,v,"m",C).call(this,s)||"",i&&!this.noTitle&&this.setAttribute("title",i));const r=function(t,e="second",i=Date.now()){const s=t.getTime()-i;if(0===s)return new y;const n=Math.sign(s),r=Math.abs(s),o=Math.floor(r/1e3),a=Math.floor(o/60),h=Math.floor(a/60),u=Math.floor(h/24),l=Math.floor(u/30),c=Math.floor(l/12),m=w.indexOf(e)||w.length;return new y(m>=0?c*n:0,m>=1?(l-12*c)*n:0,0,m>=3?(u-30*l)*n:0,m>=4?(h-24*u)*n:0,m>=5?(a-60*h)*n:0,m>=6?(o-60*a)*n:0,m>=7?(r-1e3*o)*n:0)}(s,this.precision,n),o=P(this,v,"m",E).call(this,r);let a=t;const h=P(this,v,"m",R).call(this,o);a=h?P(this,v,"m",I).call(this,s):"duration"===o?P(this,v,"m",k).call(this,r):"relative"===o?P(this,v,"m",x).call(this,r):P(this,v,"m",U).call(this,s),a?P(this,v,"m",L).call(this,a):this.shadowRoot===P(this,A,"f")&&this.textContent&&P(this,v,"m",L).call(this,this.textContent),a===t&&i===e||this.dispatchEvent(new Y(t,a,e,i)),"relative"===o||"duration"===o||h&&(P(this,v,"m",S).call(this,s)||P(this,v,"m",F).call(this,s))?W.observe(this):W.unobserve(this)}}T=new WeakMap,M=new WeakMap,A=new WeakMap,N=new WeakMap,v=new WeakSet,D=function(){var t;const e=(null===(t=this.closest("[lang]"))||void 0===t?void 0:t.getAttribute("lang"))||this.ownerDocument.documentElement.getAttribute("lang");try{return new Intl.Locale(null!=e?e:"").toString()}catch(t){return"default"}},C=function(t){return new Intl.DateTimeFormat(P(this,v,"a",D),{day:"numeric",month:"short",year:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short",timeZone:this.timeZone}).format(t)},E=function(t){const e=this.format;if("datetime"===e)return"datetime";if("duration"===e)return"duration";if("elapsed"===e)return"duration";if("micro"===e)return"duration";if(("auto"===e||"relative"===e)&&"undefined"!=typeof Intl&&Intl.RelativeTimeFormat){const e=this.tense;if("past"===e||"future"===e)return"relative";if(1===y.compare(t,this.threshold))return"relative"}return"datetime"},k=function(t){const e=P(this,v,"a",D),i=this.format,s=this.formatStyle,n=this.tense;let r=O;"micro"===i?(t=b(t),r=H,0===t.months&&("past"===this.tense&&-1!==t.sign||"future"===this.tense&&1!==t.sign)&&(t=H)):("past"===n&&-1!==t.sign||"future"===n&&1!==t.sign)&&(t=r);const o=`${this.precision}sDisplay`;return t.blank?r.toLocaleString(e,{style:s,[o]:"always"}):t.abs().toLocaleString(e,{style:s})},x=function(t){const e=new Intl.RelativeTimeFormat(P(this,v,"a",D),{numeric:"auto",style:this.formatStyle}),i=this.tense;"future"===i&&1!==t.sign&&(t=O),"past"===i&&-1!==t.sign&&(t=O);const[s,n]=function(t){const e=b(t,void 0);if(e.blank)return[0,"second"];for(const t of w){if("millisecond"===t)continue;const i=e[`${t}s`];if(i)return[i,t]}return[0,"second"]}(t);return"second"===n&&s<10?e.format(0,"millisecond"===this.precision?"second":this.precision):e.format(s,n)},U=function(t){const e=new Intl.DateTimeFormat(P(this,v,"a",D),{second:this.second,minute:this.minute,hour:this.hour,weekday:this.weekday,day:this.day,month:this.month,year:this.year,timeZoneName:this.timeZoneName,timeZone:this.timeZone});return`${this.prefix} ${e.format(t)}`.trim()},S=function(t){const e=new Date,i=new Intl.DateTimeFormat(P(this,v,"a",D),{timeZone:this.timeZone,year:"numeric",month:"2-digit",day:"2-digit"});return i.format(e)===i.format(t)},F=function(t){const e=new Date,i=new Intl.DateTimeFormat(P(this,v,"a",D),{timeZone:this.timeZone,year:"numeric"});return i.format(e)===i.format(t)},I=function(t){const e={hour:"numeric",minute:"2-digit",timeZoneName:"short",timeZone:this.timeZone};if(P(this,v,"m",S).call(this,t)){let i=new Intl.RelativeTimeFormat(P(this,v,"a",D),{numeric:"auto"}).format(0,"day");return i=i.charAt(0).toLocaleUpperCase(P(this,v,"a",D))+i.slice(1),`${i} ${new Intl.DateTimeFormat(P(this,v,"a",D),e).format(t)}`}const i=Object.assign(Object.assign({},e),{day:"numeric",month:"short"});return P(this,v,"m",F).call(this,t)?new Intl.DateTimeFormat(P(this,v,"a",D),i).format(t):new Intl.DateTimeFormat(P(this,v,"a",D),Object.assign(Object.assign({},i),{year:"numeric"})).format(t)},L=function(t){if(this.hasAttribute("aria-hidden")&&"true"===this.getAttribute("aria-hidden")){const e=document.createElement("span");e.setAttribute("aria-hidden","true"),e.textContent=t,P(this,A,"f").replaceChildren(e)}else P(this,A,"f").textContent=t},R=function(t){var e;return"duration"!==t&&("true"===this.ownerDocument.documentElement.getAttribute("data-prefers-absolute-time")||"true"===(null===(e=this.ownerDocument.body)||void 0===e?void 0:e.getAttribute("data-prefers-absolute-time")))};const G="undefined"!=typeof globalThis?globalThis:window;try{G.RelativeTimeElement=z.define()}catch(t){if(!(G.DOMException&&t instanceof DOMException&&"NotSupportedError"===t.name||t instanceof ReferenceError))throw t}
+
+</script>
+</body>
+</html>

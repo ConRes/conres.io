@@ -10,6 +10,7 @@
  */
 
 import { LookupTableColorConverter } from './lookup-table-color-converter.js';
+import { CONTEXT_PREFIX } from '../../services/helpers/runtime.js';
 
 // ============================================================================
 // Type Definitions
@@ -64,7 +65,8 @@ import { LookupTableColorConverter } from './lookup-table-color-converter.js';
  * @typedef {{
  *   streamRef: any,
  *   originalText: string,
- *   newText: string,
+ *   newTextSegments: Iterable<string> | null,
+ *   newTextLength: number,
  *   replacementCount: number,
  *   colorConversions: number,
  *   cacheHits: number,
@@ -97,6 +99,47 @@ import { LookupTableColorConverter } from './lookup-table-color-converter.js';
  * @type {RegExp}
  */
 export const COLOR_OPERATOR_REGEX = /(?<head>[^(]*?)(?:(?:(?<=[\s\n]|^)(?<name>\/\w+)\s+(?<csOp>CS|cs)\b)|(?:(?<=[\s\n]|^)(?<name2>\/\w+)\s+(?<scnOp>SCN|scn)\b)|(?:(?<=[\s\n]|^)(?<gray>(?:\d+\.?\d*|\.\d+))\s+(?<gOp>G|g)\b)|(?:(?<=[\s\n]|^)(?<cmyk>(?:\d+\.?\d*|\.\d+)\s+(?:\d+\.?\d*|\.\d+)\s+(?:\d+\.?\d*|\.\d+)\s+(?:\d+\.?\d*|\.\d+))\s+(?<kOp>K|k)\b)|(?:(?<=[\s\n]|^)(?<rgb>(?:\d+\.?\d*|\.\d+)\s+(?:\d+\.?\d*|\.\d+)\s+(?:\d+\.?\d*|\.\d+))\s+(?<rgOp>RG|rg)\b)|(?:(?<=[\s\n]|^)(?<n>(?:\d+\.?\d*|\.\d+)(?:\s+(?:\d+\.?\d*|\.\d+))*)\s+(?<scOp>SC|sc|SCN|scn)\b)|(?:\((?<string>[^)]*)\))|\s*$)/ug;
+
+/**
+ * Chunked matchAll generator for large content stream strings.
+ *
+ * Firefox's regex engine returns null on strings exceeding ~128 MB.
+ * This generator splits the input into ~50 MB chunks at space boundaries
+ * and yields matches with indices adjusted to original string positions.
+ * For strings under the limit, delegates directly to `String.prototype.matchAll`.
+ *
+ * @param {string} string - The content stream text
+ * @param {RegExp} regex - The regex pattern (must have the `g` flag)
+ * @yields {RegExpMatchArray} Match objects with corrected `index` values
+ */
+function* matchAll(string, regex) {
+    const CHUNK_LIMIT = 5 * 1024 * 1024;
+
+    if (string.length <= CHUNK_LIMIT) {
+        yield* string.matchAll(regex);
+        return;
+    }
+
+    let offset = 0;
+
+    while (offset < string.length) {
+        let end = Math.min(offset + CHUNK_LIMIT, string.length);
+
+        if (end < string.length) {
+            const lastSpace = string.lastIndexOf(' ', end - 1);
+            if (lastSpace > offset) {
+                end = lastSpace + 1;
+            }
+        }
+
+        for (const match of string.slice(offset, end).matchAll(regex)) {
+            match.index += offset;
+            yield match;
+        }
+
+        offset = end;
+    }
+}
 
 // ============================================================================
 // PDFContentStreamColorConverter Class
@@ -137,7 +180,8 @@ export const COLOR_OPERATOR_REGEX = /(?<head>[^(]*?)(?:(?:(?<=[\s\n]|^)(?<name>\
  *     streamRef: contentStreamRef,
  *     streamText: '1 0 0 rg 100 100 50 50 re f',
  * });
- * console.log(result.newText); // Converted to CMYK
+ * // result.newTextSegments is a generator of string segments (or null if unchanged)
+ * // result.newTextLength is the total output length
  * ```
  */
 export class PDFContentStreamColorConverter extends LookupTableColorConverter {
@@ -224,8 +268,8 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
         const config = this.configuration;
 
         if (config.verbose) {
-            console.log(`[PDFContentStreamColorConverter] Processing stream ${streamRef}`);
-            console.log(`  Stream length: ${streamText.length} characters`);
+            console.log(`${CONTEXT_PREFIX} [PDFContentStreamColorConverter] Processing stream ${streamRef}`);
+            console.log(`${CONTEXT_PREFIX}   Stream length: ${streamText.length} characters`);
         }
 
         // Parse color operations, passing initial state from previous stream
@@ -246,7 +290,7 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
         const { operations, finalState } = parseResult;
 
         if (config.verbose) {
-            console.log(`  Found ${operations.length} color operations`);
+            console.log(`${CONTEXT_PREFIX}   Found ${operations.length} color operations`);
         }
 
         // Separate Device* colors (not converted) from ICCBased/Lab colors (converted)
@@ -269,14 +313,15 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
         });
 
         if (config.verbose && deviceColors.length > 0) {
-            console.log(`  Skipping ${deviceColors.length} Device* color operations (no ICC profile)`);
+            console.log(`${CONTEXT_PREFIX}   Skipping ${deviceColors.length} Device* color operations (no ICC profile)`);
         }
 
         if (toConvert.length === 0) {
             return {
                 streamRef,
                 originalText: streamText,
-                newText: streamText,
+                newTextSegments: null,
+                newTextLength: streamText.length,
                 replacementCount: 0,
                 colorConversions: 0,
                 cacheHits: 0,
@@ -359,13 +404,13 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
             ref: String(streamRef),
             replacements: replacements.length,
         });
-        /** @type {{ text: string, finalColorSpaceState: ColorSpaceState }} */
+        /** @type {{ segments: Generator<string, void, unknown> | null, totalLength: number, finalColorSpaceState: ColorSpaceState }} */
         let rebuildResult;
         try {
             rebuildResult = this.rebuildContentStream(streamText, replacements, initialColorSpaceState, input.labColorSpaceName);
             this.diagnostics.updateSpan(rebuildSpan, {
                 originalLength: streamText.length,
-                newLength: rebuildResult.text.length,
+                newLength: rebuildResult.totalLength,
             });
         } finally {
             this.diagnostics.endSpan(rebuildSpan);
@@ -376,7 +421,8 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
         return {
             streamRef,
             originalText: streamText,
-            newText: rebuildResult.text,
+            newTextSegments: rebuildResult.segments,
+            newTextLength: rebuildResult.totalLength,
             replacementCount: replacements.length,
             colorConversions: replacements.length,
             cacheHits,
@@ -463,8 +509,8 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
 
             // Log if verbose (shows intent fallback like ImageColorConverter does)
             if (config.verbose && effectiveIntent !== config.renderingIntent) {
-                console.log(`[PDFContentStreamColorConverter] ${colorSpace} color intent fallback:`);
-                console.log(`  Intent: ${effectiveIntent} (requested: ${config.renderingIntent})`);
+                console.log(`${CONTEXT_PREFIX} [PDFContentStreamColorConverter] ${colorSpace} color intent fallback:`);
+                console.log(`${CONTEXT_PREFIX}   Intent: ${effectiveIntent} (requested: ${config.renderingIntent})`);
             }
 
             // Use inherited convertColorsBuffer which respects policy
@@ -556,9 +602,8 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
         let currentFillColorSpace = initialState.fillColorSpace;
 
         const regex = new RegExp(COLOR_OPERATOR_REGEX.source, 'ug');
-        const matches = Array.from(streamText.matchAll(regex));
 
-        for (const match of matches) {
+        for (const match of matchAll(streamText, regex)) {
             const groups = match.groups ?? {};
             const matchIndex = match.index ?? 0;
             const headLength = groups.head?.length ?? 0;
@@ -682,12 +727,13 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
      * @param {Array<{operation: ParsedColorOperation, convertedValues: number[], cacheHit: boolean}>} replacements
      * @param {ColorSpaceState} [initialColorSpaceState={}] - Initial color space state
      * @param {string} [labColorSpaceName] - Lab color space resource name (overrides config)
-     * @returns {{ text: string, finalColorSpaceState: ColorSpaceState }} Rebuilt stream text and final state
+     * @returns {{ segments: Generator<string, void, unknown> | null, totalLength: number, finalColorSpaceState: ColorSpaceState }} Segment generator, total output length, and final state
      */
     rebuildContentStream(originalText, replacements, initialColorSpaceState = {}, labColorSpaceName) {
         if (replacements.length === 0) {
             return {
-                text: originalText,
+                segments: null,
+                totalLength: originalText.length,
                 finalColorSpaceState: initialColorSpaceState,
             };
         }
@@ -699,8 +745,7 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
         let labActiveStroke = initialColorSpaceState.strokeColorSpace === 'Lab';
         let labActiveFill = initialColorSpaceState.fillColorSpace === 'Lab';
 
-        // For Lab, we need to process in order to track state correctly
-        // Build list of replacements with computed strings, then apply from end
+        // Sort ascending by position for streaming output
         const sortedAscending = [...replacements].sort((a, b) => a.operation.index - b.operation.index);
 
         /** @type {Array<{index: number, length: number, replacement: string}>} */
@@ -745,11 +790,29 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
             });
         }
 
-        // Apply replacements from end to start to preserve indices
-        insertions.sort((a, b) => b.index - a.index);
-        let result = originalText;
-        for (const { index, length, replacement } of insertions) {
-            result = result.slice(0, index) + replacement + result.slice(index + length);
+        // Compute total output length without materializing the string.
+        // Each insertion removes `length` chars and adds `replacement.length` chars.
+        let totalLength = originalText.length;
+        for (const { length, replacement } of insertions) {
+            totalLength += replacement.length - length;
+        }
+
+        // Generator that yields string segments in order, avoiding a single
+        // concatenated string.  Consumers encode and compress incrementally,
+        // so peak memory stays proportional to the gap between replacements
+        // rather than the full stream size.
+        function* generateSegments() {
+            let cursor = 0;
+            for (const { index, length, replacement } of insertions) {
+                if (index > cursor) {
+                    yield originalText.slice(cursor, index);
+                }
+                yield replacement;
+                cursor = index + length;
+            }
+            if (cursor < originalText.length) {
+                yield originalText.slice(cursor);
+            }
         }
 
         // Build final color space state
@@ -761,7 +824,8 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
         };
 
         return {
-            text: result,
+            segments: generateSegments(),
+            totalLength,
             finalColorSpaceState,
         };
     }
@@ -853,7 +917,7 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
     async applyWorkerResult(input, workerResult, context) {
         if (!workerResult.success) {
             if (this.configuration.verbose) {
-                console.warn(`[PDFContentStreamColorConverter] Worker failed for stream ${input.streamRef}: ${workerResult.error}`);
+                console.warn(`${CONTEXT_PREFIX} [PDFContentStreamColorConverter] Worker failed for stream ${input.streamRef}: ${workerResult.error}`);
             }
             return;
         }
@@ -874,9 +938,9 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
         };
 
         if (this.configuration.verbose) {
-            console.log(`[PDFContentStreamColorConverter] Worker result applied for stream ${input.streamRef}`);
-            console.log(`  Replacements: ${workerResult.replacementCount ?? 0}`);
-            console.log(`  Size: ${workerResult.originalSize} -> ${workerResult.compressedSize} (compressed)`);
+            console.log(`${CONTEXT_PREFIX} [PDFContentStreamColorConverter] Worker result applied for stream ${input.streamRef}`);
+            console.log(`${CONTEXT_PREFIX}   Replacements: ${workerResult.replacementCount ?? 0}`);
+            console.log(`${CONTEXT_PREFIX}   Size: ${workerResult.originalSize} -> ${workerResult.compressedSize} (compressed)`);
         }
     }
 

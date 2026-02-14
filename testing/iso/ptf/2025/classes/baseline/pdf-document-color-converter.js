@@ -12,7 +12,8 @@ import { CompositeColorConverter } from './composite-color-converter.js';
 import { ProfilePool } from './profile-pool.js';
 import { BufferRegistry } from './buffer-registry.js';
 import { PDFPageColorConverter } from './pdf-page-color-converter.js';
-import { PDFRawStream, PDFName, PDFArray, PDFDict, PDFRef, PDFNumber, PDFHexString, PDFString } from 'pdf-lib';
+import { CONTEXT_PREFIX } from '../../services/helpers/runtime.js';
+import { PDFRawStream, PDFName, PDFArray, PDFDict, PDFRef, PDFNumber, PDFHexString, PDFString } from '../../packages/pdf-lib/pdf-lib.esm.js';
 import {
     TYPE_RGB_8,
     TYPE_CMYK_8,
@@ -24,6 +25,7 @@ import {
 /**
  * @typedef {import('./pdf-page-color-converter.js').PDFPageColorConverterConfiguration & {
  *   colorEnginePath?: string,
+ *   pakoPackageEntrypoint?: string,
  *   profilePool?: ProfilePool,
  *   maxCachedProfiles?: number,
  *   maxProfileMemory?: number,
@@ -139,6 +141,9 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
     /** @type {typeof import('pako') | null} */
     #pako = null;
 
+    /** @type {string | undefined} */
+    #resolvedPakoEntrypoint;
+
     /** @type {Promise<void>} */
     #ready;
 
@@ -187,12 +192,15 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
         // BufferRegistry is always owned (pass diagnostics for span tracking)
         this.#bufferRegistry = new BufferRegistry({ diagnostics: this.diagnostics });
 
-        // Load pako for decompression
-        try {
-            this.#pako = await import('pako');
-        } catch {
-            console.warn('[PDFDocumentColorConverter] pako not available - ICC profile decompression disabled');
-        }
+        // Resolve pako package entrypoint to an absolute URL.
+        // If the consumer provides an explicit pakoPackageEntrypoint, use it as-is
+        // (consumer is responsible for providing a usable absolute URL).
+        // Otherwise, resolve using a relative path to the vendored pako package.
+        this.#resolvedPakoEntrypoint = config.pakoPackageEntrypoint
+            ?? new URL('../../packages/pako/dist/pako.mjs', import.meta.url).href;
+
+        // Load pako for ICC profile decompression using the resolved entrypoint
+        this.#pako = await import(this.#resolvedPakoEntrypoint);
 
         // WorkerPool handled by CompositeColorConverter parent
 
@@ -212,6 +220,7 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
                 blackPointCompensation: config.blackPointCompensation,
                 useAdaptiveBPCClamping: config.useAdaptiveBPCClamping,
                 destinationColorSpace: config.destinationColorSpace,
+                pakoPackageEntrypoint: this.#resolvedPakoEntrypoint,
             });
         }
     }
@@ -297,6 +306,9 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
             useWorkers: base.useWorkers,
             workerPool: this.workerPool ?? undefined,
             colorEnginePath: base.colorEnginePath,
+
+            // Resolved pako entrypoint (propagate to child converters)
+            pakoPackageEntrypoint: this.#resolvedPakoEntrypoint,
 
             // Shared BufferRegistry for cross-instance caching
             bufferRegistry: this.#bufferRegistry,
@@ -441,7 +453,7 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
                     allErrors.push(...result.errors);
 
                     if (config.verbose) {
-                        console.log(`Page ${pageIndex + 1}: ${result.imagesConverted} images, ${result.contentStreamsConverted} streams`);
+                        console.log(`${CONTEXT_PREFIX} [PDFDocumentColorConverter] Page ${pageIndex + 1}: ${result.imagesConverted} images, ${result.contentStreamsConverted} streams`);
                     }
                 } catch (error) {
                     allErrors.push(`Page ${pageIndex + 1}: ${error}`);
@@ -457,6 +469,9 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
 
                     pagesCompleted++;
                     await context?.onPageConverted?.(pagesCompleted, totalPages);
+
+                    const yieldMs = /** @type {PDFDocumentColorConverterConfiguration} */ (this.configuration).interConversionDelay;
+                    if (yieldMs > 0) await new Promise(resolve => setTimeout(resolve, yieldMs));
                 }
             }
         } finally {
@@ -735,9 +750,9 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
                     return pako.inflate(contents);
                 }
                 // Fallback: try using built-in DecompressionStream if available
-                console.warn('[PDFDocumentColorConverter] pako not loaded, returning compressed data');
+                console.warn(`${CONTEXT_PREFIX} [PDFDocumentColorConverter] pako not loaded, returning compressed data`);
             } catch (error) {
-                console.warn('[PDFDocumentColorConverter] Failed to decompress stream:', error.message);
+                console.warn(`${CONTEXT_PREFIX} [PDFDocumentColorConverter] Failed to decompress stream:`, error.message);
             }
         }
 
@@ -980,7 +995,7 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
 
         if (!workerResult.success) {
             if (config.verbose) {
-                console.warn(`[PDFDocumentColorConverter] Worker failed: ${workerResult.error}`);
+                console.warn(`${CONTEXT_PREFIX} [PDFDocumentColorConverter] Worker failed: ${workerResult.error}`);
             }
             return;
         }
@@ -989,7 +1004,7 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
         const pageResults = workerResult.pageResults ?? [];
 
         if (config.verbose) {
-            console.log(`[PDFDocumentColorConverter] Applying worker results to ${pageResults.length} pages`);
+            console.log(`${CONTEXT_PREFIX} [PDFDocumentColorConverter] Applying worker results to ${pageResults.length} pages`);
         }
 
         let totalImagesApplied = 0;
@@ -1006,7 +1021,7 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
                         totalImagesApplied++;
                     } catch (error) {
                         if (config.verbose) {
-                            console.warn(`[PDFDocumentColorConverter] Failed to apply image result: ${error}`);
+                            console.warn(`${CONTEXT_PREFIX} [PDFDocumentColorConverter] Failed to apply image result: ${error}`);
                         }
                     }
                 }
@@ -1021,7 +1036,7 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
                         totalStreamsApplied++;
                     } catch (error) {
                         if (config.verbose) {
-                            console.warn(`[PDFDocumentColorConverter] Failed to apply content stream result: ${error}`);
+                            console.warn(`${CONTEXT_PREFIX} [PDFDocumentColorConverter] Failed to apply content stream result: ${error}`);
                         }
                     }
                 }
@@ -1036,7 +1051,7 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
         };
 
         if (config.verbose) {
-            console.log(`[PDFDocumentColorConverter] Applied ${totalImagesApplied} images, ${totalStreamsApplied} content streams`);
+            console.log(`${CONTEXT_PREFIX} [PDFDocumentColorConverter] Applied ${totalImagesApplied} images, ${totalStreamsApplied} content streams`);
         }
     }
 

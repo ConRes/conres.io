@@ -58,6 +58,7 @@ import {
 } from '../../packages/color-engine/src/constants.js';
 
 import { DEFAULT_ENGINE_VERSION, WEB_ASSEMBLY_ENDIANNESS } from './color-engine-provider.js';
+import { CONTEXT_PREFIX } from '../../services/helpers/runtime.js';
 
 // Construct SE (Swap Endian) constants for formats not in standard LittleCMS constants
 // These are used when buffer endianness differs from WASM endianness (little-endian)
@@ -387,8 +388,6 @@ const COLOR_ENGINE_POLICIES = await (async () => {
         { from: from.split(/\//g), relative: /** @type {string[]?} */ (null) }
     ).relative?.join('/') ?? './');
 
-    // NOTE: Uses fetch() instead of import() with { with: { type: "json" } }
-    // because import attributes are not supported in Firefox < 120.
     const importedRules = await fetch(resolvedRulesURL).then(response => response.json());
 
     /// JSON.parse(JSON.stringify([{1:['a']}]), function(key, value, { source } = {}) { console.log({ context: this, key, value, source}); return value; });
@@ -995,7 +994,7 @@ export class ColorConversionPolicy {
         // Warn if endianness specified for 32-bit (no effect)
         if (bitsPerComponent === 32 && endianness !== undefined) {
             console.warn(
-                'inputEndianness has no effect on 32-bit float input (no TYPE_*_FLT_SE in LittleCMS)'
+                `${CONTEXT_PREFIX} [ColorConversionPolicy] inputEndianness has no effect on 32-bit float input (no TYPE_*_FLT_SE in LittleCMS)`
             );
         }
 
@@ -1026,7 +1025,7 @@ export class ColorConversionPolicy {
         // Warn if endianness specified for 32-bit (no effect)
         if (bitsPerComponent === 32 && endianness !== undefined) {
             console.warn(
-                'outputEndianness has no effect on 32-bit float output (no TYPE_*_FLT_SE in LittleCMS)'
+                `${CONTEXT_PREFIX} [ColorConversionPolicy] outputEndianness has no effect on 32-bit float output (no TYPE_*_FLT_SE in LittleCMS)`
             );
         }
 

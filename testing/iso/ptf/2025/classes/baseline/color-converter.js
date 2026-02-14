@@ -12,9 +12,10 @@
  * @module ColorConverter
  */
 
-import { NO_OP_DIAGNOSTICS } from './diagnostics-collector.js';
+import { NO_OP_DIAGNOSTICS } from '../diagnostics/diagnostics-collector.js';
 import { ColorEngineProvider, DEFAULT_ENGINE_VERSION } from './color-engine-provider.js';
 import { ColorConversionPolicy, SHOULD_SWAP_16_FROM_BIG_TO_LITTLE_ENDIAN } from './color-conversion-policy.js';
+import { CONTEXT_PREFIX } from '../../services/helpers/runtime.js';
 
 /// TODO: Follow web conventions for constants on globals like Node.ELEMENT_NODE
 //
@@ -106,7 +107,7 @@ export function getRenderingIntentCode(intent) {
  *   destinationProfile: ProfileType,
  *   destinationColorSpace: ColorType,
  *   verbose: boolean,
- *   diagnostics?: import('./diagnostics-collector.js').DiagnosticsCollector,
+ *   diagnostics?: import('../diagnostics/diagnostics-collector.js').DiagnosticsCollector,
  *   outputBitsPerComponent?: import('./color-conversion-policy.js').BitDepth,
  *   outputEndianness?: import('./color-conversion-policy.js').Endianness,
  *   intermediateProfiles?: ProfileType[],
@@ -309,20 +310,14 @@ export class ColorConverter {
      */
     async #initializeLegacyServiceIfNeeded() {
         if (!this.#legacyColorEngineService) {
-            try {
-                // Dynamic import to avoid requiring services/ when not needed
-                const { ColorEngineService } = await import('../../services/ColorEngineService.js');
-                // Pass the engine instance from ColorEngineProvider to ensure consistent engine version
-                const engineInstance = this.#colorEngineProvider?.engine ?? undefined;
-                this.#legacyColorEngineService = new ColorEngineService({
-                    colorEngineInstance: engineInstance,
-                });
-                this.#ownsLegacyColorEngineService = true;
-            } catch {
-                // ColorEngineService not available (e.g., staging deployment without
-                // full services/). No baseline subclass uses the legacy service —
-                // it exists only for backward compatibility with non-baseline code.
-            }
+            // // Dynamic import to avoid requiring services/ when not needed
+            // const { ColorEngineService } = await import(/** @type {string} */('../../services/ColorEngineService.js'.split('/').join('/')));
+            // // Pass the engine instance from ColorEngineProvider to ensure consistent engine version
+            // const engineInstance = this.#colorEngineProvider?.engine ?? undefined;
+            // this.#legacyColorEngineService = new ColorEngineService({
+            //     colorEngineInstance: engineInstance,
+            // });
+            // this.#ownsLegacyColorEngineService = true;
         }
     }
 
@@ -386,7 +381,7 @@ export class ColorConverter {
      * Returns the configured diagnostics collector, or NO_OP_DIAGNOSTICS if none provided.
      * This allows instrumentation code to always call diagnostics methods without null checks.
      *
-     * @returns {import('./diagnostics-collector.js').DiagnosticsCollector | import('./diagnostics-collector.js').NoOpDiagnostics}
+     * @returns {import('../diagnostics/diagnostics-collector.js').DiagnosticsCollector | import('../diagnostics/diagnostics-collector.js').NoOpDiagnostics}
      */
     get diagnostics() {
         return this.#configuration.diagnostics ?? NO_OP_DIAGNOSTICS;
@@ -580,7 +575,7 @@ export class ColorConverter {
             || evaluationResult.overrides.requiresMultiprofileTransform;
 
         if (config.verbose) {
-            console.log(`[ColorConverter] convertColorsBuffer: ${inputColorSpace} → ${outputColorSpace}, ` +
+            console.log(`${CONTEXT_PREFIX} [ColorConverter] convertColorsBuffer: ${inputColorSpace} → ${outputColorSpace}, ` +
                 `multiprofile=${useMultiprofile} (configIntermediates=${hasConfigIntermediates ? configIntermediateProfiles.length : 0}, ` +
                 `policyMultiprofile=${!!evaluationResult.overrides.requiresMultiprofileTransform}), ` +
                 `intent=${effectiveIntent}, pixels=${pixelCount}`);
@@ -613,7 +608,7 @@ export class ColorConverter {
             const profiles = [sourceProfile, ...intermediateProfiles, destinationProfile];
 
             if (config.verbose) {
-                console.log(`[ColorConverter] Multiprofile chain: ${profiles.length} profiles ` +
+                console.log(`${CONTEXT_PREFIX} [ColorConverter] Multiprofile chain: ${profiles.length} profiles ` +
                     `[${profiles.map(p => p === 'Lab' ? 'Lab' : `ArrayBuffer(${/** @type {ArrayBuffer} */(p).byteLength})`).join(', ')}]`);
             }
 
@@ -963,7 +958,7 @@ export class ColorConverter {
         }
 
         // Open all profiles
-        const profileHandles = profileSources.map(src => this.#openProfile(/** @type {ProfileType} */ (src)));
+        const profileHandles = profileSources.map(src => this.#openProfile(/** @type {ProfileType} */(src)));
 
         // Try native multiprofile transform first
         // Check underlying engine (not the provider wrapper) for availability

@@ -17,6 +17,20 @@
 const IS_NODE = typeof process !== 'undefined' && process.versions?.node;
 
 // ============================================================================
+// Execution Context
+// ============================================================================
+
+/** @type {typeof import('../../services/helpers/runtime.js') | null} */
+let runtime = null;
+
+try {
+    runtime = await import('../../services/helpers/runtime.js');
+    runtime.setCurrentContext('Worker');
+} catch {
+    // runtime.js not available (e.g., import path differs in some consumers)
+}
+
+// ============================================================================
 // Module Resolution
 // ============================================================================
 
@@ -71,6 +85,11 @@ if (IS_NODE) {
     try {
         const { workerData } = await import('worker_threads');
         workerConfig = workerData || null;
+        // Refine context with worker ID from workerData (e.g., 'worker-0' → 'Worker 1')
+        if (runtime && workerConfig?.workerId) {
+            const idMatch = /\d+$/.exec(workerConfig.workerId);
+            if (idMatch) runtime.setCurrentContext(`Worker ${Number(idMatch[0]) + 1}`);
+        }
     } catch {
         // Not in worker context
     }
@@ -92,14 +111,14 @@ let zlib = null;
 /** @type {string | undefined} */
 let engineVersion = undefined;
 
-/** @type {import('./auxiliary-diagnostics-collector.js').AuxiliaryDiagnosticsCollector | null} */
+/** @type {import('../diagnostics/auxiliary-diagnostics-collector.js').AuxiliaryDiagnosticsCollector | null} */
 let diagnostics = null;
 
 // ============================================================================
 // Shared Profile Cache (sent once via 'shared-config', reused across tasks)
 // ============================================================================
 
-/** @type {{ destinationProfile?: ArrayBuffer, intermediateProfiles?: (ArrayBuffer | 'Lab')[], renderingIntent?: string, blackPointCompensation?: boolean, useAdaptiveBPCClamping?: boolean, destinationColorSpace?: string } | null} */
+/** @type {{ destinationProfile?: ArrayBuffer, intermediateProfiles?: (ArrayBuffer | 'Lab')[], renderingIntent?: string, blackPointCompensation?: boolean, useAdaptiveBPCClamping?: boolean, destinationColorSpace?: string, pakoPackageEntrypoint?: string } | null} */
 let sharedConfig = null;
 
 // ============================================================================
@@ -108,6 +127,10 @@ let sharedConfig = null;
 
 /**
  * Initialize compression library.
+ *
+ * In browsers, uses the resolved pako entrypoint from sharedConfig
+ * (broadcast by PDFDocumentColorConverter via WorkerPool.broadcastSharedProfiles).
+ * Falls back to bare 'pako' specifier if no entrypoint is configured.
  */
 async function initCompression() {
     if (pako || zlib) return;
@@ -115,7 +138,7 @@ async function initCompression() {
     if (IS_NODE) {
         zlib = await importModule('zlib');
     } else {
-        pako = await importModule('../../packages/pako/dist/pako.mjs');
+        pako = await importModule(sharedConfig?.pakoPackageEntrypoint ?? new URL('../../packages/pako/dist/pako.mjs', import.meta.url).href);
     }
 }
 
@@ -149,14 +172,14 @@ async function initColorEngineProvider() {
  */
 async function initDiagnostics(port, workerId) {
     try {
-        const { AuxiliaryDiagnosticsCollector } = await importModule('./auxiliary-diagnostics-collector.js');
+        const { AuxiliaryDiagnosticsCollector } = await importModule('../diagnostics/auxiliary-diagnostics-collector.js');
         diagnostics = new AuxiliaryDiagnosticsCollector({
             workerId,
             port,
             enabled: true,
         });
     } catch (e) {
-        console.warn('[WorkerPoolEntrypoint] Failed to initialize diagnostics:', /** @type {Error} */ (e).message);
+        console.warn(`${runtime?.CONTEXT_PREFIX ?? ''} [WorkerPoolEntrypoint] Failed to initialize diagnostics:`, /** @type {Error} */ (e).message);
     }
 }
 
@@ -225,6 +248,7 @@ async function processImage(task) {
             compressOutput: true,
             verbose: task.verbose ?? false,
             intermediateProfiles: task.intermediateProfiles ?? sharedConfig?.intermediateProfiles,
+            pakoPackageEntrypoint: sharedConfig?.pakoPackageEntrypoint,
         }, {
             colorEngineProvider,
             engineVersion,
@@ -280,7 +304,7 @@ async function processImage(task) {
             }
         }
     } catch (error) {
-        console.error('[WorkerPoolEntrypoint] processImage error:', error);
+        console.error(`${runtime?.CONTEXT_PREFIX ?? ''} [WorkerPoolEntrypoint] processImage error:`, error);
         return {
             success: false,
             taskId: task.taskId,
@@ -335,9 +359,16 @@ async function processContentStream(task) {
                 initialColorSpaceState: task.initialColorSpaceState,
             });
 
+            // Materialize segments to a string for structured clone transfer.
+            // Workers have their own heap so materializing is fine here —
+            // the streaming approach is for the main-thread browser path.
+            const newText = result.newTextSegments
+                ? [...result.newTextSegments].join('')
+                : result.originalText;
+
             if (span) {
                 diagnostics?.updateSpan(span, {
-                    outputLength: result.newText.length,
+                    outputLength: result.newTextLength,
                     replacementCount: result.replacementCount,
                     colorConversions: result.colorConversions,
                 });
@@ -348,7 +379,7 @@ async function processContentStream(task) {
             return {
                 success: true,
                 taskId: task.taskId,
-                newText: result.newText,
+                newText,
                 replacementCount: result.replacementCount,
                 finalColorSpaceState: result.finalColorSpaceState,
                 duration: performance.now() - start,
@@ -486,9 +517,17 @@ async function processBenchmark(task) {
  * @param {object} task - Task to process
  */
 async function handleMessage(task) {
-    // Handle diagnostics port setup
-    if (task.type === 'diagnostics-port') {
-        await initDiagnostics(task.port, task.workerId);
+    // Handle worker init (always sent after ready — carries workerId, optionally diagnostics port)
+    if (task.type === 'worker-init') {
+        // Refine context with worker ID (e.g., 'worker-0' → 'Worker 1')
+        if (runtime && task.workerId) {
+            const idMatch = /\d+$/.exec(task.workerId);
+            if (idMatch) runtime.setCurrentContext(`Worker ${Number(idMatch[0]) + 1}`);
+        }
+        // Initialize diagnostics if port is provided
+        if (task.port) {
+            await initDiagnostics(task.port, task.workerId);
+        }
         return; // No response needed
     }
 
@@ -501,6 +540,7 @@ async function handleMessage(task) {
             blackPointCompensation: task.blackPointCompensation,
             useAdaptiveBPCClamping: task.useAdaptiveBPCClamping,
             destinationColorSpace: task.destinationColorSpace,
+            pakoPackageEntrypoint: task.pakoPackageEntrypoint,
         };
         return; // No response needed
     }
