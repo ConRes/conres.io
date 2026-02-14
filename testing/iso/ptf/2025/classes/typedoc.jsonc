@@ -1,0 +1,60 @@
+{
+    "$schema": "https://typedoc.org/schema.json",
+    // Explicitly disable plugins (markdown plugin has version incompatibility)
+    "plugin": [
+        "typedoc-plugin-markdown"
+    ],
+    "theme": "markdown",
+    // Skip validation errors during conversion
+    "skipErrorChecking": true,
+    // Exclude vendored packages and helper files that cause TypeScript errors
+    "exclude": [
+        // "**/packages/**",
+        // "**/helpers/**",
+        // "**/helpers.js",
+        // "**/services/**",
+        // "**/experiments/**",
+        // "**/tests/**"
+    ],
+    // Classes-specific entry points
+    "entryPoints": [
+        "./auxiliary-diagnostics-collector.js",
+        "./buffer-registry.js",
+        "./color-converter.js",
+        "./composite-color-converter.js",
+        "./diagnostics-collector.js",
+        "./image-color-converter.js",
+        "./lookup-table-color-converter.js",
+        "./main-diagnostics-collector.js",
+        "./pdf-content-stream-color-converter.js",
+        "./pdf-document-color-converter.js",
+        "./pdf-image-color-converter.js",
+        "./pdf-page-color-converter.js",
+        "./profile-pool.js"
+    ],
+    "router": "module",
+    "mergeReadme": true,
+    "flattenOutputFiles": true,
+    "expandParameters": true,
+    "expandObjects": true,
+    "cleanOutputDir": true,
+    "hidePageHeader": true,
+    "indexFormat": "table",
+    "parametersFormat": "table",
+    "interfacePropertiesFormat": "table",
+    "classPropertiesFormat": "table",
+    "typeAliasPropertiesFormat": "table",
+    "enumMembersFormat": "table",
+    "propertyMembersFormat": "table",
+    "typeDeclarationFormat": "table",
+    // Output to 2025/classes/documentation/ (relative to testing/iso/ptf/)
+    "out": "documentation",
+    // Type inference
+    "excludeNotDocumented": false,
+    "excludeInternal": false,
+    "excludePrivate": false,
+    "excludeProtected": false,
+    "excludeReferences": true,
+    // Use tsconfig.json for TypeScript compiler options (relative to testing/iso/ptf/)
+    "tsconfig": "../../tsconfig.docs.json"
+}

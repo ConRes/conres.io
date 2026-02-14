@@ -1,0 +1,36 @@
+{
+  "private": true,
+  "name": "@conres/color-engine",
+  "version": "0.0.1",
+  "type": "module",
+  "description": "WebAssembly-based color management engine with K-Only BPC+GCR for ConRes projects",
+  "main": "./dist/color-engine.js",
+  "types": "./dist/color-engine.d.ts",
+  "files": [
+    "dist/",
+    "src/"
+  ],
+  "scripts": {
+    "clean": "rm -rf dist/*.js dist/*.wasm dist/*.d.ts",
+    "build:wasm": "../../scripts/build-wasm.sh",
+    "build": "yarn clean && yarn build:wasm",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@types/emscripten": "^1.41.5",
+    "@types/node": "^24.6.2",
+    "@vitest/browser-playwright": "^4.0.0",
+    "playwright-chromium": "^1.55.0",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.5",
+    "vitest": "^4.0.0"
+  },
+  "packageManager": "yarn@4.5.3",
+  "engines": {
+    "node": ">=24",
+    "yarn": ">=4.5.0"
+  }
+}

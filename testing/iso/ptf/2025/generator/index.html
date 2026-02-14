@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>ISO Perceptual Test Form Generator - conres.io</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <script type="importmap">
+        {
+            "imports": {
+                "pdf-lib": "../packages/pdf-lib/pdf-lib.esm.js",
+                "icc": "../packages/icc/index.js",
+                "pako": "../packages/pako/dist/pako.mjs",
+                "unpkg:pako": "https://unpkg.com/pako@2.1.0/dist/pako.esm.mjs?module"
+            }
+        }
+    </script>
+    <link rel=stylesheet href="https://smotaal.io/markout/styles/styles.css" />
+    <style>
+        html {
+            --shade: #66aa99f6;
+            /* --shade-dark: #336699f6; */
+        }
+
+        label.full-row+input,
+        label+select {
+            display: flex;
+            place-self: center;
+            margin: 1em auto;
+        }
+
+        :is(article, aside, nav, section) h1 {
+            font-size: 1.75em;
+        }
+
+        :is(section, article) :is(ul, ol) {
+            /* display: block; */
+            /* width: fit-content; */
+            /* margin: 0 auto; */
+            /* place-items: start; */
+            /* text-align: start; */
+            /* outline: 1px solid red; */
+        }
+
+        :is(section, article)+hr:has(+ :is(section, article)) {
+            border-width: 1px;
+            /* margin-top: 1em; */
+            /* width: 50%; */
+            /* outline: 1px solid red; */
+        }
+
+        :is(section, article) div {
+            /* outline: 1px solid red; */
+            width: fit-content;
+            /* width: minmax(min-content, max-content); */
+            /* max-width: minmax(min-content, max-content); */
+            margin: 0 auto;
+        }
+
+        :is(section, article) progress {
+            /* outline: 1px solid red; */
+        }
+
+        :is(section, article) img.inline-icon {
+            height: 1em;
+            display: inline-block;
+            margin-block: 0.125em -0.125em;
+            margin-inline: 0.125em;
+            /* vertical-align: middle; */
+            /* justify-self: first baseline; */
+        }
+
+        /* :is(section, article) :is(ul, ol):has(> li > *) li { */
+        :is(section, article) :is(ul, ol)>li {
+            /* outline: 1px solid red; */
+            margin-block: 0.5em;
+        }
+
+        fieldset {
+            border: none;
+        }
+
+        :is(section, article) :is(form, fieldset) {
+            display: grid;
+            width: fit-content;
+            margin: 1em auto;
+            grid-template-columns: [row-start] 1fr [field-start] 3fr [row-end];
+            gap: 1em;
+        }
+
+        :is(section, article) :is(form, fieldset) label:not(:has(+ .full-row)) {
+            grid-column: row-start;
+            text-align: right;
+        }
+
+        :is(section, article) :is(form, fieldset) input {
+            grid-column: field-start;
+        }
+
+        .full-row,
+        :is(section, article) :is(form, fieldset) :is(progress, progress + output, .full-row, label:has(+ .full-row, + progress)) {
+            grid-column-start: row-start;
+            grid-column-end: row-end;
+            place-self: center;
+            /* outline: 1px solid green; */
+        }
+
+        :is(section, article) :is(form, fieldset) progress+output {
+            margin-block-start: -1em;
+            font-size: smaller;
+        }
+
+        :is(section, article) :is(article, section):has(fieldset, input, button):not(:focus-within) {
+            /* opacity: 0.5; */
+        }
+
+        form>article :is(article, section):has(>fieldset:disabled) {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+    </style>
+    <script type="module" src="./generator.js"></script>
+</head>
+
+<body>
+    <main>
+        <test-form-generator-app>
+            <template shadowrootmode="closed">
+                <form method="dialog">
+                    <article>
+                        <header>
+                            <slot name="header"></slot>
+                        </header>
+                        <slot name="article"></slot>
+                        <footer>
+                            <slot name="footer"></slot>
+                        </footer>
+                    </article>
+                </form>
+            </template>
+            <header slot="header">
+                <h1>Contrast-Resolution Perceptual Test Form Generator</h1>
+                <p>This page is intended to generate individualized PDF files used to conduct the ISO
+                    Contrast-Resolution perceptual round robin tests.</p>
+            </header>
+            <section id="overview" slot="article">
+                <template shadowrootmode="closed">
+                    <article>
+                        <header>
+                            <slot name="header"></slot>
+                        </header>
+                        <slot name="article"></slot>
+                        <footer>
+                            <slot name="footer"></slot>
+                        </footer>
+                    </article>
+                </template>
+                <h2 slot="header">Overview</h2>
+                <div slot="article">
+                    <p>The ISO Perceptual Test Form is a standardized test form used to conduct psychometric
+                        tests relative to the measured contrast and resolution capabilities of printing systems. This
+                        generator is used to produce individualized PDF files specifically for a test run.
+                        This ensures that each printed sample is marked with a unique QR code for traceability.</p>
+                    <p>The QR code only includes the unique slug for each page along with the email address and
+                        generation timestamps. This information is necessary to identify the individualized
+                        version and the specific page when scanned. All other information collected is stored in
+                        a separate <code>metadata.json</code>, which includes the complete specifications for
+                        the printing system, substrate and colorants,
+                        along with other metadata.</p>
+                </div>
+                <article id="requirements" slot="article">
+                    <h3 slot="header">Requirements</h3>
+                    <ul>
+                        <li>Print system, substrate and colorants specifications.</li>
+                        <li>Calibrated ICC profile for print system, substrate and colorants.</li>
+                        <li>Latest version of Adobe Acrobat.</li>
+                    </ul>
+                </article>
+                <fieldset name="overview-fieldset" slot="article" hidden>
+                    <button id="test-form-overview-continue-button">Continue</button>
+                </fieldset>
+            </section>
+            <section id="configuration" slot="article">
+                <template shadowrootmode="closed">
+                    <article>
+                        <header>
+                            <slot name="header"></slot>
+                        </header>
+                        <slot name="article"></slot>
+                        <footer>
+                            <slot name="footer"></slot>
+                        </footer>
+                    </article>
+                </template>
+                <h2 slot="header">Configuration</h2>
+                <fieldset name="assets-fieldset" slot="article" style="display: grid; place-content: center;">
+                    <h3 id="assets" class="full-row">Assets</h3>
+                    <label for="test-form-version-select">Test form:
+                        <select id="test-form-version-select" name="test-form-version">
+                            <option value="2026-02-14 - ConRes - ISO PTF - CR1" selected>2026-02-14 - ConRes - ISO PTF -
+                                CR1</option>
+                        </select>
+                    </label>
+                    <div class="full-row">
+                        <label for="bit-depth-8-bit-mode"><input type="radio" name="bit-depth-mode"
+                                id="bit-depth-8-bit-mode" value="8-bit" checked />8-bit</label>
+                        <label for="bit-depth-16-bit-mode"><input type="radio" name="bit-depth-mode"
+                                id="bit-depth-16-bit-mode" value="16-bit" />16-bit</label>
+                        <label for="bit-depth-auto-mode"><input type="radio" name="bit-depth-mode"
+                                id="bit-depth-auto-mode" value="auto" />Auto</label>
+                    </div>
+                    <div class="full-row">
+                        <button id="test-form-clear-cache-button">Clear Cache</button>
+                    </div>
+                    <small class="full-row">
+                        <p><b>Note</b>: Cached assets will be used if available.</p>
+                    </small>
+                    <label for="icc-profile-input" class="full-row">Calibrated ICC profile:
+                        <input type="file" id="icc-profile-input" name="icc-profile-input" accept=".icc,.icm" />
+                    </label>
+                </fieldset>
+                <fieldset name="specifications-fieldset" slot="article" style="display: grid; place-content: center;">
+                    <h3 id="specifications" class="full-row">Specifications</h3>
+                    <label for="device-input">Device:</label>
+                    <input type="text" id="device-input" name="device" placeholder="Print system make and model" />
+                    <label for="colorants-input">Colorants:</label>
+                    <input type="text" id="colorants-input" name="colorants" placeholder="List of colorants" />
+                    <label for="substrate-input">Substrate:</label>
+                    <input type="text" id="substrate-input" name="substrate" placeholder="Type of substrate" />
+                    <label for="settings-input">Settings:</label>
+                    <input type="text" id="settings-input" name="settings" placeholder="Print settings" />
+                    <label for="email-input">Email:</label>
+                    <input type="text" id="email-input" name="email" placeholder="Email of participant" />
+                </fieldset>
+            </section>
+            <section id="generation" slot="article">
+                <h2>Generation</h2>
+                <fieldset name="generation-fieldset">
+                    <div class="full-row">
+                        <p>The test form will be generated based on the provided specifications.</p>
+                        <p>Once generated, you should see two new files in your downloads, the labelled test
+                            form as a PDF and metadata in a JSON file. Make sure you keep them together.</p>
+                    </div>
+                    <fieldset name="debugging-fieldset" class="full-row">
+                        <div class="full-row">
+                            <p>Debugging is enabled when <code>debugging</code> is included in the address query.</p>
+                        </div>
+                        <label class="full-row" for="debugging-checkbox"><input type="checkbox"
+                                id="debugging-checkbox" />Debugging</label>
+                        <small class="full-row">
+                            <p><b>Note</b>: Logs and generated files will be available in the console.</p>
+                        </small>
+                    </fieldset>
+                    <div class="full-row">
+                        <button id="test-form-generation-button">Generate</button>
+                    </div>
+                    <small class="full-row">
+                        <p><b>Note</b>: If you will be submitting those prints, the metadata file must by submitted
+                            along with your prints.</p>
+                    </small>
+                </fieldset>
+                <fieldset name="download-progress-fieldset" slot="article" style="opacity:0;" class="full-row">
+                    <progress id="test-form-download-progress" name="test-form-download-progress" value="0"
+                        max="100"></progress>
+                    <output id="test-form-download-progress-output"></output>
+                </fieldset>
+                <fieldset name="generation-progess-fieldset" style="opacity:0;" class="full-row">
+                    <progress id="test-form-generation-progress" name="test-form-generation-progress"
+                        max="100"></progress>
+                    <output id="test-form-generation-progress-output"></output>
+                </fieldset>
+            </section>
+        </test-form-generator-app>
+    </main>
+</body>
+
+</html>
