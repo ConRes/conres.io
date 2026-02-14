@@ -129,7 +129,7 @@ export class CompositeColorConverter extends ColorConverter {
             return;
         }
 
-        const mainDiagnostics = /** @type {import('./main-diagnostics-collector.js').MainDiagnosticsCollector} */ (diagnostics);
+        const mainDiagnostics = /** @type {import('../diagnostics/main-diagnostics-collector.js').MainDiagnosticsCollector} */ (diagnostics);
 
         for (const { workerId, port } of this.#workerPool?.getDiagnosticsPorts() ?? []) {
             // Register with current span as parent for worker spans
@@ -187,7 +187,7 @@ export class CompositeColorConverter extends ColorConverter {
         if (this.#ownsWorkerPool && this.#workerPool?.diagnosticsEnabled) {
             const diagnostics = this.diagnostics;
             if (diagnostics && typeof /** @type {any} */ (diagnostics).unregisterAuxiliary === 'function') {
-                const mainDiagnostics = /** @type {import('./main-diagnostics-collector.js').MainDiagnosticsCollector} */ (diagnostics);
+                const mainDiagnostics = /** @type {import('../diagnostics/main-diagnostics-collector.js').MainDiagnosticsCollector} */ (diagnostics);
                 for (const { workerId } of this.#workerPool.getDiagnosticsPorts?.() ?? []) {
                     mainDiagnostics.unregisterAuxiliary(workerId);
                 }

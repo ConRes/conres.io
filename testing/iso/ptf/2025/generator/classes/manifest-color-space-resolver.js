@@ -11,6 +11,8 @@
  * @ai Claude Opus 4.6 (code generation)
  */
 
+import { CONTEXT_PREFIX } from '../../services/helpers/runtime.js';
+
 /**
  * @typedef {ArrayBuffer | 'Lab'} ProfileType
  */
@@ -25,8 +27,9 @@
  * Profile resolution:
  * - Absent `profile` property (e.g., SepK/DeviceN): returns `null` (no conversion)
  * - `profile === "Lab"`: returns the string `'Lab'` (built-in engine profile)
- * - Relative path (e.g., `"../../profiles/sRGB IEC61966-2.1.icc"`): fetches via
- *   `new URL(path, manifestURL)` and returns `ArrayBuffer`
+ * - Relative path (e.g., `"../profiles/sRGB IEC61966-2.1.icc"`): resolved via
+ *   the caller-provided `resolveProfileURL` function (or `new URL(path, manifestURL)`
+ *   as fallback) and fetched as `ArrayBuffer`
  */
 export class ManifestColorSpaceResolver {
 
@@ -35,6 +38,9 @@ export class ManifestColorSpaceResolver {
 
     /** @type {string} */
     #manifestURL;
+
+    /** @type {(profilePath: string) => string} */
+    #resolveProfileURL;
 
     /** @type {Promise<Cache | undefined> | undefined} */
     #cache;
@@ -46,10 +52,14 @@ export class ManifestColorSpaceResolver {
      * @param {Record<string, ColorSpaceEntry>} colorSpaces - The `colorSpaces` map from the manifest
      * @param {string} manifestURL - Base URL for resolving relative profile paths
      * @param {Promise<Cache | undefined> | undefined} [cache] - Optional browser Cache API instance (promise)
+     * @param {(profilePath: string) => string} [resolveProfileURL] - Custom URL resolver for profile paths;
+     *   receives the manifest-relative profile path (e.g., `"../profiles/sRGB.icc"`) and returns an absolute URL.
+     *   When omitted, falls back to `new URL(profilePath, manifestURL).href`.
      */
-    constructor(colorSpaces, manifestURL, cache) {
+    constructor(colorSpaces, manifestURL, cache, resolveProfileURL) {
         this.#colorSpaces = colorSpaces;
         this.#manifestURL = manifestURL;
+        this.#resolveProfileURL = resolveProfileURL ?? ((path) => new URL(path, manifestURL).href);
         this.#cache = cache;
     }
 
@@ -89,7 +99,7 @@ export class ManifestColorSpaceResolver {
         const entry = this.#colorSpaces[colorSpaceName];
 
         if (!entry) {
-            console.warn(`ManifestColorSpaceResolver: unknown color space "${colorSpaceName}"`);
+            console.warn(`${CONTEXT_PREFIX} [ManifestColorSpaceResolver] unknown color space "${colorSpaceName}"`);
             return null;
         }
 
@@ -103,8 +113,8 @@ export class ManifestColorSpaceResolver {
             return 'Lab';
         }
 
-        // Relative path → resolve and fetch
-        const profileURL = new URL(entry.profile, this.#manifestURL).href;
+        // Relative path → resolve via caller-provided resolver and fetch
+        const profileURL = this.#resolveProfileURL(entry.profile);
         return this.#fetchProfile(profileURL);
     }
 
@@ -131,9 +141,11 @@ export class ManifestColorSpaceResolver {
             throw new Error(`Failed to fetch ICC profile: ${url} (HTTP ${response.status})`);
         }
 
-        // Cache the response
+        // Cache the response (no stale entry exists — cache miss already confirmed above)
         if (cache) {
-            await cache.put(url, response.clone());
+            await cache.put(url, response.clone()).catch(cacheStorageError => {
+                console.warn(CONTEXT_PREFIX, cacheStorageError);
+            });
         }
 
         return response.arrayBuffer();

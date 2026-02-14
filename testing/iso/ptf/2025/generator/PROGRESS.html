@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en" data-color-mode="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Generator Prototype - PROGRESS</title>
+<style>
+.markdown-body{-ms-text-size-adjust:100%;-webkit-text-size-adjust:100%;margin:0;color:#1f2328;background-color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";font-size:16px;line-height:1.5;word-wrap:break-word}.markdown-body .octicon{display:inline-block;fill:currentColor;vertical-align:text-bottom}.markdown-body h1:hover .anchor .octicon-link:before,.markdown-body h2:hover .anchor .octicon-link:before,.markdown-body h3:hover .anchor .octicon-link:before,.markdown-body h4:hover .anchor .octicon-link:before,.markdown-body h5:hover .anchor .octicon-link:before,.markdown-body h6:hover .anchor .octicon-link:before{width:16px;height:16px;content:' ';display:inline-block;background-color:currentColor;-webkit-mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' version='1.1' aria-hidden='true'><path fill-rule='evenodd' d='M7.775 3.275a.75.75 0 001.06 1.06l1.25-1.25a2 2 0 112.83 2.83l-2.5 2.5a2 2 0 01-2.83 0 .75.75 0 00-1.06 1.06 3.5 3.5 0 004.95 0l2.5-2.5a3.5 3.5 0 00-4.95-4.95l-1.25 1.25zm-4.69 9.64a2 2 0 010-2.83l2.5-2.5a2 2 0 012.83 0 .75.75 0 001.06-1.06 3.5 3.5 0 00-4.95 0l-2.5 2.5a3.5 3.5 0 004.95 4.95l1.25-1.25a.75.75 0 00-1.06-1.06l-1.25 1.25a2 2 0 01-2.83 0z'></path></svg>");mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' version='1.1' aria-hidden='true'><path fill-rule='evenodd' d='M7.775 3.275a.75.75 0 001.06 1.06l1.25-1.25a2 2 0 112.83 2.83l-2.5 2.5a2 2 0 01-2.83 0 .75.75 0 00-1.06 1.06 3.5 3.5 0 004.95 0l2.5-2.5a3.5 3.5 0 00-4.95-4.95l-1.25 1.25zm-4.69 9.64a2 2 0 010-2.83l2.5-2.5a2 2 0 012.83 0 .75.75 0 001.06-1.06 3.5 3.5 0 00-4.95 0l-2.5 2.5a3.5 3.5 0 004.95 4.95l1.25-1.25a.75.75 0 00-1.06-1.06l-1.25 1.25a2 2 0 01-2.83 0z'></path></svg>")}.markdown-body details,.markdown-body figcaption,.markdown-body figure{display:block}.markdown-body summary{display:list-item}.markdown-body [hidden]{display:none!important}.markdown-body a{background-color:transparent;color:#0969da;text-decoration:none}.markdown-body abbr[title]{border-bottom:none;-webkit-text-decoration:underline dotted;text-decoration:underline dotted}.markdown-body b,.markdown-body strong{font-weight:600}.markdown-body dfn{font-style:italic}.markdown-body h1{margin:.67em 0;font-weight:600;padding-bottom:.3em;font-size:2em;border-bottom:1px solid #d7dde3}.markdown-body mark{background-color:#fff8c5;color:#1f2328}.markdown-body small{font-size:90%}.markdown-body sub,.markdown-body sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}.markdown-body sub{bottom:-.25em}.markdown-body sup{top:-.5em}.markdown-body img{border-style:none;max-width:100%;box-sizing:content-box;background-color:#fff}.markdown-body code,.markdown-body kbd,.markdown-body pre,.markdown-body samp{font-family:monospace;font-size:1em}.markdown-body figure{margin:1em 40px}.markdown-body hr{box-sizing:content-box;overflow:hidden;background:0 0;border-bottom:1px solid #d7dde3;height:.25em;padding:0;margin:24px 0;background-color:#d0d7de;border:0}.markdown-body input{font:inherit;margin:0;overflow:visible;font-family:inherit;font-size:inherit;line-height:inherit}.markdown-body [type=button],.markdown-body [type=reset],.markdown-body [type=submit]{-webkit-appearance:button;appearance:button}.markdown-body [type=checkbox],.markdown-body [type=radio]{box-sizing:border-box;padding:0}.markdown-body [type=number]::-webkit-inner-spin-button,.markdown-body [type=number]::-webkit-outer-spin-button{height:auto}.markdown-body [type=search]::-webkit-search-cancel-button,.markdown-body [type=search]::-webkit-search-decoration{-webkit-appearance:none;appearance:none}.markdown-body ::-webkit-input-placeholder{color:inherit;opacity:.54}.markdown-body ::-webkit-file-upload-button{-webkit-appearance:button;appearance:button;font:inherit}.markdown-body a:hover{text-decoration:underline}.markdown-body ::placeholder{color:#6e7781;opacity:1}.markdown-body hr::before{display:table;content:""}.markdown-body hr::after{display:table;clear:both;content:""}.markdown-body table{border-spacing:0;border-collapse:collapse;display:block;width:max-content;max-width:100%;overflow:auto}.markdown-body td,.markdown-body th{padding:0}.markdown-body details summary{cursor:pointer}.markdown-body details:not([open])>:not(summary){display:none!important}.markdown-body [role=button]:focus,.markdown-body a:focus,.markdown-body input[type=checkbox]:focus,.markdown-body input[type=radio]:focus{outline:2px solid #0969da;outline-offset:-2px;box-shadow:none}.markdown-body [role=button]:focus:not(:focus-visible),.markdown-body a:focus:not(:focus-visible),.markdown-body input[type=checkbox]:focus:not(:focus-visible),.markdown-body input[type=radio]:focus:not(:focus-visible){outline:solid 1px transparent}.markdown-body [role=button]:focus-visible,.markdown-body a:focus-visible,.markdown-body input[type=checkbox]:focus-visible,.markdown-body input[type=radio]:focus-visible{outline:2px solid #0969da;outline-offset:-2px;box-shadow:none}.markdown-body a:not([class]):focus,.markdown-body a:not([class]):focus-visible,.markdown-body input[type=checkbox]:focus,.markdown-body input[type=checkbox]:focus-visible,.markdown-body input[type=radio]:focus,.markdown-body input[type=radio]:focus-visible{outline-offset:0}.markdown-body kbd{display:inline-block;padding:3px 5px;font:11px ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;line-height:10px;color:#1f2328;vertical-align:middle;background-color:#f6f8fa;border:solid 1px rgba(175,184,193,.2);border-bottom-color:rgba(175,184,193,.2);border-radius:6px;box-shadow:inset 0 -1px 0 rgba(175,184,193,.2)}.markdown-body h1,.markdown-body h2,.markdown-body h3,.markdown-body h4,.markdown-body h5,.markdown-body h6{margin-top:24px;margin-bottom:16px;font-weight:600;line-height:1.25}.markdown-body h2{font-weight:600;padding-bottom:.3em;font-size:1.5em;border-bottom:1px solid #d7dde3}.markdown-body h3{font-weight:600;font-size:1.25em}.markdown-body h4{font-weight:600;font-size:1em}.markdown-body h5{font-weight:600;font-size:.875em}.markdown-body h6{font-weight:600;font-size:.85em;color:#656d76}.markdown-body p{margin-top:0;margin-bottom:10px}.markdown-body blockquote{margin:0;padding:0 1em;color:#656d76;border-left:.25em solid #d0d7de}.markdown-body ol,.markdown-body ul{margin-top:0;margin-bottom:0;padding-left:2em}.markdown-body ol ol,.markdown-body ul ol{list-style-type:lower-roman}.markdown-body ol ol ol,.markdown-body ol ul ol,.markdown-body ul ol ol,.markdown-body ul ul ol{list-style-type:lower-alpha}.markdown-body dd{margin-left:0}.markdown-body code,.markdown-body samp,.markdown-body tt{font-family:ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;font-size:12px}.markdown-body pre{margin-top:0;margin-bottom:0;font-family:ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;font-size:12px;word-wrap:normal}.markdown-body .octicon{display:inline-block;overflow:visible!important;vertical-align:text-bottom;fill:currentColor}.markdown-body input::-webkit-inner-spin-button,.markdown-body input::-webkit-outer-spin-button{margin:0;-webkit-appearance:none;appearance:none}.markdown-body .mr-2{margin-right:8px!important}.markdown-body::before{display:table;content:""}.markdown-body::after{display:table;clear:both;content:""}.markdown-body>:first-child{margin-top:0!important}.markdown-body>:last-child{margin-bottom:0!important}.markdown-body a:not([href]){color:inherit;text-decoration:none}.markdown-body .absent{color:#d1242f}.markdown-body .anchor{float:left;padding-right:4px;margin-left:-20px;line-height:1}.markdown-body .anchor:focus{outline:0}.markdown-body blockquote,.markdown-body details,.markdown-body dl,.markdown-body ol,.markdown-body p,.markdown-body pre,.markdown-body table,.markdown-body ul{margin-top:0;margin-bottom:16px}.markdown-body blockquote>:first-child{margin-top:0}.markdown-body blockquote>:last-child{margin-bottom:0}.markdown-body h1 .octicon-link,.markdown-body h2 .octicon-link,.markdown-body h3 .octicon-link,.markdown-body h4 .octicon-link,.markdown-body h5 .octicon-link,.markdown-body h6 .octicon-link{color:#1f2328;vertical-align:middle;visibility:hidden}.markdown-body h1:hover .anchor,.markdown-body h2:hover .anchor,.markdown-body h3:hover .anchor,.markdown-body h4:hover .anchor,.markdown-body h5:hover .anchor,.markdown-body h6:hover .anchor{text-decoration:none}.markdown-body h1:hover .anchor .octicon-link,.markdown-body h2:hover .anchor .octicon-link,.markdown-body h3:hover .anchor .octicon-link,.markdown-body h4:hover .anchor .octicon-link,.markdown-body h5:hover .anchor .octicon-link,.markdown-body h6:hover .anchor .octicon-link{visibility:visible}.markdown-body h1 code,.markdown-body h1 tt,.markdown-body h2 code,.markdown-body h2 tt,.markdown-body h3 code,.markdown-body h3 tt,.markdown-body h4 code,.markdown-body h4 tt,.markdown-body h5 code,.markdown-body h5 tt,.markdown-body h6 code,.markdown-body h6 tt{padding:0 .2em;font-size:inherit}.markdown-body summary h1,.markdown-body summary h2,.markdown-body summary h3,.markdown-body summary h4,.markdown-body summary h5,.markdown-body summary h6{display:inline-block}.markdown-body summary h1 .anchor,.markdown-body summary h2 .anchor,.markdown-body summary h3 .anchor,.markdown-body summary h4 .anchor,.markdown-body summary h5 .anchor,.markdown-body summary h6 .anchor{margin-left:-40px}.markdown-body summary h1,.markdown-body summary h2{padding-bottom:0;border-bottom:0}.markdown-body ol.no-list,.markdown-body ul.no-list{padding:0;list-style-type:none}.markdown-body ol[type="a s"]{list-style-type:lower-alpha}.markdown-body ol[type="A s"]{list-style-type:upper-alpha}.markdown-body ol[type="i s"]{list-style-type:lower-roman}.markdown-body ol[type="I s"]{list-style-type:upper-roman}.markdown-body ol[type="1"]{list-style-type:decimal}.markdown-body div>ol:not([type]){list-style-type:decimal}.markdown-body ol ol,.markdown-body ol ul,.markdown-body ul ol,.markdown-body ul ul{margin-top:0;margin-bottom:0}.markdown-body li>p{margin-top:16px}.markdown-body li+li{margin-top:.25em}.markdown-body dl{padding:0}.markdown-body dl dt{padding:0;margin-top:16px;font-size:1em;font-style:italic;font-weight:600}.markdown-body dl dd{padding:0 16px;margin-bottom:16px}.markdown-body table th{font-weight:600}.markdown-body table td,.markdown-body table th{padding:6px 13px;border:1px solid #d0d7de}.markdown-body table td>:last-child{margin-bottom:0}.markdown-body table tr{background-color:#fff;border-top:1px solid #d7dde3}.markdown-body table tr:nth-child(2n){background-color:#f6f8fa}.markdown-body table img{background-color:transparent}.markdown-body img[align=right]{padding-left:20px}.markdown-body img[align=left]{padding-right:20px}.markdown-body .emoji{max-width:none;vertical-align:text-top;background-color:transparent}.markdown-body span.frame{display:block;overflow:hidden}.markdown-body span.frame>span{display:block;float:left;width:auto;padding:7px;margin:13px 0 0;overflow:hidden;border:1px solid #d0d7de}.markdown-body span.frame span img{display:block;float:left}.markdown-body span.frame span span{display:block;padding:5px 0 0;clear:both;color:#1f2328}.markdown-body span.align-center{display:block;overflow:hidden;clear:both}.markdown-body span.align-center>span{display:block;margin:13px auto 0;overflow:hidden;text-align:center}.markdown-body span.align-center span img{margin:0 auto;text-align:center}.markdown-body span.align-right{display:block;overflow:hidden;clear:both}.markdown-body span.align-right>span{display:block;margin:13px 0 0;overflow:hidden;text-align:right}.markdown-body span.align-right span img{margin:0;text-align:right}.markdown-body span.float-left{display:block;float:left;margin-right:13px;overflow:hidden}.markdown-body span.float-left span{margin:13px 0 0}.markdown-body span.float-right{display:block;float:right;margin-left:13px;overflow:hidden}.markdown-body span.float-right>span{display:block;margin:13px auto 0;overflow:hidden;text-align:right}.markdown-body code,.markdown-body tt{padding:.2em .4em;margin:0;font-size:85%;white-space:break-spaces;background-color:rgba(175,184,193,.2);border-radius:6px}.markdown-body code br,.markdown-body tt br{display:none}.markdown-body del code{text-decoration:inherit}.markdown-body samp{font-size:85%}.markdown-body pre code{font-size:100%}.markdown-body pre>code{padding:0;margin:0;word-break:normal;white-space:pre;background:0 0;border:0}.markdown-body .highlight{margin-bottom:16px}.markdown-body .highlight pre{margin-bottom:0;word-break:normal}.markdown-body .highlight pre,.markdown-body pre{padding:16px;overflow:auto;font-size:85%;line-height:1.45;color:#1f2328;background-color:#f6f8fa;border-radius:6px}.markdown-body pre code,.markdown-body pre tt{display:inline;max-width:auto;padding:0;margin:0;overflow:visible;line-height:inherit;word-wrap:normal;background-color:transparent;border:0}.markdown-body .csv-data td,.markdown-body .csv-data th{padding:5px;overflow:hidden;font-size:12px;line-height:1;text-align:left;white-space:nowrap}.markdown-body .csv-data .blob-num{padding:10px 8px 9px;text-align:right;background:#fff;border:0}.markdown-body .csv-data tr{border-top:0}.markdown-body .csv-data th{font-weight:600;background:#f6f8fa;border-top:0}.markdown-body [data-footnote-ref]::before{content:"["}.markdown-body [data-footnote-ref]::after{content:"]"}.markdown-body .footnotes{font-size:12px;color:#656d76;border-top:1px solid #d0d7de}.markdown-body .footnotes ol{padding-left:16px}.markdown-body .footnotes ol ul{display:inline-block;padding-left:16px;margin-top:16px}.markdown-body .footnotes li{position:relative}.markdown-body .footnotes li:target::before{position:absolute;top:-8px;right:-8px;bottom:-8px;left:-24px;pointer-events:none;content:"";border:2px solid #0969da;border-radius:6px}.markdown-body .footnotes li:target{color:#1f2328}.markdown-body .footnotes .data-footnote-backref g-emoji{font-family:monospace}.markdown-body .pl-c{color:#57606a}.markdown-body .pl-c1,.markdown-body .pl-s .pl-v{color:#0550ae}.markdown-body .pl-e,.markdown-body .pl-en{color:#6639ba}.markdown-body .pl-s .pl-s1,.markdown-body .pl-smi{color:#24292f}.markdown-body .pl-ent{color:#116329}.markdown-body .pl-k{color:#cf222e}.markdown-body .pl-pds,.markdown-body .pl-s,.markdown-body .pl-s .pl-pse .pl-s1,.markdown-body .pl-sr,.markdown-body .pl-sr .pl-cce,.markdown-body .pl-sr .pl-sra,.markdown-body .pl-sr .pl-sre{color:#0a3069}.markdown-body .pl-smw,.markdown-body .pl-v{color:#953800}.markdown-body .pl-bu{color:#82071e}.markdown-body .pl-ii{color:#f6f8fa;background-color:#82071e}.markdown-body .pl-c2{color:#f6f8fa;background-color:#cf222e}.markdown-body .pl-sr .pl-cce{font-weight:700;color:#116329}.markdown-body .pl-ml{color:#3b2300}.markdown-body .pl-mh,.markdown-body .pl-mh .pl-en,.markdown-body .pl-ms{font-weight:700;color:#0550ae}.markdown-body .pl-mi{font-style:italic;color:#24292f}.markdown-body .pl-mb{font-weight:700;color:#24292f}.markdown-body .pl-md{color:#82071e;background-color:#ffebe9}.markdown-body .pl-mi1{color:#116329;background-color:#dafbe1}.markdown-body .pl-mc{color:#953800;background-color:#ffd8b5}.markdown-body .pl-mi2{color:#eaeef2;background-color:#0550ae}.markdown-body .pl-mdr{font-weight:700;color:#8250df}.markdown-body .pl-ba{color:#57606a}.markdown-body .pl-sg{color:#8c959f}.markdown-body .pl-corl{text-decoration:underline;color:#0a3069}.markdown-body g-emoji{display:inline-block;min-width:1ch;font-family:"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";font-size:1em;font-style:normal!important;font-weight:400;line-height:1;vertical-align:-.075em}.markdown-body g-emoji img{width:1em;height:1em}.markdown-body .task-list-item{list-style-type:none}.markdown-body .task-list-item label{font-weight:400}.markdown-body .task-list-item.enabled label{cursor:pointer}.markdown-body .task-list-item+.task-list-item{margin-top:4px}.markdown-body .task-list-item .handle{display:none}.markdown-body .task-list-item-checkbox{margin:0 .2em .25em -1.4em;vertical-align:middle}.markdown-body .contains-task-list:dir(rtl) .task-list-item-checkbox{margin:0 -1.6em .25em .2em}.markdown-body .contains-task-list{position:relative}.markdown-body .contains-task-list:focus-within .task-list-item-convert-container,.markdown-body .contains-task-list:hover .task-list-item-convert-container{display:block;width:auto;height:24px;overflow:visible;clip:auto}.markdown-body ::-webkit-calendar-picker-indicator{filter:invert(50%)}.markdown-body .markdown-alert{padding:8px 16px;margin-bottom:16px;color:inherit;border-left:.25em solid #d0d7de}.markdown-body .markdown-alert>:first-child{margin-top:0}.markdown-body .markdown-alert>:last-child{margin-bottom:0}.markdown-body .markdown-alert .markdown-alert-title{display:flex;font-weight:500;align-items:center;line-height:1}.markdown-body .markdown-alert.markdown-alert-note{border-left-color:#0969da}.markdown-body .markdown-alert.markdown-alert-note .markdown-alert-title{color:#0969da}.markdown-body .markdown-alert.markdown-alert-important{border-left-color:#8250df}.markdown-body .markdown-alert.markdown-alert-important .markdown-alert-title{color:#8250df}.markdown-body .markdown-alert.markdown-alert-warning{border-left-color:#9a6700}.markdown-body .markdown-alert.markdown-alert-warning .markdown-alert-title{color:#9a6700}.markdown-body .markdown-alert.markdown-alert-tip{border-left-color:#1f883d}.markdown-body .markdown-alert.markdown-alert-tip .markdown-alert-title{color:#1a7f37}.markdown-body .markdown-alert.markdown-alert-caution{border-left-color:#cf222e}.markdown-body .markdown-alert.markdown-alert-caution .markdown-alert-title{color:#d1242f}
+</style>
+<style>
+/* Layout styles for markdown-body container */
+.markdown-body {
+	box-sizing: border-box;
+	min-width: 200px;
+	max-width: 980px;
+	margin: 0 auto;
+	padding: 45px;
+}
+
+@media (max-width: 767px) {
+	.markdown-body {
+		padding: 15px;
+	}
+}
+
+</style>
+<style>
+/* Print optimization styles */
+@media print {
+	/* Avoid breaking headings from following content */
+	h1, h2, h3, h4, h5, h6 {
+		page-break-after: avoid;
+		break-after: avoid-page;
+	}
+
+	/* Keep these elements together */
+	table, figure, div.no-break, pre {
+		page-break-inside: avoid;
+		break-inside: avoid-page;
+	}
+
+	/* Don't orphan paragraphs before kept-together elements */
+	p:has(+ table, + figure, + div.no-break, + pre) {
+		page-break-after: avoid;
+		break-after: avoid-page;
+	}
+
+	/* Ensure code blocks don't overflow */
+	pre {
+		white-space: pre-wrap;
+		word-wrap: break-word;
+	}
+}
+
+</style>
+<style>
+/* Mermaid diagram styling */
+.mermaid svg {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+	width: auto;
+	max-width: 100%;
+}
+
+/* Style for pre blocks before mermaid upgrade */
+pre.mermaid {
+	background: transparent;
+	border: none;
+	padding: 0;
+}
+
+/* Server-side rendered mermaid container */
+.mermaid-container {
+	position: relative;
+	display: block;
+	margin: 1rem 0;
+}
+
+.mermaid-container .mermaid-diagram {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+	width: auto;
+	max-width: 100%;
+}
+
+/* Show source button - appears on hover */
+.mermaid-show-source {
+	position: absolute;
+	top: 0.5rem;
+	right: 0.5rem;
+	padding: 0.25rem 0.5rem;
+	font-size: 0.75rem;
+	background: var(--bgColor-muted, rgba(175, 184, 193, 0.2));
+	border: 1px solid var(--borderColor-default, rgba(31, 35, 40, 0.15));
+	border-radius: 6px;
+	cursor: pointer;
+	opacity: 0;
+	transition: opacity 0.2s ease-in-out;
+	color: var(--fgColor-muted, #636c76);
+}
+
+.mermaid-container:hover .mermaid-show-source,
+.mermaid-container:focus-within .mermaid-show-source {
+	opacity: 1;
+}
+
+.mermaid-show-source:hover {
+	background: var(--bgColor-accent-muted, rgba(9, 105, 218, 0.1));
+	border-color: var(--borderColor-accent-emphasis, #0969da);
+	color: var(--fgColor-accent, #0969da);
+}
+
+/* Mermaid source dialog (popover) */
+dialog[popover].mermaid-source,
+dialog#[id$="-source"] {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	max-width: 90vw;
+	max-height: 80vh;
+	width: 600px;
+	padding: 0;
+	border: 1px solid var(--borderColor-default, rgba(31, 35, 40, 0.15));
+	border-radius: 12px;
+	box-shadow: 0 8px 24px rgba(140, 149, 159, 0.2);
+	background: var(--bgColor-default, #ffffff);
+	overflow: hidden;
+}
+
+/* Dark mode support */
+[data-color-mode="dark"] dialog[popover],
+[data-color-mode="dark"] dialog#[id$="-source"] {
+	background: var(--bgColor-default, #0d1117);
+	border-color: var(--borderColor-default, #30363d);
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.mermaid-source-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 0.75rem 1rem;
+	background: var(--bgColor-muted, #f6f8fa);
+	border-bottom: 1px solid var(--borderColor-default, rgba(31, 35, 40, 0.15));
+	font-weight: 600;
+}
+
+[data-color-mode="dark"] .mermaid-source-header {
+	background: var(--bgColor-muted, #161b22);
+	border-bottom-color: var(--borderColor-default, #30363d);
+}
+
+.mermaid-source-header button {
+	padding: 0.25rem 0.5rem;
+	font-size: 0.75rem;
+	background: transparent;
+	border: 1px solid var(--borderColor-default, rgba(31, 35, 40, 0.15));
+	border-radius: 6px;
+	cursor: pointer;
+	color: var(--fgColor-muted, #636c76);
+}
+
+.mermaid-source-header button:hover {
+	background: var(--bgColor-danger-muted, rgba(248, 81, 73, 0.1));
+	border-color: var(--borderColor-danger-emphasis, #cf222e);
+	color: var(--fgColor-danger, #cf222e);
+}
+
+/* Dialog pre/code styling */
+dialog[popover] pre,
+dialog#[id$="-source"] pre {
+	margin: 0;
+	padding: 1rem;
+	max-height: calc(80vh - 60px);
+	overflow: auto;
+	background: var(--bgColor-muted, #f6f8fa);
+}
+
+[data-color-mode="dark"] dialog[popover] pre,
+[data-color-mode="dark"] dialog#[id$="-source"] pre {
+	background: var(--bgColor-muted, #161b22);
+}
+
+dialog[popover] code,
+dialog#[id$="-source"] code {
+	font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+	font-size: 0.875rem;
+	line-height: 1.5;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+/* Backdrop styling */
+dialog[popover]::backdrop,
+dialog#[id$="-source"]::backdrop {
+	background: rgba(0, 0, 0, 0.4);
+}
+
+/* Print: hide interactive elements */
+@media print {
+	.mermaid-show-source {
+		display: none;
+	}
+
+	dialog[popover],
+	dialog#[id$="-source"] {
+		display: none;
+	}
+}
+
+</style>
+</head>
+<body>
+<article class="markdown-body">
+<h1 id="generator-prototype-progress">Generator Prototype - PROGRESS</h1>
+<h2 id="overview">Overview</h2>
+<p>Refactor the test form generator to use the new <code class="notranslate">PDFDocumentColorConverter</code> (baseline classes) for in-browser color conversion, replacing the previous multi-step workflow that required users to download a pre-assembled PDF and color-convert externally in Adobe Acrobat.</p>
+<p><strong>Entrypoint:</strong> <code class="notranslate">testing/iso/ptf/2025/generator/index.html</code><br>
+<strong>Module:</strong> <code class="notranslate">testing/iso/ptf/2025/generator/generator.js</code></p>
+<h3 id="key-changes-from-previous-generator">Key Changes from Previous Generator</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Previous</th>
+<th>New</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Color conversion</td>
+<td>External (Adobe Acrobat)</td>
+<td>In-browser (<code class="notranslate">PDFDocumentColorConverter</code> from <code class="notranslate">classes/baseline</code>)</td>
+</tr>
+<tr>
+<td>Asset source</td>
+<td>Pre-assembled PDF with <code class="notranslate">Slugs.json</code></td>
+<td>Assets PDF with <code class="notranslate">manifest.json</code></td>
+</tr>
+<tr>
+<td>UI flow</td>
+<td>Multi-step wizard with stage-based progression</td>
+<td>Single Generate button with validation</td>
+</tr>
+<tr>
+<td>Architecture</td>
+<td>Monolithic <code class="notranslate">TestFormGenerator</code> class</td>
+<td><code class="notranslate">TestFormPDFDocumentGenerator</code> + <code class="notranslate">TestFormGeneratorAppElement</code></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 id="asset-structure">Asset Structure</h3>
+<p><strong>Asset PDF:</strong> <code class="notranslate">testing/iso/ptf/assets/2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets.pdf</code></p>
+<p><strong>Asset Resources:</strong></p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">manifest.json</code></td>
+<td>Settings, assets, layouts, and page descriptors</td>
+</tr>
+<tr>
+<td><code class="notranslate">slugs.ps</code></td>
+<td>PostScript slug template (QR codes, metadata)</td>
+</tr>
+<tr>
+<td><code class="notranslate">barcode.ps</code></td>
+<td>BWIPP barcode generator for QR codes</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p><strong>Manifest Sections:</strong></p>
+<ul>
+<li><code class="notranslate">settings.colorManagement</code> — Default source profiles for Device Gray/RGB/CMYK</li>
+<li><code class="notranslate">colorSpaces</code> — Color space definitions mapping names to profiles (new)</li>
+<li><code class="notranslate">assets[]</code> — Individual asset entries with color space (1:1 with asset PDF pages)</li>
+<li><code class="notranslate">layouts[]</code> — Layout definitions composing assets into page layouts</li>
+<li><code class="notranslate">pages[]</code> — Final page sequence with metadata (title, resolution, colorSpace)</li>
+</ul>
+<p><strong>Color Space Map (<code class="notranslate">manifest.colorSpaces</code>):</strong></p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Profile</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">sRGB</code></td>
+<td><code class="notranslate">RGB</code></td>
+<td><code class="notranslate">../../profiles/sRGB IEC61966-2.1.icc</code></td>
+<td>Relative path from manifest</td>
+</tr>
+<tr>
+<td><code class="notranslate">sGray</code></td>
+<td><code class="notranslate">Gray</code></td>
+<td><code class="notranslate">../../profiles/sGray.icc</code></td>
+<td>Relative path from manifest</td>
+</tr>
+<tr>
+<td><code class="notranslate">Lab</code></td>
+<td><code class="notranslate">Lab</code></td>
+<td><code class="notranslate">"Lab"</code> (string)</td>
+<td>Built-in Lab D50 profile</td>
+</tr>
+<tr>
+<td><code class="notranslate">SepK</code></td>
+<td><code class="notranslate">DeviceN</code></td>
+<td>(absent)</td>
+<td>No profile = no pre-conversion</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 id="new-classes">New Classes</h3>
+<p><strong><code class="notranslate">TestFormPDFDocumentGenerator</code></strong> — Generation logic (no UI coupling)</p>
+<ul>
+<li>Loads and caches the asset PDF</li>
+<li>Parses the manifest</li>
+<li>Pre-converts each asset page to the output color space (with optional intermediate layout profile)</li>
+<li>Assembles pages from pre-converted assets (embed once, draw many)</li>
+<li>Generates slugs via <code class="notranslate">GhostscriptService</code></li>
+<li>Post-processes: decalibrate, set output intent (user's ICC), embed slugs</li>
+</ul>
+<p><strong><code class="notranslate">ManifestColorSpaceResolver</code></strong> — Profile resolution from manifest colorSpaces</p>
+<ul>
+<li>Resolves relative ICC profile paths via <code class="notranslate">new URL(path, manifestURL)</code></li>
+<li>Fetches and caches profiles using browser Cache API</li>
+<li>Returns <code class="notranslate">'Lab'</code> string for Lab (built-in engine profile)</li>
+<li>Returns <code class="notranslate">null</code> for DeviceN/SepK (no conversion)</li>
+</ul>
+<p><strong><code class="notranslate">AssetPagePreConverter</code></strong> — Per-asset page pre-conversion with caching</p>
+<ul>
+<li>Extracts individual pages from asset PDF into single-page PDFs</li>
+<li>Converts via <code class="notranslate">PDFDocumentColorConverter</code> with <code class="notranslate">intermediateProfiles</code> config</li>
+<li>Caches by <code class="notranslate">(assetIndex, layoutColorSpace)</code> — convert once, reuse many</li>
+<li>SepK passthrough (no conversion)</li>
+</ul>
+<p><strong><code class="notranslate">TestFormGeneratorAppElement</code></strong> — Custom element (<code class="notranslate">&lt;test-form-generator-app&gt;</code>)</p>
+<ul>
+<li>Binds to form elements in shadow DOM</li>
+<li>Validates form fields (ICC profile required, fields filled unless debugging)</li>
+<li>Reports progress via progress bars</li>
+<li>Delegates generation to <code class="notranslate">TestFormPDFDocumentGenerator</code></li>
+<li>Handles file downloads (PDF + metadata JSON)</li>
+</ul>
+<hr>
+<h2 id="roadmap">Roadmap</h2>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Create PROGRESS.md <code class="notranslate">DONE</code></li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Fix importmap paths in <code class="notranslate">index.html</code> (resolve <code class="notranslate">./packages/</code> to <code class="notranslate">../packages/</code>) <code class="notranslate">DONE</code></li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Implement <code class="notranslate">TestFormPDFDocumentGenerator</code> class <code class="notranslate">DONE</code>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Asset PDF loading and caching (with fetch progress)</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Manifest loading and parsing</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Color conversion via <code class="notranslate">PDFDocumentColorConverter</code> (baseline)</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Slug generation via <code class="notranslate">GhostscriptService</code></li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> PDF assembly (decalibrate, output intent, embed slugs)</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Metadata JSON generation</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Implement <code class="notranslate">TestFormGeneratorAppElement</code> class <code class="notranslate">DONE</code>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Custom element registration</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Form validation (ICC profile, required fields, debugging bypass)</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Progress reporting (download + generation)</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Generate button handler</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> File download triggers (PDF, metadata JSON, debug files)</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Wire up <code class="notranslate">generator.js</code> entry point <code class="notranslate">DONE</code></li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Wire up bit depth radio buttons (<code class="notranslate">outputBitsPerComponent</code>) <code class="notranslate">DONE</code></li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Implement Clear Cache button <code class="notranslate">DONE</code></li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Fix <code class="notranslate">embedPDF</code> → <code class="notranslate">embedPdf</code> in <code class="notranslate">PDFService.js</code> <code class="notranslate">DONE</code></li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Fix case-insensitive colorSpace matching in layout lookup <code class="notranslate">DONE</code></li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Fix debugging defaults to match <code class="notranslate">generate.js</code> <code class="notranslate">DONE</code></li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> HEAD-based cache freshness checking (matching <code class="notranslate">generate.js</code> pattern) <code class="notranslate">DONE</code></li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Fix output intent to always use the user's destination ICC profile <code class="notranslate">DONE</code></li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Pre-convert mismatched asset pages before assembly (multiprofile transforms) <code class="notranslate">DONE</code>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Investigate baseline multiprofile transform usage</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Amend baseline <code class="notranslate">ColorConverterConfiguration</code> with <code class="notranslate">intermediateProfiles</code></li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Amend <code class="notranslate">convertColorsBuffer</code> to use config intermediates (precedence over policy)</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Create <code class="notranslate">ManifestColorSpaceResolver</code> class (profile resolution from manifest)</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Create <code class="notranslate">AssetPagePreConverter</code> class (per-asset pre-conversion with caching)</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Refactor <code class="notranslate">generate()</code> and <code class="notranslate">#assemblePages</code> for pre-conversion workflow</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Cache converted assets (convert once, embed once, draw many)</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Extract additional classes from <code class="notranslate">TestFormPDFDocumentGenerator</code> <code class="notranslate">DONE</code>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> <code class="notranslate">ManifestColorSpaceResolver</code> — Profile resolution from manifest colorSpaces</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> <code class="notranslate">AssetPagePreConverter</code> — Per-asset page pre-conversion with caching</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Batch pre-conversion with page-selective converter <code class="notranslate">DONE</code>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Add <code class="notranslate">pages?: number[]</code> to <code class="notranslate">PDFDocumentColorConverterConfiguration</code></li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Filter page loop in <code class="notranslate">convertColor()</code> using Set-based lookup</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Rewrite <code class="notranslate">AssetPagePreConverter</code> for batch in-place conversion</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Group by conversion chain, one converter per chain</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> <code class="notranslate">embedPage</code> from same document for output assembly</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Remove asset pages after assembly</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Fix worker importmap issues (bare specifiers fail in Web Workers) <code class="notranslate">DONE</code>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Skip legacy <code class="notranslate">ColorEngineService</code> initialization when <code class="notranslate">colorEngineProvider</code> is supplied (avoids <code class="notranslate">pdf-lib</code> import in worker)</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Add pako relative-path fallback in <code class="notranslate">PDFImageColorConverter.#loadPako()</code></li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Per-page progress reporting during color conversion <code class="notranslate">DONE</code>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Add <code class="notranslate">onPageConverted</code> callback to <code class="notranslate">PDFDocumentColorConverter.convertColor()</code> context</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Thread per-page progress from <code class="notranslate">AssetPagePreConverter</code> → generator → UI</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Full <code class="notranslate">await</code> chain ensures <code class="notranslate">requestAnimationFrame</code> yields propagate to browser</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Remove hardcoded pako path from baseline classes <code class="notranslate">DONE</code>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Resolve pako via <code class="notranslate">import.meta.resolve()</code> in <code class="notranslate">CompositeColorConverter</code></li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Pass resolved entrypoint through <code class="notranslate">WorkerPool</code> → <code class="notranslate">worker-pool-entrypoint.js</code> → <code class="notranslate">PDFImageColorConverter</code></li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Remove hardcoded <code class="notranslate">../../packages/pako/dist/pako.mjs</code> fallback from all baseline files</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Create staging sync and dependency tracing tools <code class="notranslate">DONE</code>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> <code class="notranslate">sync-generator-to-staging.mjs</code> — safe file sync with parent-commit protection</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> <code class="notranslate">trace-dependencies.mjs</code> — runtime dependency graph tracing via tsc</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> <code class="notranslate">--runtime-only</code> flag to exclude JSDoc type-only imports</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> <code class="notranslate">--workspaceRoot</code> flag for cross-repo comparison</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Sync development changes to staging <code class="notranslate">DONE</code>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Traced runtime dependency graph (36 project files)</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Identified safe sync groups: generator (5), assets (9), classes (7)</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Confirmed packages and services already present in staging</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Synced 20 files (1 symlink skipped — already correct in staging)</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Create <code class="notranslate">STAGING.md</code> deployment sync documentation <code class="notranslate">DONE</code></li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Incomplete task"> Browser testing and verification <code class="notranslate">IN-PROGRESS</code></li>
+<li class="task-list-item"><input type="checkbox" id="" disabled="" class="task-list-item-checkbox" aria-label="Completed task" checked=""> Fix <code class="notranslate">bytesAsString</code> content stream encoding regression <code class="notranslate">DONE</code></li>
+</ul>
+<hr>
+<h2 id="current-status">Current Status</h2>
+<p><strong>Phase:</strong> Fixed <code class="notranslate">bytesAsString</code> regression (TextDecoder Windows-1252 corruption), browser verification continuing<br>
+<strong>Last Updated:</strong> 2026-02-16 (session 10)</p>
+<hr>
+<h2 id="activity-log">Activity Log</h2>
+<h3 id="2026-02-14">2026-02-14</h3>
+<ul>
+<li>Created PROGRESS.md with roadmap</li>
+<li>Analyzed existing <code class="notranslate">generator.js</code> (old multi-stage <code class="notranslate">TestFormGenerator</code>)</li>
+<li>Analyzed new <code class="notranslate">index.html</code> UI structure</li>
+<li>Analyzed <code class="notranslate">manifest.json</code> asset/layout/page descriptors</li>
+<li>Analyzed <code class="notranslate">slugs.ps</code> PostScript template</li>
+<li>Analyzed baseline <code class="notranslate">PDFDocumentColorConverter</code> API and usage pattern</li>
+<li>Analyzed service APIs: <code class="notranslate">PDFService</code>, <code class="notranslate">GhostscriptService</code>, <code class="notranslate">ICCService</code>, <code class="notranslate">ColorEngineService</code></li>
+<li>Fixed importmap paths in <code class="notranslate">index.html</code> (<code class="notranslate">./packages/</code> to <code class="notranslate">../packages/</code>)</li>
+<li>Rewrote <code class="notranslate">generator.js</code> with two new classes:
+<ul>
+<li><code class="notranslate">TestFormPDFDocumentGenerator</code> — Generation logic (asset loading, page assembly, color conversion, slug generation, post-processing)</li>
+<li><code class="notranslate">TestFormGeneratorAppElement</code> — Custom element (<code class="notranslate">&lt;test-form-generator-app&gt;</code>) with form validation, progress reporting, file downloads</li>
+</ul>
+</li>
+<li>Fixed diagnostics: removed invalid <code class="notranslate">blackpointCompensationClamping</code> property from converter configuration</li>
+<li>Fixed diagnostics: suppressed unused <code class="notranslate">stage</code> parameter warning in progress callback</li>
+<li>Split <code class="notranslate">generator.js</code> into separate files: <code class="notranslate">classes/test-form-pdf-document-generator.js</code>, <code class="notranslate">elements/test-form-generator-app-element.js</code>, thin entry point</li>
+<li>Removed eager try/catch wrappers (raw error propagation for prototyping)</li>
+<li>Fixed naming: no underscore prefixes, no single-letter variables, no abbreviations</li>
+<li>Fixed <code class="notranslate">embedPDF</code> → <code class="notranslate">embedPdf</code> (pdf-lib uses camelCase)</li>
+<li>Fixed case-insensitive colorSpace matching in layout lookup (manifest has <code class="notranslate">"LAB"</code> vs <code class="notranslate">"Lab"</code>)</li>
+<li>Fixed debugging defaults to match <code class="notranslate">generate.js</code> (<code class="notranslate">'a device'</code>, <code class="notranslate">'some colorants'</code>, etc.)</li>
+<li>Implemented HEAD-based cache freshness checking (matching <code class="notranslate">generate.js</code> pattern)</li>
+<li>Implemented Clear Cache button (<code class="notranslate">caches.delete('conres-testforms')</code>)</li>
+<li>Wired up bit depth radio buttons (<code class="notranslate">outputBitsPerComponent: 8 | 16 | undefined</code>)</li>
+</ul>
+<h3 id="2026-02-14-session-2">2026-02-14 (session 2)</h3>
+<h4 id="investigation-multiprofile-transforms-in-baseline-classes">Investigation: Multiprofile Transforms in Baseline Classes</h4>
+<p><strong>How multiprofile transforms work:</strong></p>
+<ol>
+<li><code class="notranslate">ColorConversionPolicy</code> evaluates conversion descriptors against rules in <code class="notranslate">color-conversion-rules.json</code></li>
+<li>Rules can set <code class="notranslate">requiresMultiprofileTransform: true</code> with optional <code class="notranslate">intermediateProfiles</code></li>
+<li><code class="notranslate">ColorConverter.convertColorsBuffer()</code> builds profile chain: <code class="notranslate">[sourceProfile, ...intermediateProfiles, destinationProfile]</code></li>
+<li><code class="notranslate">ColorConverter.#getOrCreateMultiprofileTransform()</code> uses <code class="notranslate">ColorEngineProvider.createMultiprofileTransform()</code> (native) or falls back to multi-stage individual transforms</li>
+<li><code class="notranslate">createChildConverter()</code> (<code class="notranslate">color-converter.js:1242</code>) propagates parent config via spread: <code class="notranslate">{ ...this.#configuration, ...configOverrides }</code> — this is how <code class="notranslate">outputBitsPerComponent</code> and other config flows through the hierarchy</li>
+</ol>
+<p><strong>Profile chain for existing policy rules:</strong></p>
+<ul>
+<li>K-Only GCR with Gray/CMYK/Lab input → multiprofile: <code class="notranslate">[source, sRGB intermediate, destination]</code></li>
+<li>RGB to RGB with BPC → multiprofile with <code class="notranslate">cmsFLAGS_MULTIPROFILE_BPC_SCALING</code></li>
+<li>Lab input with K-Only GCR → falls back to Relative Colorimetric (no multiprofile)</li>
+</ul>
+<p><strong>How <code class="notranslate">convert-pdf-color-baseline.js</code> uses it:</strong></p>
+<ul>
+<li>Passes <code class="notranslate">outputBitsPerComponent</code> directly to <code class="notranslate">PDFDocumentColorConverter</code> constructor (line 780)</li>
+<li>Multiprofile behavior is policy-driven — the CLI tool doesn't configure it explicitly</li>
+<li>The policy rules + <code class="notranslate">convertColorsBuffer</code> handle intermediate profiles automatically</li>
+</ul>
+<h4 id="investigation-output-intent-issue">Investigation: Output Intent Issue</h4>
+<p><strong>Finding:</strong> The output intent in the generator may reference a SOURCE ICC profile (sRGB/sGray from asset pages) instead of the user's DESTINATION ICC profile.</p>
+<ul>
+<li><code class="notranslate">extractICCProfilesFromPDFDocument()</code> extracts profiles from PDF color space definitions</li>
+<li>After <code class="notranslate">PDFDocumentColorConverter.convertColor()</code>, the embedded ICC profiles may still be source profiles</li>
+<li>The fallback <code class="notranslate">new Uint8Array(iccProfileBuffer)</code> IS the correct destination profile</li>
+<li>But if <code class="notranslate">iccProfileReference</code> is found (a source profile ref), it takes precedence — WRONG</li>
+</ul>
+<p><strong>Fix:</strong> Always use the user's destination ICC profile bytes for the output intent.</p>
+<h4 id="enhancement-pre-convert-mismatched-asset-pages">Enhancement: Pre-Convert Mismatched Asset Pages</h4>
+<p><strong>Problem:</strong> Currently, the asset PDF contains separate pages for every colorSpace variant (sRGB, sGray, Lab). This is bandwidth-heavy — large images are duplicated in multiple color spaces.</p>
+<p><strong>Solution:</strong> Only download sRGB source pages. Pre-convert to sGray/Lab in-browser before assembly.</p>
+<p><strong>Manifest <code class="notranslate">colorSpaces</code> map:</strong> Provides profile paths for each color space. Profiles resolved via <code class="notranslate">new URL(relativeProfileSpecifier, resolvedManifestURL)</code> for isomorphism.</p>
+<ul>
+<li><code class="notranslate">profile == null</code> (absent): no intermediate conversion needed (e.g., SepK)</li>
+<li><code class="notranslate">profile === "Lab"</code>: built-in Lab profile string (passed directly to color engine)</li>
+<li><code class="notranslate">profile === "../../profiles/..."</code>: relative path to ICC profile (load via fetch/cache)</li>
+</ul>
+<p><strong>Key constraint:</strong> "Only ever convert an asset to the same different colorSpace once and use it many" — cache converted results keyed by <code class="notranslate">(assetIndex, targetColorSpace)</code>.</p>
+<p><strong>All conversions must use <code class="notranslate">createMultiprofileTransform</code></strong> regardless of whether intermediate profiles are needed.</p>
+<h3 id="2026-02-14-session-3">2026-02-14 (session 3)</h3>
+<h4 id="output-intent-fix">Output Intent Fix</h4>
+<ul>
+<li>Removed <code class="notranslate">extractICCProfilesFromPDFDocument</code> lookup from post-processing</li>
+<li>Output intent now always uses <code class="notranslate">new Uint8Array(iccProfileBuffer)</code> (the user's destination profile)</li>
+<li>Previously, extracted source ICC profiles (sRGB/sGray) could override the destination profile</li>
+</ul>
+<h4 id="baseline-colorconverterconfiguration-amendment">Baseline <code class="notranslate">ColorConverterConfiguration</code> Amendment</h4>
+<ul>
+<li>Added <code class="notranslate">intermediateProfiles?: ProfileType[]</code> to <code class="notranslate">ColorConverterConfiguration</code> typedef (<code class="notranslate">color-converter.js:112</code>)</li>
+<li>Amended <code class="notranslate">convertColorsBuffer</code> to check for config intermediates before policy evaluation</li>
+<li>Config intermediates take precedence over policy-driven intermediates</li>
+<li>When no <code class="notranslate">intermediateProfiles</code> in config, existing policy-driven behavior is unchanged (same code path)</li>
+<li>Propagation through <code class="notranslate">createChildConverter</code> spread is automatic (<code class="notranslate">{ ...this.#configuration, ...configOverrides }</code>)</li>
+</ul>
+<h4 id="new-classes-created">New Classes Created</h4>
+<p><strong><code class="notranslate">ManifestColorSpaceResolver</code></strong> (<code class="notranslate">generator/classes/manifest-color-space-resolver.js</code>)</p>
+<ul>
+<li>Resolves ICC profiles from manifest <code class="notranslate">colorSpaces</code> map entries</li>
+<li>Uses <code class="notranslate">new URL(profilePath, manifestURL)</code> for relative path resolution (isomorphic)</li>
+<li>Caches resolved profiles (avoids redundant fetches)</li>
+<li>Profile types: <code class="notranslate">ArrayBuffer</code> (ICC files), <code class="notranslate">'Lab'</code> (built-in), <code class="notranslate">null</code> (SepK/DeviceN)</li>
+</ul>
+<p><strong><code class="notranslate">AssetPagePreConverter</code></strong> (<code class="notranslate">generator/classes/asset-page-pre-converter.js</code>)</p>
+<ul>
+<li>Orchestrates per-asset page color conversion before PDF assembly</li>
+<li>Matching colorSpaces: source → output (no intermediates)</li>
+<li>Non-matching colorSpaces: source → layout → output (intermediateProfiles = [layoutProfile])</li>
+<li>SepK: passthrough (no conversion, no profile)</li>
+<li>Caches converted PDFDocuments by <code class="notranslate">"assetIndex|layoutColorSpace"</code></li>
+<li>Lazy-loads <code class="notranslate">PDFDocumentColorConverter</code> class</li>
+</ul>
+<h4 id="generator-refactoring">Generator Refactoring</h4>
+<ul>
+<li>Removed post-assembly <code class="notranslate">PDFDocumentColorConverter</code> call (the old single-pass conversion)</li>
+<li>Added <code class="notranslate">ManifestColorSpaceResolver</code> and <code class="notranslate">AssetPagePreConverter</code> imports</li>
+<li>Added <code class="notranslate">colorSpaces</code> to <code class="notranslate">TestFormManifest</code> typedef</li>
+<li>Updated workflow: resolve profiles → create pre-converter → assemble (with pre-conversion) → slugs → post-process</li>
+<li><code class="notranslate">#assemblePages</code> now accepts <code class="notranslate">preConverter</code> parameter</li>
+<li>Embed-once pattern: each unique <code class="notranslate">(assetIndex, layoutColorSpace)</code> is converted once, embedded once via <code class="notranslate">embedPdf</code>, and reused via <code class="notranslate">drawPage</code> across all occurrences</li>
+</ul>
+<h3 id="2026-02-14-session-4">2026-02-14 (session 4)</h3>
+<h4 id="batch-pre-conversion-with-page-selective-converter">Batch Pre-Conversion with Page-Selective Converter</h4>
+<p>Replaced the single-page-extraction approach with a batch, in-place conversion architecture. All asset pages live in ONE <code class="notranslate">PDFDocument</code> — no more extracting individual pages into separate documents.</p>
+<h4 id="pdfdocumentcolorconverter-page-selective-conversion"><code class="notranslate">PDFDocumentColorConverter</code> — Page-Selective Conversion</h4>
+<ul>
+<li>Added <code class="notranslate">pages?: number[]</code> to <code class="notranslate">PDFDocumentColorConverterConfiguration</code> typedef</li>
+<li><code class="notranslate">convertColor()</code> filters the page loop using a <code class="notranslate">Set</code> for O(1) lookup</li>
+<li>Pages not in the set are skipped entirely (no conversion, no diagnostics)</li>
+<li>Diagnostics <code class="notranslate">pageCount</code> reflects the filtered count, not total document pages</li>
+</ul>
+<h4 id="assetpagepreconverter-complete-rewrite"><code class="notranslate">AssetPagePreConverter</code> — Complete Rewrite</h4>
+<ul>
+<li><strong>Old approach</strong>: Extract each asset page into a separate single-page <code class="notranslate">PDFDocument</code>, convert individually, cache by <code class="notranslate">(assetIndex, layoutColorSpace)</code></li>
+<li><strong>New approach</strong>: Copy all needed asset pages into the target document, group by conversion chain, run one <code class="notranslate">PDFDocumentColorConverter</code> per chain</li>
+<li>New <code class="notranslate">convertAll(assetDocument, manifest, targetDocument, onProgress)</code> method replaces <code class="notranslate">convertAssetPage()</code></li>
+<li>Returns <code class="notranslate">Map&lt;string, number&gt;</code> mapping <code class="notranslate">"assetIndex|layoutColorSpace"</code> to page index in target document</li>
+</ul>
+<p><strong>Conversion chain grouping:</strong></p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Chain Key</th>
+<th>Description</th>
+<th><code class="notranslate">intermediateProfiles</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">direct</code></td>
+<td>Asset colorSpace matches layout colorSpace</td>
+<td><code class="notranslate">[]</code> (empty)</td>
+</tr>
+<tr>
+<td><code class="notranslate">intermediate:sGray</code></td>
+<td>Asset needs sGray intermediate</td>
+<td><code class="notranslate">[sGrayProfile]</code></td>
+</tr>
+<tr>
+<td><code class="notranslate">intermediate:Lab</code></td>
+<td>Asset needs Lab intermediate</td>
+<td><code class="notranslate">['Lab']</code></td>
+</tr>
+<tr>
+<td>passthrough</td>
+<td>SepK/DeviceN assets</td>
+<td>N/A (no conversion)</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p><strong>Processing order:</strong> Passthrough pages first (no conversion needed), then chain groups sequentially. Each converter uses <code class="notranslate">useWorkers: true</code> for parallel pixel processing within its chain.</p>
+<h4 id="testformpdfdocumentgenerator-assembly-rewrite"><code class="notranslate">TestFormPDFDocumentGenerator</code> — Assembly Rewrite</h4>
+<ul>
+<li><code class="notranslate">#assemblePages</code> now works in three phases:
+<ol>
+<li><strong>Copy + Convert</strong>: <code class="notranslate">preConverter.convertAll()</code> copies asset pages into assembled document and converts in-place</li>
+<li><strong>Assemble</strong>: <code class="notranslate">embedPage</code> from same document creates Form XObjects, <code class="notranslate">drawPage</code> places them on output pages</li>
+<li><strong>Cleanup</strong>: <code class="notranslate">removePage</code> in descending index order removes asset pages (Form XObjects survive because they retain references to content streams and resources independently of the page tree)</li>
+</ol>
+</li>
+<li>Embedded page cache keyed by target page index (convert once, embed once, draw many)</li>
+<li>Progress reporting: 0–60% conversion, 60–95% assembly, 95–100% cleanup</li>
+</ul>
+<h3 id="2026-02-14-session-5">2026-02-14 (session 5)</h3>
+<h4 id="shared-pdfrawstream-fix-in-assetpagepreconverter">Shared PDFRawStream Fix in <code class="notranslate">AssetPagePreConverter</code></h4>
+<p><strong>Root cause:</strong> A single <code class="notranslate">copyPages</code> call with duplicate source page indices causes pdf-lib's internal <code class="notranslate">ObjectCopier</code> to cache and reuse target objects. When the same source page appears in multiple conversion chains (e.g., asset 3 for both <code class="notranslate">3|sRGB</code> and <code class="notranslate">3|sGray</code>), the copies share the SAME <code class="notranslate">PDFRawStream</code> objects. When one chain converts a stream in-place (<code class="notranslate">stream.contents = result.streamData</code> in <code class="notranslate">PDFPageColorConverter.#applyImageResult</code>), the other chain sees already-converted data instead of the original.</p>
+<p><strong>Fix:</strong> Split the single <code class="notranslate">copyPages</code> call into per-chain-group calls via a <code class="notranslate">copyBatch</code> helper function. Each chain group gets a separate <code class="notranslate">copyPages</code> invocation, producing truly independent object graphs:</p>
+<ul>
+<li>Passthrough pages (SepK) copied first in one batch</li>
+<li>Each conversion chain group copied separately</li>
+<li>Each batch calls <code class="notranslate">targetDocument.copyPages(assetDocument, indices)</code> independently</li>
+<li>Fixed <code class="notranslate">allTuples.length</code> → <code class="notranslate">allTupleCount</code> (computed from groups + passthrough)</li>
+</ul>
+<h4 id="memory-optimization-shared-profile-broadcasting">Memory Optimization: Shared Profile Broadcasting</h4>
+<p>Addressed 30+ GB memory spikes caused by structured cloning of large ICC profile <code class="notranslate">ArrayBuffer</code>s (1–5 MB each) for every worker task.</p>
+<p><strong>Three-component solution:</strong></p>
+<ol>
+<li>
+<p><strong><code class="notranslate">WorkerPool.broadcastSharedProfiles()</code></strong> (<code class="notranslate">worker-pool.js</code>): Sends shared config (destination profile, intermediate profiles, rendering intent, BPC flags) to all workers once via <code class="notranslate">postMessage</code>. New <code class="notranslate">hasSharedProfiles</code> getter tracks broadcast state.</p>
+</li>
+<li>
+<p><strong><code class="notranslate">PDFDocumentColorConverter.#initialize()</code></strong> (<code class="notranslate">pdf-document-color-converter.js</code>): Calls <code class="notranslate">workerPool.broadcastSharedProfiles()</code> after pool setup, sending profiles before any task dispatch.</p>
+</li>
+<li>
+<p><strong><code class="notranslate">PDFPageColorConverter.#convertImages()</code></strong> (<code class="notranslate">pdf-page-color-converter.js</code>): Strips <code class="notranslate">destinationProfile</code> and <code class="notranslate">intermediateProfiles</code> from per-task messages when <code class="notranslate">workerPool.hasSharedProfiles</code> is true. Workers fall back to broadcasted values.</p>
+</li>
+<li>
+<p><strong><code class="notranslate">worker-pool-entrypoint.js</code></strong>: Module-level <code class="notranslate">sharedConfig</code> variable caches broadcasted profiles. Both <code class="notranslate">processImage()</code> and <code class="notranslate">processContentStream()</code> use <code class="notranslate">task.field ?? sharedConfig?.field</code> fallback pattern for profile fields.</p>
+</li>
+</ol>
+<h4 id="prior-session-fixes-confirmed-working">Prior Session Fixes Confirmed Working</h4>
+<p>The following fixes from the prior compacted session were confirmed working independently via the verification matrix (<code class="notranslate">generate-verification-matrix-baseline.mjs</code> with <code class="notranslate">2026-02-12-REFACTOR-FIXTURES-EXTENDED-8-BIT.json</code>):</p>
+<ul>
+<li><strong>Intents array → single integer</strong> (<code class="notranslate">color-converter.js</code>): <code class="notranslate">createMultiprofileTransform</code> receives <code class="notranslate">intent</code> directly instead of <code class="notranslate">new Array(n).fill(intent)</code> which WASM coerced to NaN → 0 (Perceptual)</li>
+<li><strong>Indexed image multiprofile bypass</strong> (<code class="notranslate">pdf-image-color-converter.js</code>): <code class="notranslate">#convertIndexedImage()</code> now uses <code class="notranslate">this.convertColorsBuffer()</code> (respects <code class="notranslate">intermediateProfiles</code> + policy) instead of legacy <code class="notranslate">colorEngineService.convertColors()</code></li>
+<li><strong>Config propagation in derive methods</strong> (<code class="notranslate">pdf-page-color-converter.js</code>, <code class="notranslate">pdf-document-color-converter.js</code>): <code class="notranslate">intermediateProfiles</code>, <code class="notranslate">outputBitsPerComponent</code>, <code class="notranslate">outputEndianness</code> explicitly listed in <code class="notranslate">derivePageConfiguration()</code>, <code class="notranslate">deriveImageConfiguration()</code>, and <code class="notranslate">deriveContentStreamConfiguration()</code></li>
+<li><strong>Progress UI</strong> (<code class="notranslate">test-form-generator-app-element.js</code>): Stage-based progress with overall percentage, elapsed time, and sub-stage details</li>
+</ul>
+<h3 id="2026-02-15-session-6">2026-02-15 (session 6)</h3>
+<h4 id="hardcoded-pako-path-removal-baseline-classes">Hardcoded Pako Path Removal (Baseline Classes)</h4>
+<p>Removed hardcoded <code class="notranslate">../../packages/pako/dist/pako.mjs</code> fallback from baseline classes. Pako is now resolved via <code class="notranslate">import.meta.resolve()</code> in the main thread (<code class="notranslate">CompositeColorConverter</code>) and passed as a resolved URL through the configuration chain:</p>
+<ul>
+<li><code class="notranslate">CompositeColorConverter</code> → resolves <code class="notranslate">pakoPackageEntrypoint</code> via <code class="notranslate">import.meta.resolve()</code></li>
+<li><code class="notranslate">WorkerPool</code> → accepts and stores <code class="notranslate">pakoPackageEntrypoint</code>, passes to <code class="notranslate">workerData</code></li>
+<li><code class="notranslate">worker-pool-entrypoint.js</code> → uses <code class="notranslate">workerConfig?.pakoPackageEntrypoint ?? 'pako'</code></li>
+<li><code class="notranslate">PDFImageColorConverter</code> → uses <code class="notranslate">configuration.pakoPackageEntrypoint</code></li>
+<li><code class="notranslate">PDFDocumentColorConverter</code> / <code class="notranslate">PDFPageColorConverter</code> → propagate through <code class="notranslate">derivePageConfiguration()</code> / <code class="notranslate">deriveImageConfiguration()</code></li>
+</ul>
+<p>No try/catch — if resolution or import fails, the error propagates so the cause is visible.</p>
+<h4 id="staging-sync-tools">Staging Sync Tools</h4>
+<p>Created two tools for safe deployment to <code class="notranslate">conres.io-staging</code>:</p>
+<ol>
+<li>
+<p><strong><code class="notranslate">sync-generator-to-staging.mjs</code></strong> — Copies files with parent-commit protection (PROTECTED files are never auto-synced). Classifies operations as NEW, CHANGED, UNCHANGED, PROTECTED, or EXTRA.</p>
+</li>
+<li>
+<p><strong><code class="notranslate">trace-dependencies.mjs</code></strong> — Traces runtime dependency graph via <code class="notranslate">tsc --explainFiles</code>. Key features:</p>
+<ul>
+<li><code class="notranslate">--runtime-only</code> — Strips comments from source files and removes edges where the import specifier only appears in JSDoc comments (type-only imports)</li>
+<li><code class="notranslate">--workspaceRoot=PATH</code> — Compare dependency graphs between repos</li>
+<li><code class="notranslate">--tree</code> — Top-down hierarchy from entry points with cycle detection</li>
+</ul>
+</li>
+</ol>
+<h4 id="dependency-analysis-results">Dependency Analysis Results</h4>
+<p>Runtime dependency trace from <code class="notranslate">generator/generator.js</code> (with <code class="notranslate">--runtime-only</code>): 36 project files.</p>
+<p>Key findings:</p>
+<ul>
+<li><code class="notranslate">services/ColorEngineService.js</code> references from baseline classes are <strong>type-only</strong> (9 JSDoc <code class="notranslate">@type</code>/<code class="notranslate">@param</code> annotations across 6 files) — zero runtime effect</li>
+<li>The generator's only <code class="notranslate">services/</code> dependencies are <code class="notranslate">PDFService</code>, <code class="notranslate">ICCService</code>, <code class="notranslate">GhostscriptService</code> — all PROTECTED (already in staging)</li>
+<li>The <code class="notranslate">packages/</code> group contains 518 files across all versioned color-engine directories — none referenced by the generator (it uses the <code class="notranslate">color-engine</code> symlink)</li>
+</ul>
+<h4 id="staging-sync-execution">Staging Sync Execution</h4>
+<p>Cross-referenced dependency trace with sync dry-run. Synced 20 files across 3 groups:</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Group</th>
+<th>Files Synced</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code class="notranslate">generator</code></td>
+<td>5</td>
+<td>1 NEW (<code class="notranslate">assets.json</code>), 4 CHANGED</td>
+</tr>
+<tr>
+<td><code class="notranslate">assets</code></td>
+<td>8</td>
+<td>All NEW (F9e asset PDFs, manifests). Symlink skipped (real folder already in staging)</td>
+</tr>
+<tr>
+<td><code class="notranslate">classes</code></td>
+<td>7</td>
+<td>All CHANGED (6 baseline + 1 non-baseline <code class="notranslate">color-conversion-policy.js</code>)</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p>Groups deliberately skipped:</p>
+<ul>
+<li><code class="notranslate">packages</code> — All 3 runtime dependencies (<code class="notranslate">color-engine</code>, <code class="notranslate">pako</code>, <code class="notranslate">ghostscript-wasm</code>) already present in staging with identical content</li>
+<li><code class="notranslate">services</code> — All 3 imported services are PROTECTED (in parent commit)</li>
+</ul>
+<h4 id="documentation">Documentation</h4>
+<p>Created <code class="notranslate">STAGING.md</code> at workspace root with complete instructions for the staging sync workflow, including tool usage, standard procedure, and which groups to sync.</p>
+<h3 id="2026-02-16-session-10">2026-02-16 (session 10)</h3>
+<h4 id="fixed-bytesasstring-content-stream-encoding-regression">Fixed <code class="notranslate">bytesAsString</code> Content Stream Encoding Regression</h4>
+<p><strong>Root cause:</strong> <code class="notranslate">TextDecoder('latin1')</code> uses Windows-1252 per the WHATWG Encoding Standard, NOT ISO 8859-1. The label <code class="notranslate">"latin1"</code> (along with <code class="notranslate">"iso-8859-1"</code>, <code class="notranslate">"ascii"</code>, and all related aliases) maps to the Windows-1252 codec in every browser and Node.js. There is no <code class="notranslate">TextDecoder</code> label that provides true ISO 8859-1.</p>
+<p><strong>Impact:</strong> Windows-1252 remaps 27 of 32 bytes in 0x80–0x9F to Unicode codepoints above U+00FF. The <code class="notranslate">charCodeAt()</code> round-trip then truncates them when stored in a <code class="notranslate">Uint8Array</code> (only the lowest 8 bits are kept). Affected characters include curly quotes (0x91–0x94), em/en dashes (0x96–0x97), bullet (0x95), euro sign (0x80), and trademark (0x99).</p>
+<p><strong>Symptom:</strong> "St. Paul's Cathedral" → "St. Paul s Cathedral" — byte 0x92 (right single quotation mark in WinAnsiEncoding) was decoded as U+2019, then re-encoded as 0x19 (truncation of 8217 &amp; 0xFF). Acrobat reports missing glyphs for the corrupted byte.</p>
+<p><strong>Introduced in:</strong> Session 4 (2026-02-15), when pdf-lib's O(n^2) <code class="notranslate">arrayAsString</code> was replaced with <code class="notranslate">TextDecoder('latin1').decode(bytes)</code> for memory optimization.</p>
+<p><strong>Fix:</strong> Replaced <code class="notranslate">TextDecoder('latin1').decode(bytes)</code> with chunked <code class="notranslate">String.fromCharCode.apply(null, bytes.subarray(...))</code> in <code class="notranslate">services/helpers/pdf-lib.js</code>. <code class="notranslate">String.fromCharCode(byte)</code> performs the true ISO 8859-1 identity mapping (byte N → U+00NN). Chunked in 8192-byte batches to stay within engine argument-count limits. Still O(n), zero intermediate string allocations per chunk. Old code commented out with full explanation.</p>
+<p><strong>Files changed:</strong> <code class="notranslate">services/helpers/pdf-lib.js</code> — <code class="notranslate">bytesAsString()</code> function.</p>
+</article>
+
+
+<script type="module">
+function t(t){if("clipboard"in navigator)return navigator.clipboard.writeText(t.textContent||"");const e=getSelection();if(null==e)return Promise.reject(new Error);e.removeAllRanges();const i=document.createRange();return i.selectNodeContents(t),e.addRange(i),document.execCommand("copy"),e.removeAllRanges(),Promise.resolve()}function e(e){if("clipboard"in navigator)return navigator.clipboard.writeText(e);const i=document.body;if(!i)return Promise.reject(new Error);const s=function(t){const e=document.createElement("pre");return e.style.width="1px",e.style.height="1px",e.style.position="fixed",e.style.top="5px",e.textContent=t,e}(e);return i.appendChild(s),t(s),i.removeChild(s),Promise.resolve()}async function i(i){const s=i.getAttribute("for"),n=i.getAttribute("value");function r(){i.dispatchEvent(new CustomEvent("clipboard-copy",{bubbles:!0}))}var o;if("true"!==i.getAttribute("aria-disabled"))if(n)await e(n),r();else if(s){const n="getRootNode"in Element.prototype?i.getRootNode():i.ownerDocument;if(!(n instanceof Document||"ShadowRoot"in window&&n instanceof ShadowRoot))return;const a=n.getElementById(s);a&&(await(o=a,o instanceof HTMLInputElement||o instanceof HTMLTextAreaElement?e(o.value):o instanceof HTMLAnchorElement&&o.hasAttribute("href")?e(o.href):t(o)),r())}}function s(t){const e=t.currentTarget;e instanceof HTMLElement&&i(e)}function n(t){if(" "===t.key||"Enter"===t.key){const e=t.currentTarget;e instanceof HTMLElement&&(t.preventDefault(),i(e))}}function r(t){t.currentTarget.addEventListener("keydown",n)}function o(t){t.currentTarget.removeEventListener("keydown",n)}class a extends HTMLElement{static define(t="clipboard-copy",e=customElements){return e.define(t,this),this}constructor(){super(),this.addEventListener("click",s),this.addEventListener("focus",r),this.addEventListener("blur",o)}connectedCallback(){this.hasAttribute("tabindex")||this.setAttribute("tabindex","0"),this.hasAttribute("role")||this.setAttribute("role","button")}get value(){return this.getAttribute("value")||""}set value(t){this.setAttribute("value",t)}}const h="undefined"!=typeof globalThis?globalThis:window;try{h.ClipboardCopyElement=a.define()}catch(t){if(!(h.DOMException&&t instanceof DOMException&&"NotSupportedError"===t.name||t instanceof ReferenceError))throw t}var u,l=function(t,e,i,s){if("a"===i&&!s)throw new TypeError("Private accessor was defined without a getter");if("function"==typeof e?t!==e||!s:!e.has(t))throw new TypeError("Cannot read private member from an object whose class did not declare it");return"m"===i?s:"a"===i?s.call(t):s?s.value:e.get(t)};const c="undefined"!=typeof Intl&&Intl.ListFormat||class{formatToParts(t){const e=[];for(const i of t)e.push({type:"element",value:i}),e.push({type:"literal",value:", "});return e.slice(0,-1)}},m=[["years","year"],["months","month"],["weeks","week"],["days","day"],["hours","hour"],["minutes","minute"],["seconds","second"],["milliseconds","millisecond"]],d={minimumIntegerDigits:2};class f{constructor(t,e={}){u.set(this,void 0);let i=String(e.style||"short");"long"!==i&&"short"!==i&&"narrow"!==i&&"digital"!==i&&(i="short");let s="digital"===i?"numeric":i;const n=e.hours||s;s="2-digit"===n?"numeric":n;const r=e.minutes||s;s="2-digit"===r?"numeric":r;const o=e.seconds||s;s="2-digit"===o?"numeric":o;const a=e.milliseconds||s;!function(t,e,i,s,n){if("m"===s)throw new TypeError("Private method is not writable");if("a"===s&&!n)throw new TypeError("Private accessor was defined without a setter");if("function"==typeof e?t!==e||!n:!e.has(t))throw new TypeError("Cannot write private member to an object whose class did not declare it");"a"===s?n.call(t,i):n?n.value=i:e.set(t,i)}(this,u,{locale:t,style:i,years:e.years||"digital"===i?"short":i,yearsDisplay:"always"===e.yearsDisplay?"always":"auto",months:e.months||"digital"===i?"short":i,monthsDisplay:"always"===e.monthsDisplay?"always":"auto",weeks:e.weeks||"digital"===i?"short":i,weeksDisplay:"always"===e.weeksDisplay?"always":"auto",days:e.days||"digital"===i?"short":i,daysDisplay:"always"===e.daysDisplay?"always":"auto",hours:n,hoursDisplay:"always"===e.hoursDisplay||"digital"===i?"always":"auto",minutes:r,minutesDisplay:"always"===e.minutesDisplay||"digital"===i?"always":"auto",seconds:o,secondsDisplay:"always"===e.secondsDisplay||"digital"===i?"always":"auto",milliseconds:a,millisecondsDisplay:"always"===e.millisecondsDisplay?"always":"auto"},"f")}resolvedOptions(){return l(this,u,"f")}formatToParts(t){const e=[],i=l(this,u,"f"),s=i.style,n=i.locale;for(const[r,o]of m){const a=t[r];if("auto"===i[`${r}Display`]&&!a)continue;const h=i[r],u="2-digit"===h?d:"numeric"===h?{}:{style:"unit",unit:o,unitDisplay:h};let l=new Intl.NumberFormat(n,u).format(a);"months"===r&&("narrow"===h||"narrow"===s&&l.endsWith("m"))&&(l=l.replace(/(\d+)m$/,"$1mo")),e.push(l)}return new c(n,{type:"unit",style:"digital"===s?"short":s}).formatToParts(e)}format(t){return this.formatToParts(t).map(t=>t.value).join("")}}u=new WeakMap;const g=/^[-+]?P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/,w=["year","month","week","day","hour","minute","second","millisecond"];class y{constructor(t=0,e=0,i=0,s=0,n=0,r=0,o=0,a=0){this.years=t,this.months=e,this.weeks=i,this.days=s,this.hours=n,this.minutes=r,this.seconds=o,this.milliseconds=a,this.years||(this.years=0),this.sign||(this.sign=Math.sign(this.years)),this.months||(this.months=0),this.sign||(this.sign=Math.sign(this.months)),this.weeks||(this.weeks=0),this.sign||(this.sign=Math.sign(this.weeks)),this.days||(this.days=0),this.sign||(this.sign=Math.sign(this.days)),this.hours||(this.hours=0),this.sign||(this.sign=Math.sign(this.hours)),this.minutes||(this.minutes=0),this.sign||(this.sign=Math.sign(this.minutes)),this.seconds||(this.seconds=0),this.sign||(this.sign=Math.sign(this.seconds)),this.milliseconds||(this.milliseconds=0),this.sign||(this.sign=Math.sign(this.milliseconds)),this.blank=0===this.sign}abs(){return new y(Math.abs(this.years),Math.abs(this.months),Math.abs(this.weeks),Math.abs(this.days),Math.abs(this.hours),Math.abs(this.minutes),Math.abs(this.seconds),Math.abs(this.milliseconds))}static from(t){var e;if("string"==typeof t){const i=String(t).trim(),s=i.startsWith("-")?-1:1,n=null===(e=i.match(g))||void 0===e?void 0:e.slice(1).map(t=>(Number(t)||0)*s);return n?new y(...n):new y}if("object"==typeof t){const{years:e,months:i,weeks:s,days:n,hours:r,minutes:o,seconds:a,milliseconds:h}=t;return new y(e,i,s,n,r,o,a,h)}throw new RangeError("invalid duration")}static compare(t,e){const i=Date.now(),s=Math.abs(p(i,y.from(t)).getTime()-i),n=Math.abs(p(i,y.from(e)).getTime()-i);return s>n?-1:s<n?1:0}toLocaleString(t,e){return new f(t,e).format(this)}}function p(t,e){const i=new Date(t);return e.sign<0?(i.setUTCSeconds(i.getUTCSeconds()+e.seconds),i.setUTCMinutes(i.getUTCMinutes()+e.minutes),i.setUTCHours(i.getUTCHours()+e.hours),i.setUTCDate(i.getUTCDate()+7*e.weeks+e.days),i.setUTCMonth(i.getUTCMonth()+e.months),i.setUTCFullYear(i.getUTCFullYear()+e.years)):(i.setUTCFullYear(i.getUTCFullYear()+e.years),i.setUTCMonth(i.getUTCMonth()+e.months),i.setUTCDate(i.getUTCDate()+7*e.weeks+e.days),i.setUTCHours(i.getUTCHours()+e.hours),i.setUTCMinutes(i.getUTCMinutes()+e.minutes),i.setUTCSeconds(i.getUTCSeconds()+e.seconds)),i}function b(t,{relativeTo:e=Date.now()}={}){if(e=new Date(e),t.blank)return t;const i=t.sign;let s=Math.abs(t.years),n=Math.abs(t.months),r=Math.abs(t.weeks),o=Math.abs(t.days),a=Math.abs(t.hours),h=Math.abs(t.minutes),u=Math.abs(t.seconds),l=Math.abs(t.milliseconds);l>=900&&(u+=Math.round(l/1e3)),(u||h||a||o||r||n||s)&&(l=0),u>=55&&(h+=Math.round(u/60)),(h||a||o||r||n||s)&&(u=0),h>=55&&(a+=Math.round(h/60)),(a||o||r||n||s)&&(h=0),o&&a>=12&&(o+=Math.round(a/24)),!o&&a>=21&&(o+=Math.round(a/24)),(o||r||n||s)&&(a=0);const c=e.getFullYear(),m=e.getMonth(),d=e.getDate();if(o>=27||s+n+o){const t=new Date(e);t.setDate(1),t.setMonth(m+n*i+1),t.setDate(0);const a=Math.max(0,d-t.getDate()),h=new Date(e);h.setFullYear(c+s*i),h.setDate(d-a),h.setMonth(m+n*i),h.setDate(d-a+o*i);const u=h.getFullYear()-e.getFullYear(),l=h.getMonth()-e.getMonth(),f=Math.abs(Math.round((Number(h)-Number(e))/864e5))+a,g=Math.abs(12*u+l);f<27?(o>=6?(r+=Math.round(o/7),o=0):o=f,n=s=0):g<=11?(n=g,s=0):(n=0,s=u*i),(n||s)&&(o=0)}return s&&(n=0),r>=4&&(n+=Math.round(r/4)),(n||s)&&(r=0),o&&r&&!n&&!s&&(r+=Math.round(o/7),o=0),new y(s*i,n*i,r*i,o*i,a*i,h*i,u*i,l*i)}var v,T,M,D,A,C,E,k,x,U,S,F,I,L,R,N,P=function(t,e,i,s){if("a"===i&&!s)throw new TypeError("Private accessor was defined without a getter");if("function"==typeof e?t!==e||!s:!e.has(t))throw new TypeError("Cannot read private member from an object whose class did not declare it");return"m"===i?s:"a"===i?s.call(t):s?s.value:e.get(t)},Z=function(t,e,i,s,n){if("m"===s)throw new TypeError("Private method is not writable");if("a"===s&&!n)throw new TypeError("Private accessor was defined without a setter");if("function"==typeof e?t!==e||!n:!e.has(t))throw new TypeError("Cannot write private member to an object whose class did not declare it");return"a"===s?n.call(t,i):n?n.value=i:e.set(t,i),i};const j=globalThis.HTMLElement||null,O=new y,H=new y(0,0,0,0,0,1);class Y extends Event{constructor(t,e,i,s){super("relative-time-updated",{bubbles:!0,composed:!0}),this.oldText=t,this.newText=e,this.oldTitle=i,this.newTitle=s}}function $(t){if(!t.date)return 1/0;if("duration"===t.format||"elapsed"===t.format){const e=t.precision;if("second"===e)return 1e3;if("minute"===e)return 6e4}const e=Math.abs(Date.now()-t.date.getTime());return e<6e4?1e3:e<36e5?6e4:36e5}const W=new class{constructor(){this.elements=new Set,this.time=1/0,this.timer=-1}observe(t){if(this.elements.has(t))return;this.elements.add(t);const e=t.date;if(e&&e.getTime()){const e=$(t),i=Date.now()+e;i<this.time&&(clearTimeout(this.timer),this.timer=setTimeout(()=>this.update(),e),this.time=i)}}unobserve(t){this.elements.has(t)&&this.elements.delete(t)}update(){if(clearTimeout(this.timer),!this.elements.size)return;let t=1/0;for(const e of this.elements)t=Math.min(t,$(e)),e.update();this.time=Math.min(36e5,t),this.timer=setTimeout(()=>this.update(),this.time),this.time+=Date.now()}};class z extends j{constructor(){super(...arguments),v.add(this),T.set(this,!1),M.set(this,!1),A.set(this,this.shadowRoot?this.shadowRoot:this.attachShadow?this.attachShadow({mode:"open"}):this),N.set(this,null)}static define(t="relative-time",e=customElements){return e.define(t,this),this}get timeZone(){var t;return(null===(t=this.closest("[time-zone]"))||void 0===t?void 0:t.getAttribute("time-zone"))||this.ownerDocument.documentElement.getAttribute("time-zone")||void 0}static get observedAttributes(){return["second","minute","hour","weekday","day","month","year","time-zone-name","prefix","threshold","tense","precision","format","format-style","no-title","datetime","lang","title","aria-hidden","time-zone"]}get onRelativeTimeUpdated(){return P(this,N,"f")}set onRelativeTimeUpdated(t){P(this,N,"f")&&this.removeEventListener("relative-time-updated",P(this,N,"f")),Z(this,N,"object"==typeof t||"function"==typeof t?t:null,"f"),"function"==typeof t&&this.addEventListener("relative-time-updated",t)}get second(){const t=this.getAttribute("second");if("numeric"===t||"2-digit"===t)return t}set second(t){this.setAttribute("second",t||"")}get minute(){const t=this.getAttribute("minute");if("numeric"===t||"2-digit"===t)return t}set minute(t){this.setAttribute("minute",t||"")}get hour(){const t=this.getAttribute("hour");if("numeric"===t||"2-digit"===t)return t}set hour(t){this.setAttribute("hour",t||"")}get weekday(){const t=this.getAttribute("weekday");return"long"===t||"short"===t||"narrow"===t?t:"datetime"===this.format&&""!==t?this.formatStyle:void 0}set weekday(t){this.setAttribute("weekday",t||"")}get day(){var t;const e=null!==(t=this.getAttribute("day"))&&void 0!==t?t:"numeric";if("numeric"===e||"2-digit"===e)return e}set day(t){this.setAttribute("day",t||"")}get month(){const t=this.format;let e=this.getAttribute("month");if(""!==e)return null!=e||(e="datetime"===t?this.formatStyle:"short"),"numeric"===e||"2-digit"===e||"short"===e||"long"===e||"narrow"===e?e:void 0}set month(t){this.setAttribute("month",t||"")}get year(){var t;const e=this.getAttribute("year");return"numeric"===e||"2-digit"===e?e:this.hasAttribute("year")||(new Date).getUTCFullYear()===(null===(t=this.date)||void 0===t?void 0:t.getUTCFullYear())?void 0:"numeric"}set year(t){this.setAttribute("year",t||"")}get timeZoneName(){const t=this.getAttribute("time-zone-name");if("long"===t||"short"===t||"shortOffset"===t||"longOffset"===t||"shortGeneric"===t||"longGeneric"===t)return t}set timeZoneName(t){this.setAttribute("time-zone-name",t||"")}get prefix(){var t;return null!==(t=this.getAttribute("prefix"))&&void 0!==t?t:"datetime"===this.format?"":"on"}set prefix(t){this.setAttribute("prefix",t)}get threshold(){const t=this.getAttribute("threshold");return t&&(e=t,g.test(e))?t:"P30D";var e}set threshold(t){this.setAttribute("threshold",t)}get tense(){const t=this.getAttribute("tense");return"past"===t?"past":"future"===t?"future":"auto"}set tense(t){this.setAttribute("tense",t)}get precision(){const t=this.getAttribute("precision");return w.includes(t)?t:"micro"===this.format?"minute":"second"}set precision(t){this.setAttribute("precision",t)}get format(){const t=this.getAttribute("format");return"datetime"===t?"datetime":"relative"===t?"relative":"duration"===t?"duration":"micro"===t?"micro":"elapsed"===t?"elapsed":"auto"}set format(t){this.setAttribute("format",t)}get formatStyle(){const t=this.getAttribute("format-style");if("long"===t)return"long";if("short"===t)return"short";if("narrow"===t)return"narrow";const e=this.format;return"elapsed"===e||"micro"===e?"narrow":"datetime"===e?"short":"long"}set formatStyle(t){this.setAttribute("format-style",t)}get noTitle(){return this.hasAttribute("no-title")}set noTitle(t){this.toggleAttribute("no-title",t)}get datetime(){return this.getAttribute("datetime")||""}set datetime(t){this.setAttribute("datetime",t)}get date(){const t=Date.parse(this.datetime);return Number.isNaN(t)?null:new Date(t)}set date(t){this.datetime=(null==t?void 0:t.toISOString())||""}connectedCallback(){this.update()}disconnectedCallback(){W.unobserve(this)}attributeChangedCallback(t,e,i){e!==i&&("title"===t&&Z(this,T,null!==i&&(this.date&&P(this,v,"m",C).call(this,this.date))!==i,"f"),P(this,M,"f")||"title"===t&&P(this,T,"f")||Z(this,M,(async()=>{await Promise.resolve(),this.update(),Z(this,M,!1,"f")})(),"f"))}update(){const t=P(this,A,"f").textContent||this.textContent||"",e=this.getAttribute("title")||"";let i=e;const s=this.date;if("undefined"==typeof Intl||!Intl.DateTimeFormat||!s)return void(P(this,A,"f").textContent=t);const n=Date.now();P(this,T,"f")||(i=P(this,v,"m",C).call(this,s)||"",i&&!this.noTitle&&this.setAttribute("title",i));const r=function(t,e="second",i=Date.now()){const s=t.getTime()-i;if(0===s)return new y;const n=Math.sign(s),r=Math.abs(s),o=Math.floor(r/1e3),a=Math.floor(o/60),h=Math.floor(a/60),u=Math.floor(h/24),l=Math.floor(u/30),c=Math.floor(l/12),m=w.indexOf(e)||w.length;return new y(m>=0?c*n:0,m>=1?(l-12*c)*n:0,0,m>=3?(u-30*l)*n:0,m>=4?(h-24*u)*n:0,m>=5?(a-60*h)*n:0,m>=6?(o-60*a)*n:0,m>=7?(r-1e3*o)*n:0)}(s,this.precision,n),o=P(this,v,"m",E).call(this,r);let a=t;const h=P(this,v,"m",R).call(this,o);a=h?P(this,v,"m",I).call(this,s):"duration"===o?P(this,v,"m",k).call(this,r):"relative"===o?P(this,v,"m",x).call(this,r):P(this,v,"m",U).call(this,s),a?P(this,v,"m",L).call(this,a):this.shadowRoot===P(this,A,"f")&&this.textContent&&P(this,v,"m",L).call(this,this.textContent),a===t&&i===e||this.dispatchEvent(new Y(t,a,e,i)),"relative"===o||"duration"===o||h&&(P(this,v,"m",S).call(this,s)||P(this,v,"m",F).call(this,s))?W.observe(this):W.unobserve(this)}}T=new WeakMap,M=new WeakMap,A=new WeakMap,N=new WeakMap,v=new WeakSet,D=function(){var t;const e=(null===(t=this.closest("[lang]"))||void 0===t?void 0:t.getAttribute("lang"))||this.ownerDocument.documentElement.getAttribute("lang");try{return new Intl.Locale(null!=e?e:"").toString()}catch(t){return"default"}},C=function(t){return new Intl.DateTimeFormat(P(this,v,"a",D),{day:"numeric",month:"short",year:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short",timeZone:this.timeZone}).format(t)},E=function(t){const e=this.format;if("datetime"===e)return"datetime";if("duration"===e)return"duration";if("elapsed"===e)return"duration";if("micro"===e)return"duration";if(("auto"===e||"relative"===e)&&"undefined"!=typeof Intl&&Intl.RelativeTimeFormat){const e=this.tense;if("past"===e||"future"===e)return"relative";if(1===y.compare(t,this.threshold))return"relative"}return"datetime"},k=function(t){const e=P(this,v,"a",D),i=this.format,s=this.formatStyle,n=this.tense;let r=O;"micro"===i?(t=b(t),r=H,0===t.months&&("past"===this.tense&&-1!==t.sign||"future"===this.tense&&1!==t.sign)&&(t=H)):("past"===n&&-1!==t.sign||"future"===n&&1!==t.sign)&&(t=r);const o=`${this.precision}sDisplay`;return t.blank?r.toLocaleString(e,{style:s,[o]:"always"}):t.abs().toLocaleString(e,{style:s})},x=function(t){const e=new Intl.RelativeTimeFormat(P(this,v,"a",D),{numeric:"auto",style:this.formatStyle}),i=this.tense;"future"===i&&1!==t.sign&&(t=O),"past"===i&&-1!==t.sign&&(t=O);const[s,n]=function(t){const e=b(t,void 0);if(e.blank)return[0,"second"];for(const t of w){if("millisecond"===t)continue;const i=e[`${t}s`];if(i)return[i,t]}return[0,"second"]}(t);return"second"===n&&s<10?e.format(0,"millisecond"===this.precision?"second":this.precision):e.format(s,n)},U=function(t){const e=new Intl.DateTimeFormat(P(this,v,"a",D),{second:this.second,minute:this.minute,hour:this.hour,weekday:this.weekday,day:this.day,month:this.month,year:this.year,timeZoneName:this.timeZoneName,timeZone:this.timeZone});return`${this.prefix} ${e.format(t)}`.trim()},S=function(t){const e=new Date,i=new Intl.DateTimeFormat(P(this,v,"a",D),{timeZone:this.timeZone,year:"numeric",month:"2-digit",day:"2-digit"});return i.format(e)===i.format(t)},F=function(t){const e=new Date,i=new Intl.DateTimeFormat(P(this,v,"a",D),{timeZone:this.timeZone,year:"numeric"});return i.format(e)===i.format(t)},I=function(t){const e={hour:"numeric",minute:"2-digit",timeZoneName:"short",timeZone:this.timeZone};if(P(this,v,"m",S).call(this,t)){let i=new Intl.RelativeTimeFormat(P(this,v,"a",D),{numeric:"auto"}).format(0,"day");return i=i.charAt(0).toLocaleUpperCase(P(this,v,"a",D))+i.slice(1),`${i} ${new Intl.DateTimeFormat(P(this,v,"a",D),e).format(t)}`}const i=Object.assign(Object.assign({},e),{day:"numeric",month:"short"});return P(this,v,"m",F).call(this,t)?new Intl.DateTimeFormat(P(this,v,"a",D),i).format(t):new Intl.DateTimeFormat(P(this,v,"a",D),Object.assign(Object.assign({},i),{year:"numeric"})).format(t)},L=function(t){if(this.hasAttribute("aria-hidden")&&"true"===this.getAttribute("aria-hidden")){const e=document.createElement("span");e.setAttribute("aria-hidden","true"),e.textContent=t,P(this,A,"f").replaceChildren(e)}else P(this,A,"f").textContent=t},R=function(t){var e;return"duration"!==t&&("true"===this.ownerDocument.documentElement.getAttribute("data-prefers-absolute-time")||"true"===(null===(e=this.ownerDocument.body)||void 0===e?void 0:e.getAttribute("data-prefers-absolute-time")))};const G="undefined"!=typeof globalThis?globalThis:window;try{G.RelativeTimeElement=z.define()}catch(t){if(!(G.DOMException&&t instanceof DOMException&&"NotSupportedError"===t.name||t instanceof ReferenceError))throw t}
+
+</script>
+</body>
+</html>

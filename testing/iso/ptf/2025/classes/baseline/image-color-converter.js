@@ -9,6 +9,7 @@
  */
 
 import { ColorConverter } from './color-converter.js';
+import { CONTEXT_PREFIX } from '../../services/helpers/runtime.js';
 import {
     TYPE_RGB_8,
     TYPE_CMYK_8,
@@ -275,10 +276,10 @@ export class ImageColorConverter extends ColorConverter {
         // Log if verbose
         if (config.verbose) {
             const effectiveInputBits = inputBitsPerComponent ?? bitsPerComponent;
-            console.log(`[ImageColorConverter] Converting ${pixelCount} pixels (${width}×${height})`);
-            console.log(`  Input: ${colorType}, Output: ${config.destinationColorSpace}`);
-            console.log(`  Intent: ${effectiveIntent} (requested: ${config.renderingIntent})`);
-            console.log(`  Input bits: ${effectiveInputBits}, Output bits: ${outputBitsPerComponent ?? bitsPerComponent}`);
+            console.log(`${CONTEXT_PREFIX} [ImageColorConverter] Converting ${pixelCount} pixels (${width}×${height})`);
+            console.log(`${CONTEXT_PREFIX}   Input: ${colorType}, Output: ${config.destinationColorSpace}`);
+            console.log(`${CONTEXT_PREFIX}   Intent: ${effectiveIntent} (requested: ${config.renderingIntent})`);
+            console.log(`${CONTEXT_PREFIX}   Input bits: ${effectiveInputBits}, Output bits: ${outputBitsPerComponent ?? bitsPerComponent}`);
         }
 
         // Use parent's convertColorsBuffer for actual conversion

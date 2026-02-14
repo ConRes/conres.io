@@ -1,5 +1,5 @@
 // @ts-check
-import { parse as parseICCHeaderFromBuffer } from "icc";
+import { parse as parseICCHeaderFromBuffer } from "../packages/icc/index.js";
 import { Buffer } from "../helpers.js";
 
 /**

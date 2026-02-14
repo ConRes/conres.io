@@ -9,7 +9,7 @@ import {
     PDFString,
     PDFPageLeaf,
     decodePDFRawStream,
-} from "pdf-lib";
+} from "../packages/pdf-lib/pdf-lib.esm.js";
 
 import {
     lookupPDFDocumentAttachementByName,
@@ -39,6 +39,114 @@ const _lookupMaybe = (target, key, ...types) => target?.lookupMaybe(key, ...type
  * Service for PDF manipulation operations
  */
 export class PDFService {
+    /**
+     * Removes orphaned objects from a PDF document in-place.
+     * Finds all objects that are not reachable from the document root and removes them.
+     * This is useful after color conversion where old ICC profiles and image streams
+     * may become unreferenced.
+     *
+     * @param {PDFDocument} pdfDocument - The PDF document to clean
+     * @returns {{ removedCount: number, removedRefs: PDFRef[] }} Statistics about removed objects
+     *
+     * @example
+     * await PDFService.convertColorInPDFDocument(pdf, options);
+     * const { removedCount } = PDFService.removeOrphanedObjects(pdf);
+     * console.log(`Removed ${removedCount} orphaned objects`);
+     */
+    static removeOrphanedObjects(pdfDocument) {
+        const context = pdfDocument.context;
+
+        // Collect all referenced objects by traversing from roots
+        /** @type {Set<string>} */
+        const referencedRefs = new Set();
+
+        /**
+         * Recursively collect all referenced PDFRefs
+         * @param {any} obj - PDF object to traverse
+         * @param {Set<string>} visited - Already visited refs (to avoid cycles)
+         */
+        function collectRefs(obj, visited = new Set()) {
+            if (!obj) return;
+
+            // Handle PDFRef
+            if (obj instanceof PDFRef) {
+                const refKey = obj.toString();
+                if (visited.has(refKey)) return;
+                visited.add(refKey);
+                referencedRefs.add(refKey);
+
+                // Lookup and traverse the referenced object
+                // Use indirectObjects directly to avoid type checking issues
+                const resolved = context.indirectObjects.get(obj);
+                if (resolved) {
+                    collectRefs(resolved, visited);
+                }
+                return;
+            }
+
+            // Handle PDFDict
+            if (obj instanceof PDFDict) {
+                const entries = obj.entries();
+                for (const [key, value] of entries) {
+                    collectRefs(value, visited);
+                }
+                return;
+            }
+
+            // Handle PDFArray
+            if (obj instanceof PDFArray) {
+                const size = obj.size();
+                for (let i = 0; i < size; i++) {
+                    collectRefs(obj.get(i), visited);
+                }
+                return;
+            }
+
+            // Handle PDFRawStream (has dict and contents)
+            if (obj instanceof PDFRawStream) {
+                collectRefs(obj.dict, visited);
+                return;
+            }
+        }
+
+        // Start from document root objects
+        const rootObjects = [
+            pdfDocument.catalog,                    // Document catalog
+            context.trailerInfo.Root,               // Root reference
+            context.trailerInfo.Info,               // Document info
+            context.trailerInfo.Encrypt,            // Encryption dict (if any)
+            context.trailerInfo.ID,                 // Document ID
+        ].filter(Boolean);
+
+        for (const root of rootObjects) {
+            collectRefs(root);
+        }
+
+        // Enumerate all objects in the document
+        const allObjects = /** @type {[PDFRef, any][]} */ (context.enumerateIndirectObjects());
+        const allRefs = new Set(allObjects.map(([ref]) => ref.toString()));
+
+        // Find orphaned objects (in document but not referenced)
+        /** @type {PDFRef[]} */
+        const orphanedRefs = [];
+        for (const [ref, obj] of allObjects) {
+            const refKey = ref.toString();
+            if (!referencedRefs.has(refKey)) {
+                orphanedRefs.push(ref);
+            }
+        }
+
+        // Delete orphaned objects
+        for (const ref of orphanedRefs) {
+            context.delete(ref);
+        }
+
+        return {
+            removedCount: orphanedRefs.length,
+            removedRefs: orphanedRefs,
+        };
+    }
+    
     /**
      * Attaches a manifest to a PDF document
      * @param {PDFDocument} pdfDocument

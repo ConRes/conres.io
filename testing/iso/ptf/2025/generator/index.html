@@ -119,12 +119,20 @@
             pointer-events: none;
         }
     </style>
-    <script type="module" src="./generator.js"></script>
+    <script type="module">
+        import { bootstrap } from "./generator.js";
+
+        const assets = await fetch("./assets.json").then((response) => response.json());
+
+        bootstrap({
+            assets,
+        });
+    </script>
 </head>
 
 <body>
     <main>
-        <test-form-generator-app>
+        <test-form-generator-app assets="./assets.json">
             <template shadowrootmode="closed">
                 <form method="dialog">
                     <article>
@@ -197,8 +205,16 @@
                     <h3 id="assets" class="full-row">Assets</h3>
                     <label for="test-form-version-select">Test form:
                         <select id="test-form-version-select" name="test-form-version">
-                            <option value="2026-02-14 - ConRes - ISO PTF - CR1" selected>2026-02-14 - ConRes - ISO PTF -
-                                CR1</option>
+                            <option value="2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets">2026-02-14 -
+                                ConRes - ISO PTF -
+                                CR1 (F9e) Assets</option>
+                            <option value="2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets (8-bit)" selected>2026-02-14
+                                - ConRes
+                                - ISO PTF -
+                                CR1 (F9e) Assets (8-bit)</option>
+                            <option value="2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets - Maps">2026-02-14 - ConRes
+                                - ISO PTF -
+                                CR1 (F9e) Assets - Maps</option>
                         </select>
                     </label>
                     <div class="full-row">
@@ -250,24 +266,60 @@
                         <small class="full-row">
                             <p><b>Note</b>: Logs and generated files will be available in the console.</p>
                         </small>
+                        <small class="full-row">
+                            <label class="full-row" for="debugging-include-output-profile-checkbox"><input
+                                    type="checkbox" id="debugging-include-output-profile-checkbox" />Include Output
+                                Profile</label>
+                        </small>
+                        <small class="full-row">
+                            <label class="full-row" for="bootstrap-worker-checkbox"><input type="checkbox"
+                                    id="bootstrap-worker-checkbox" checked />Bootstrap Worker</label>
+                        </small>
+                        <small class="full-row">
+                            <label class="full-row" for="parallel-workers-checkbox"><input type="checkbox"
+                                    id="parallel-workers-checkbox" checked />Parallel Workers</label>
+                        </small>
+                        <small class="full-row">
+                            <label for="in-place-strategy"><input type="radio" name="processing-strategy"
+                                    id="in-place-strategy" value="in-place" checked />In-Place</label>
+                            <label for="recombined-chains-strategy"><input type="radio" name="processing-strategy"
+                                    id="recombined-chains-strategy" value="recombined-chains" />Recombined
+                                Chains</label>
+                            <label for="separate-chains-strategy"><input type="radio" name="processing-strategy"
+                                    id="separate-chains-strategy" value="separate-chains" />Separate Chains (multiple
+                                PDFs)</label>
+                        </small>
+                        <small class="full-row" hidden>
+                            <label for="page-filter-strategy"><input type="radio" name="conversion-strategy"
+                                    id="page-filter-strategy" value="page-filter" checked />Page Filter</label>
+                            <label for="per-page-configuration-strategy"><input type="radio" name="conversion-strategy"
+                                    id="per-page-configuration-strategy" value="per-page-configuration" />Per-Page
+                                Configuration</label>
+                        </small>
                     </fieldset>
                     <div class="full-row">
                         <button id="test-form-generation-button">Generate</button>
                     </div>
                     <small class="full-row">
-                        <p><b>Note</b>: If you will be submitting those prints, the metadata file must by submitted
+                        <p><b>Note</b>: If you will be submitting those prints, the metadata file must be submitted
                             along with your prints.</p>
                     </small>
                 </fieldset>
-                <fieldset name="download-progress-fieldset" slot="article" style="opacity:0;" class="full-row">
+                <!-- <fieldset name="download-progress-fieldset" slot="article" style="opacity:0;" class="full-row">
                     <progress id="test-form-download-progress" name="test-form-download-progress" value="0"
                         max="100"></progress>
                     <output id="test-form-download-progress-output"></output>
-                </fieldset>
+                </fieldset> -->
                 <fieldset name="generation-progess-fieldset" style="opacity:0;" class="full-row">
-                    <progress id="test-form-generation-progress" name="test-form-generation-progress"
-                        max="100"></progress>
-                    <output id="test-form-generation-progress-output"></output>
+                    <progress id="test-form-generation-overall-progress" name="test-form-generation-overall-progress"
+                        max="100" style="width:20em;"></progress>
+                    <output id="test-form-generation-overall-progress-output"></output>
+                    <progress id="test-form-generation-subtask-progress" name="test-form-generation-progress" max="100"
+                        style="scale:0.75;width:10em;"></progress>
+                    <output class="full-row" id="test-form-generation-subtask-progress-output"
+                        style="scale:0.85;"></output>
+                    <output class="full-row" id="test-form-generation-subtask-results-output"
+                        style="scale:0.65;"></output>
                 </fieldset>
             </section>
         </test-form-generator-app>

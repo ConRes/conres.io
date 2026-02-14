@@ -13,6 +13,7 @@
 
 import { PDFImageColorConverter } from './pdf-image-color-converter.js';
 import { TYPE_Lab_FLT } from './color-conversion-policy.js';
+import { CONTEXT_PREFIX } from '../../services/helpers/runtime.js';
 
 // ============================================================================
 // Type Definitions
@@ -182,9 +183,9 @@ export class PDFImageColorSampler extends PDFImageColorConverter {
      */
     async #loadPako() {
         try {
-            this.#pako = await import('pako');
+            this.#pako = await import(new URL('../../packages/pako/dist/pako.mjs', import.meta.url).href);
         } catch {
-            console.warn('[PDFImageColorSampler] pako not available - compressed images will fail');
+            console.warn(`${CONTEXT_PREFIX} [PDFImageColorSampler] pako not available - compressed images will fail`);
         }
     }
 
@@ -441,7 +442,7 @@ export class PDFImageColorSampler extends PDFImageColorConverter {
             }
         } else {
             // Unknown BPC, return as-is
-            console.warn(`[PDFImageColorSampler] Unknown BitsPerComponent: ${bitsPerComponent}`);
+            console.warn(`${CONTEXT_PREFIX} [PDFImageColorSampler] Unknown BitsPerComponent: ${bitsPerComponent}`);
             return data;
         }
 

@@ -10,7 +10,7 @@
  */
 
 import { RENDERING_INTENT_CODE, getRenderingIntentCode } from './color-converter.js';
-import { NO_OP_DIAGNOSTICS } from './diagnostics-collector.js';
+import { NO_OP_DIAGNOSTICS } from '../diagnostics/diagnostics-collector.js';
 
 // ============================================================================
 // Feature Detection
@@ -190,7 +190,7 @@ export class BufferRegistry {
 
     /**
      * Diagnostics collector for tracking cache operations.
-     * @type {import('./diagnostics-collector.js').DiagnosticsCollector | typeof NO_OP_DIAGNOSTICS}
+     * @type {import('../diagnostics/diagnostics-collector.js').DiagnosticsCollector | typeof NO_OP_DIAGNOSTICS}
      */
     #diagnostics = NO_OP_DIAGNOSTICS;
 
@@ -202,7 +202,7 @@ export class BufferRegistry {
      * Creates a new BufferRegistry instance.
      *
      * @param {object} [options={}] - Configuration options
-     * @param {import('./diagnostics-collector.js').DiagnosticsCollector} [options.diagnostics] - Diagnostics collector
+     * @param {import('../diagnostics/diagnostics-collector.js').DiagnosticsCollector} [options.diagnostics] - Diagnostics collector
      *
      * @example
      * ```javascript
@@ -224,7 +224,7 @@ export class BufferRegistry {
 
     /**
      * Gets the diagnostics collector.
-     * @returns {import('./diagnostics-collector.js').DiagnosticsCollector | typeof NO_OP_DIAGNOSTICS}
+     * @returns {import('../diagnostics/diagnostics-collector.js').DiagnosticsCollector | typeof NO_OP_DIAGNOSTICS}
      */
     get diagnostics() {
         return this.#diagnostics;
@@ -232,7 +232,7 @@ export class BufferRegistry {
 
     /**
      * Sets the diagnostics collector.
-     * @param {import('./diagnostics-collector.js').DiagnosticsCollector | typeof NO_OP_DIAGNOSTICS} value
+     * @param {import('../diagnostics/diagnostics-collector.js').DiagnosticsCollector | typeof NO_OP_DIAGNOSTICS} value
      */
     set diagnostics(value) {
         this.#diagnostics = value ?? NO_OP_DIAGNOSTICS;
