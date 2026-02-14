@@ -1,0 +1,367 @@
+{
+    "settings": {
+        "colorManagement": {
+            "defaultSourceProfileForDeviceGray":       "../profiles/sGray.icc",
+            "defaultSourceProfileForDeviceGrayPolicy": {
+                "preferOutputIntent":     true,
+                "preferEmbeded":          true,
+                "preferGracefulFallback": false
+            },
+            "defaultSourceProfileForDeviceRGB":        "../profiles/sRGB IEC61966-2.1.icc",
+            "defaultSourceProfileForDeviceRGBPolicy":  {
+                "preferOutputIntent":     true,
+                "preferEmbeded":          true,
+                "preferGracefulFallback": false
+            },
+            "defaultSourceProfileForDeviceCMYK":       "../profiles/eciCMYK v2.icc",
+            "defaultSourceProfileForDeviceCMYKPolicy": {
+                "preferOutputIntent":     true,
+                "preferEmbeded":          true,
+                "preferGracefulFallback": false
+            }
+        }
+    },
+    "assets":   [
+        { "asset": "CR21",                    "colorSpace": "sRGB"  },
+        { "asset": "CR21",                    "colorSpace": "sGray" },
+        { "asset": "CR21",                    "colorSpace": "Lab"   },
+        { "asset": "A - London",              "colorSpace": "sRGB"  },
+        { "asset": "A - Winter Trees",        "colorSpace": "sRGB"  },
+        { "asset": "A - Lake and Cat",        "colorSpace": "sRGB"  },
+        { "asset": "A - Vitznau Map",         "colorSpace": "sRGB"  },
+        { "asset": "A - Vitznau Map",         "colorSpace": "sGray" },
+        { "asset": "A - Interlaken Map",      "colorSpace": "sRGB"  },
+        { "asset": "A - Interlaken Map",      "colorSpace": "sGray" },
+        { "asset": "A - Interlaken Aerial",   "colorSpace": "sRGB"  },
+        { "asset": "P - Type Sizes",          "colorSpace": "sGray" },
+        { "asset": "P - Type Sizes",          "colorSpace": "SepK"  },
+        { "asset": "P - Lissajou",            "colorSpace": "sGray" },
+        { "asset": "P - Lissajou",            "colorSpace": "SepK"  },
+        { "asset": "P - ConRes TV25 vs TV75", "colorSpace": "sRGB"  },
+        { "asset": "P - ConRes TV25 vs TV75", "colorSpace": "sGray" },
+        { "asset": "P - ConRes TV25 vs TV75", "colorSpace": "Lab"   },
+        { "asset": "P - ConRes CR21 vs CR20", "colorSpace": "sGray" },
+        { "asset": "P - ConRes CR21 vs CR20", "colorSpace": "Lab"   },
+        { "asset": "P - ConRes CR21 vs CR20", "colorSpace": "sRGB"  }
+    ],
+    "colorSpaces":     {
+        "sRGB":  { "type": "RGB",     "profile": "../profiles/sRGB IEC61966-2.1.icc" },
+        "sGray": { "type": "Gray",    "profile": "../profiles/sGray.icc"             },
+        "Lab":   { "type": "Lab",     "profile": "Lab"                                  },
+        "SepK":  { "type": "DeviceN"                                                    }
+    },
+    "layouts":  [
+        {
+            "layout":     "P-20 London",
+            "colorSpace": "sRGB",
+            "assets":     [
+                { "asset": "CR21",       "colorSpace": "sRGB" },
+                { "asset": "A - London", "colorSpace": "sRGB" }
+            ]
+        },
+        {
+            "layout":     "P-20 London",
+            "colorSpace": "sGray",
+            "assets":     [
+                { "asset": "CR21",       "colorSpace": "sGray" },
+                { "asset": "A - London", "colorSpace": "sRGB"  }
+            ]
+        },
+        {
+            "layout":     "P-21 Winter Trees",
+            "colorSpace": "sRGB",
+            "assets":     [
+                { "asset": "CR21",             "colorSpace": "sRGB" },
+                { "asset": "A - Winter Trees", "colorSpace": "sRGB" }
+            ]
+        },
+        {
+            "layout":     "P-21 Winter Trees",
+            "colorSpace": "sGray",
+            "assets":     [
+                { "asset": "CR21",             "colorSpace": "sGray" },
+                { "asset": "A - Winter Trees", "colorSpace": "sRGB"  }
+            ]
+        },
+        {
+            "layout":     "P-22 Lake and Cat",
+            "colorSpace": "sRGB",
+            "assets":     [
+                { "asset": "CR21",             "colorSpace": "sRGB" },
+                { "asset": "A - Lake and Cat", "colorSpace": "sRGB" }
+            ]
+        },
+        {
+            "layout":     "P-22 Lake and Cat",
+            "colorSpace": "sGray",
+            "assets":     [
+                { "asset": "CR21",             "colorSpace": "sGray" },
+                { "asset": "A - Lake and Cat", "colorSpace": "sRGB"  }
+            ]
+        },
+        {
+            "layout":     "P-30 Vitznau Map",
+            "colorSpace": "sRGB",
+            "assets":     [
+                { "asset": "CR21",            "colorSpace": "sRGB" },
+                { "asset": "A - Vitznau Map", "colorSpace": "sRGB" }
+            ]
+        },
+        {
+            "layout":     "P-30 Vitznau Map",
+            "colorSpace": "sGray",
+            "assets":     [
+                { "asset": "CR21",            "colorSpace": "sGray" },
+                { "asset": "A - Vitznau Map", "colorSpace": "sGray" }
+            ]
+        },
+        {
+            "layout":     "P-31 Interlaken Map",
+            "colorSpace": "sRGB",
+            "assets":     [
+                { "asset": "CR21",               "colorSpace": "sRGB" },
+                { "asset": "A - Interlaken Map", "colorSpace": "sRGB" }
+            ]
+        },
+        {
+            "layout":     "P-31 Interlaken Map",
+            "colorSpace": "sGray",
+            "assets":     [
+                { "asset": "CR21",               "colorSpace": "sGray" },
+                { "asset": "A - Interlaken Map", "colorSpace": "sGray" }
+            ]
+        },
+        {
+            "layout":     "P-32 Interlaken Aerial",
+            "colorSpace": "sRGB",
+            "assets":     [
+                { "asset": "CR21",                  "colorSpace": "sRGB" },
+                { "asset": "A - Interlaken Aerial", "colorSpace": "sRGB" }
+            ]
+        },
+        {
+            "layout":     "P-32 Interlaken Aerial",
+            "colorSpace": "sGray",
+            "assets":     [
+                { "asset": "CR21",                  "colorSpace": "sGray" },
+                { "asset": "A - Interlaken Aerial", "colorSpace": "sRGB"  }
+            ]
+        },
+        {
+            "layout":     "P-40 Type Sizes",
+            "colorSpace": "sGray",
+            "assets":     [ { "asset": "P - Type Sizes", "colorSpace": "sGray" } ]
+        },
+        {
+            "layout":     "P-40 Type Sizes",
+            "colorSpace": "SepK",
+            "assets":     [ { "asset": "P - Type Sizes", "colorSpace": "SepK" } ]
+        },
+        {
+            "layout":     "P-45 Lissajou",
+            "colorSpace": "sGray",
+            "assets":     [ { "asset": "P - Lissajou", "colorSpace": "sGray" } ]
+        },
+        {
+            "layout":     "P-45 Lissajou",
+            "colorSpace": "SepK",
+            "assets":     [ { "asset": "P - Lissajou", "colorSpace": "SepK" } ]
+        },
+        {
+            "layout":     "P-CR21-1 ConRes TV25 vs TV75",
+            "colorSpace": "sRGB",
+            "assets":     [ { "asset": "P - ConRes TV25 vs TV75", "colorSpace": "sRGB" } ]
+        },
+        {
+            "layout":     "P-CR21-1 ConRes TV25 vs TV75",
+            "colorSpace": "sGray",
+            "assets":     [ { "asset": "P - ConRes TV25 vs TV75", "colorSpace": "sGray" } ]
+        },
+        {
+            "layout":     "P-CR21-1 ConRes TV25 vs TV75",
+            "colorSpace": "Lab",
+            "assets":     [ { "asset": "P - ConRes TV25 vs TV75", "colorSpace": "Lab" } ]
+        },
+        {
+            "layout":     "P-CR21-2 ConRes CR21 vs CR20",
+            "colorSpace": "sRGB",
+            "assets":     [ { "asset": "P - ConRes CR21 vs CR20", "colorSpace": "sRGB" } ]
+        },
+        {
+            "layout":     "P-CR21-2 ConRes CR21 vs CR20",
+            "colorSpace": "sGray",
+            "assets":     [ { "asset": "P - ConRes CR21 vs CR20", "colorSpace": "sGray" } ]
+        },
+        {
+            "layout":     "P-CR21-2 ConRes CR21 vs CR20",
+            "colorSpace": "Lab",
+            "assets":     [ { "asset": "P - ConRes CR21 vs CR20", "colorSpace": "Lab" } ]
+        }
+    ],
+    "pages":    [
+        {
+            "layout":     "P-20 London",
+            "colorSpace": "sRGB",
+            "metadata":   {
+                "title":      "P-20 London",
+                "resolution": { "values": [ 2400, 1200 ], "unit": "ppi" }
+            }
+        },
+        {
+            "layout":     "P-20 London",
+            "colorSpace": "sGray",
+            "metadata":   {
+                "title":      "P-20 London",
+                "resolution": { "values": [ 2400, 1200 ], "unit": "ppi" }
+            }
+        },
+        {
+            "layout":     "P-21 Winter Trees",
+            "colorSpace": "sRGB",
+            "metadata":   {
+                "title":      "P-21 Winter Trees",
+                "resolution": { "values": [ 1200 ], "unit": "ppi" }
+            }
+        },
+        {
+            "layout":     "P-21 Winter Trees",
+            "colorSpace": "sGray",
+            "metadata":   {
+                "title":      "P-21 Winter Trees",
+                "resolution": { "values": [ 1200 ], "unit": "ppi" }
+            }
+        },
+        {
+            "layout":     "P-22 Lake and Cat",
+            "colorSpace": "sRGB",
+            "metadata":   {
+                "title":      "P-22 Lake and Cat",
+                "resolution": { "values": [ 1800, 1200 ], "unit": "ppi" }
+            }
+        },
+        {
+            "layout":     "P-22 Lake and Cat",
+            "colorSpace": "sGray",
+            "metadata":   {
+                "title":      "P-22 Lake and Cat",
+                "resolution": { "values": [ 1800, 1200 ], "unit": "ppi" }
+            }
+        },
+        {
+            "layout":     "P-30 Vitznau Map",
+            "colorSpace": "sRGB",
+            "metadata":   {
+                "title":      "P-30 Vitznau Map",
+                "resolution": { "values": [ 900 ], "unit": "ppi" }
+            }
+        },
+        {
+            "layout":     "P-30 Vitznau Map",
+            "colorSpace": "sGray",
+            "metadata":   {
+                "title":      "P-30 Vitznau Map",
+                "resolution": { "values": [ 900 ], "unit": "ppi" }
+            }
+        },
+        {
+            "layout":     "P-31 Interlaken Map",
+            "colorSpace": "sRGB",
+            "metadata":   {
+                "title":      "P-31 Interlaken Map",
+                "resolution": { "values": [ 900 ], "unit": "ppi" }
+            }
+        },
+        {
+            "layout":     "P-31 Interlaken Map",
+            "colorSpace": "sGray",
+            "metadata":   {
+                "title":      "P-31 Interlaken Map",
+                "resolution": { "values": [ 900 ], "unit": "ppi" }
+            }
+        },
+        {
+            "metadata": {
+                "title":      "P-32 Interlaken Aerial",
+                "resolution": { "values": [ 900 ], "unit": "ppi" },
+                "colorSpace": "sRGB"
+            }
+        },
+        {
+            "metadata": {
+                "title":      "P-32 Interlaken Aerial",
+                "resolution": { "values": [ 900 ], "unit": "ppi" },
+                "colorSpace": "sGray"
+            }
+        },
+        {
+            "metadata": {
+                "title":      "P-40 Type Sizes",
+                "resolution": { "values": [ 1200 ], "unit": "ppi" },
+                "colorSpace": "sGray"
+            }
+        },
+        {
+            "metadata": {
+                "title":      "P-40 Type Sizes",
+                "resolution": { "values": [ 1200 ], "unit": "ppi" },
+                "colorSpace": "SepK"
+            }
+        },
+        {
+            "metadata": {
+                "title":      "P-45 Lissajou",
+                "resolution": { "values": [ 1200 ], "unit": "ppi" },
+                "colorSpace": "sGray"
+            }
+        },
+        {
+            "metadata": {
+                "title":      "P-45 Lissajou",
+                "resolution": { "values": [ 1200 ], "unit": "ppi" },
+                "colorSpace": "SepK"
+            }
+        },
+        {
+            "metadata": {
+                "title":      "P-CR21-1 ConRes TV25 vs TV75",
+                "resolution": { "values": [ 1200 ], "unit": "ppi" },
+                "colorSpace": "sRGB"
+            }
+        },
+        {
+            "metadata": {
+                "title":      "P-CR21-1 ConRes TV25 vs TV75",
+                "resolution": { "values": [ 1200 ], "unit": "ppi" },
+                "colorSpace": "sGray"
+            }
+        },
+        {
+            "metadata": {
+                "title":      "P-CR21-1 ConRes TV25 vs TV75",
+                "resolution": { "values": [ 1200 ], "unit": "ppi" },
+                "colorSpace": "LAB"
+            }
+        },
+        {
+            "metadata": {
+                "title":      "P-CR21-2 ConRes CR21 vs CR20",
+                "resolution": { "values": [ 1200 ], "unit": "ppi" },
+                "colorSpace": "sRGB"
+            }
+        },
+        {
+            "metadata": {
+                "title":      "P-CR21-2 ConRes CR21 vs CR20",
+                "resolution": { "values": [ 1200 ], "unit": "ppi" },
+                "colorSpace": "sGray"
+            }
+        },
+        {
+            "metadata": {
+                "title":      "P-CR21-2 ConRes CR21 vs CR20",
+                "resolution": { "values": [ 1200 ], "unit": "ppi" },
+                "colorSpace": "LAB"
+            }
+        }
+    ]
+}

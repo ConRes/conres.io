@@ -20,6 +20,20 @@ import {
 import { ICCService } from "./ICCService.js";
 
 const DEBUG_COLORSPACE_DESIGNATION_TARGET_OPERATIONS = false;
+const DEBUG_TRANSPARENCY_BLENDING_OPERATIONS = false;
+
+/** @param {PDFName | PDFString | import('pdf-lib').PDFHexString} [instance] */
+const _decodeText = instance => instance?.decodeText?.().trim();
+
+/**
+ * @template {{lookupMaybe: Function}} T
+ * @template  {any[]} U
+ * @param {T | undefined | null} target
+ * @param {PDFName} key
+ * @param  {U} types
+ * @returns {any}
+ */
+const _lookupMaybe = (target, key, ...types) => target?.lookupMaybe(key, ...types);
 
 /**
  * Service for PDF manipulation operations
@@ -584,6 +598,129 @@ export class PDFService {
     //       iccBuffer: profile.contents,
     //     };
     //   }
+
+    // ========================================================================
+    // Aliases for generator compatibility (same implementations, new names)
+    // ========================================================================
+
+    /** @type {typeof PDFService.attachManifestToPDF} */
+    static attachManifestToPDFDocument = PDFService.attachManifestToPDF;
+
+    /** @type {typeof PDFService.extractManifestFromPDF} */
+    static extractManifestFromPDFDocument = PDFService.extractManifestFromPDF;
+
+    /** @type {typeof PDFService.extractICCProfilesFromPDF} */
+    static extractICCProfilesFromPDFDocument = PDFService.extractICCProfilesFromPDF;
+
+    /** @type {typeof PDFService.setOutputIntentForPDF} */
+    static setOutputIntentForPDFDocument = PDFService.setOutputIntentForPDF;
+
+    /** @type {typeof PDFService.embedSlugsIntoPDF} */
+    static embedSlugsIntoPDFDocument = PDFService.embedSlugsIntoPDF;
+
+    /**
+     * Decalibrates a PDF document by replacing ICC-based color spaces with device color spaces.
+     * Alias for `decalibratePDFDocument` — used by the generator.
+     * @param {PDFDocument} pdfDocument
+     * @param {object} [_options] - Unused in this implementation
+     * @returns {Promise<PDFDocument>}
+     */
+    static async decalibrateColorInPDFDocument(pdfDocument, _options = {}) {
+        return PDFService.decalibratePDFDocument(pdfDocument);
+    }
+
+    /**
+     * Replaces transparency blending color spaces in a PDF document.
+     *
+     * Finds all Transparency group dicts on PDFPageLeaf objects with a /Group /CS key,
+     * and replaces the /CS value with the provided replacement.
+     *
+     * @param {PDFDocument} pdfDocument
+     * @param {string | PDFName | ((colorspaceDesignator: PDFName | PDFArray, pageLeafGroupDict: PDFDict, pageLeaf: PDFPageLeaf) => (string | PDFName | PDFRef))} replacement
+     */
+    static async replaceTransarencyBlendingSpaceInPDFDocument(pdfDocument, replacement) {
+        const enumeratedIndirectObjects = /** @type {[PDFRef, any][]} */ (pdfDocument.context.enumerateIndirectObjects());
+
+        const replaceTransarencyBlendingSpaceRecords = [];
+
+        for (const [enumeratedRef, enumeratedObject] of enumeratedIndirectObjects) {
+            /** @type {any} */
+            const record = DEBUG_TRANSPARENCY_BLENDING_OPERATIONS ? {} : null;
+
+            if (enumeratedObject instanceof PDFPageLeaf) {
+                if (record) {
+                    replaceTransarencyBlendingSpaceRecords.push(record);
+                    Object.assign(record, {
+                        isComplete: false,
+                        isRelevant: false,
+                        enumeratedObjectRef: enumeratedRef,
+                        enumeratedObject: enumeratedObject,
+                    });
+                }
+
+                const enumeratedPageLeaf = /** @type {PDFPageLeaf} */ (enumeratedObject);
+                const enumeratedPageLeafType = /** @type {PDFName | undefined} */ (enumeratedPageLeaf.get(PDFName.of('Type')));
+                const enumeratedPageLeafSubtype = /** @type {PDFName | undefined} */ (enumeratedPageLeaf.get(PDFName.of('Subtype')));
+                const enumeratedPageLeafClassifier = `${_decodeText(enumeratedPageLeafType) ?? ''}${_decodeText(enumeratedPageLeafSubtype) ?? ''}` || undefined;
+                const enumeratedPageLeafGroupDict = _lookupMaybe(enumeratedPageLeaf, PDFName.of('Group'), PDFDict);
+                const enumeratedPageLeafGroupSubtype = /** @type {PDFName | undefined} */ (enumeratedPageLeafGroupDict?.get(PDFName.of('S')));
+                const transparencyBlendingSpaceDesignator = _decodeText(enumeratedPageLeafGroupSubtype) === 'Transparency' ? _lookupMaybe(enumeratedPageLeafGroupDict, PDFName.of('CS'), PDFName, PDFArray) : undefined;
+
+                if (record) {
+                    record.enumeratedPageLeaf = enumeratedPageLeaf;
+                    record.enumeratedPageLeafGroupDict = enumeratedPageLeafGroupDict;
+                    record.enumeratedPageLeafGroupSubtype = enumeratedPageLeafGroupSubtype;
+                    record.transparencyBlendingSpaceDesignator = transparencyBlendingSpaceDesignator;
+                }
+
+                if (!enumeratedPageLeafGroupDict || !transparencyBlendingSpaceDesignator) continue;
+
+                if (record) record.isRelevant = true;
+
+                /** @type {string | PDFName | PDFRef | PDFArray | undefined} */
+                let replacementValue;
+
+                if (typeof replacement === 'function') {
+                    replacementValue = replacement(transparencyBlendingSpaceDesignator, enumeratedPageLeafGroupDict, enumeratedPageLeaf);
+                    if (record) record.replacementResult = replacementValue;
+                } else {
+                    replacementValue = replacement;
+                    if (record) record.replacementArgument = replacementValue;
+                }
+
+                if (typeof replacementValue === 'string') {
+                    if (record) record.replacementString = replacementValue;
+                    replacementValue = PDFName.of(replacementValue);
+                } else if (replacementValue instanceof PDFRef) {
+                    if (record) record.replacementRef = replacementValue;
+                    replacementValue = pdfDocument.context.lookupMaybe(replacementValue, PDFArray);
+                }
+
+                if (record) record.replacementValue = replacementValue;
+
+                if (replacementValue instanceof PDFName || replacementValue instanceof PDFArray) {
+                    const currentTransparencyBlendingSpace = transparencyBlendingSpaceDesignator;
+                    const replacementTransparencyBlendingSpace = replacementValue instanceof PDFArray
+                        ? pdfDocument.context.register(replacementValue)
+                        : replacementValue;
+
+                    enumeratedPageLeafGroupDict.set(PDFName.of('CS'), replacementTransparencyBlendingSpace);
+
+                    if (record) {
+                        record.currentTransparencyBlendingSpace = currentTransparencyBlendingSpace;
+                        record.replacementTransparencyBlendingSpace = replacementTransparencyBlendingSpace;
+                        record.isComplete = true;
+                    }
+
+                    console.log('Replaced %o with %o for %o', currentTransparencyBlendingSpace, replacementTransparencyBlendingSpace, enumeratedPageLeafGroupSubtype);
+                } else {
+                    throw new Error(`Unexpected replacement type: ${replacementValue}`);
+                }
+            }
+        }
+
+        console.log({ replaceTransarencyBlendingSpaceRecords, pdfDocument, replacement });
+    }
 
     /**
      * Dumps information about a PDF document

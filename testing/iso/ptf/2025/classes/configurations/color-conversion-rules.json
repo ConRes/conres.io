@@ -1,0 +1,162 @@
+[
+  {
+    "policyId": "k-only-gcr-to-relative-colorimetric-fallback",
+    "engines": [
+      "color-engine-2025-12-15",
+      "color-engine-2025-12-19",
+      "color-engine-2026-01-07",
+      "color-engine-2026-01-21",
+      "color-engine-2026-01-30",
+      "color-engine-2026-02-14"
+    ],
+    "rules": [
+      {
+        "description": "K-Only GCR intent only supports CMYK output",
+        "severity": {
+          "default": "error",
+          "PDF": "warning"
+        },
+        "constraints": {
+          "renderingIntents": [
+            "preserve-k-only-relative-colorimetric-gcr"
+          ],
+          "destinationColorSpaces": [
+            "Gray",
+            "RGB",
+            "Lab"
+          ]
+        },
+        "overrides": {
+          "renderingIntent": "relative-colorimetric"
+        }
+      }
+    ]
+  },
+  {
+    "policyId": "relative-colorimetric-lab-fallback",
+    "engines": [
+      "color-engine-2025-12-15",
+      "color-engine-2025-12-19",
+      "color-engine-2026-01-07",
+      "color-engine-2026-01-21",
+      "color-engine-2026-01-30",
+      "color-engine-2026-02-14"
+    ],
+    "rules": [
+      {
+        "description": "Force Relative Colorimetric for Lab input",
+        "severity": {
+          "default": "error",
+          "PDF": "warning"
+        },
+        "constraints": {
+          "renderingIntents": [
+            "preserve-k-only-relative-colorimetric-gcr"
+          ],
+          "destinationColorSpaces": [
+            "CMYK"
+          ],
+          "sourceColorSpaces": [
+            "Lab"
+          ]
+        },
+        "overrides": {
+          "renderingIntent": "relative-colorimetric"
+        }
+      }
+    ]
+  },
+  {
+    "policyId": "k-only-gcr-legacy-multistage-transform-requirement",
+    "engines": [
+      "color-engine-2025-12-15",
+      "color-engine-2025-12-19"
+    ],
+    "rules": [
+      {
+        "description": "ColorEngine ({{COLOR_ENGINE_VERSION}}) only supports RGB input for K-Only GCR",
+        "severity": "warning",
+        "constraints": {
+          "renderingIntents": [
+            "preserve-k-only-relative-colorimetric-gcr"
+          ],
+          "sourceColorSpaces": [
+            "Gray",
+            "CMYK",
+            "Lab"
+          ],
+          "destinationColorSpaces": [
+            "CMYK"
+          ]
+        },
+        "overrides": {
+          "requiresMultiprofileTransform": true,
+          "intermediateProfiles": [
+            "../../resources/profiles/sRGB v4.icc"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "policyId": "k-only-gcr-multiprofile-transform-requirement",
+    "engines": [
+      "color-engine-2026-01-07",
+      "color-engine-2026-01-21",
+      "color-engine-2026-01-30",
+      "color-engine-2026-02-14"
+    ],
+    "rules": [
+      {
+        "description": "ColorEngine ({{COLOR_ENGINE_VERSION}}) must use multiprofile transform for non-RGB inputs with K-Only GCR",
+        "severity": "warning",
+        "constraints": {
+          "renderingIntents": [
+            "preserve-k-only-relative-colorimetric-gcr"
+          ],
+          "sourceColorSpaces": [
+            "Gray",
+            "CMYK",
+            "Lab"
+          ],
+          "destinationColorSpaces": [
+            "CMYK"
+          ]
+        },
+        "overrides": {
+          "requiresMultiprofileTransform": true
+        }
+      }
+    ]
+  },
+  {
+    "policyId": "rgb-to-rgb-multiprofile-black-point-scaling-enhancement",
+    "engines": [
+      "color-engine-2026-01-30",
+      "color-engine-2026-02-14"
+    ],
+    "rules": [
+      {
+        "description": "Black-point compensation from sRGB and other spaces does not yield pure black or pure white in RGB destination",
+        "severity": "warning",
+        "constraints": {
+          "renderingIntents": [
+            "relative-colorimetric",
+            "preserve-k-only-relative-colorimetric-gcr"
+          ],
+          "blackPointCompensation": [
+            true
+          ],
+          "destinationColorSpaces": [
+            "RGB"
+          ]
+        },
+        "overrides": {
+          "requiresMultiprofileTransform": true,
+          "blackPointCompensation": true,
+          "multiprofileBlackPointScaling": true
+        }
+      }
+    ]
+  }
+]
