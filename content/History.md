@@ -1,10 +1,15 @@
-﻿# Historical evolution of the Contrast-Resolution Test Target and Evaluation System
+# Contrast-Resolution Test Target and Evaluation Methods
+## Historical Overview
 
 _Franz Sigg_
 
-The ConRes Test target came out of a discussion Franz Sigg had with Dr. Ed. Granger at a lunch table at RIT in the fall of 1999. We were discussing a thesis topic for Eliot Harper. After several design versions of the target by Franz Sigg, Eliot Harper finished his RIT thesis in Dec. 2000 with the title <q>An Investigation Into the Relationship Between Contrast and Resolution of a Printing System Using the RIT Contrast Resolution Test Target</q> He also was the graduate student paper winner at Taga 2001, with a paper with the same title but a more compact description of the ConRes methodology. In 2003, Deepak Dubay wrote an RIT student TAGA paper with the title <q>Relationship between Contrast Resolution Volume (CRV) and Modulation Transfer Function (MTF)</q> which preceded his thesis <q>A Comparative Analysis between the RIT Contrast Resolution Test Target And the Gutenberg Test Target</q> that was published in 2005. In 2006 Franz Sigg wrote a paper for the RIT TestTargets 6 publication with the title <q>Testing for Resolution and Contrast</q> The topic was also taught to students at RIT.
+The ConRes test target came out of a discussion Franz Sigg had with Dr. Ed. Granger at a lunch table at RIT in the fall of 1999 related to the thesis topic for Eliot Harper, who was working on his Masters at the time. This discussion led to first attempts to making what eventually becomes the Contrast-Resolution test target that is familiar to many today, and for which earliest research uses date back the completed thesis work of Eliot Harper (2000) title "An Investigation Into the Relationship Between Contrast and Resolution of a Printing System Using the RIT Contrast Resolution Test Target" and his winning entry of the 2001 Technical Association of the Graphic Arts graduate research paper of the same title.
 
-There are some 29 implementations of the Target, each one hand programmed in PostScript by Franz Sigg. All versions use vector graphics.
+This was only the start of many extensive research endeavors, involving additional RIT student work, including Deepak Dubay's (2003) RIT student TAGA paper on the "Relationship between Contrast Resolution Volume (CRV) and Modulation Transfer Function (MTF)" leading to his thesis (2005) on "A Comparative Analysis between the RIT Contrast Resolution Test Target And the Gutenberg Test Target".
+
+In 2006 Franz Sigg wrote a paper for the RIT TestTargets 6 publication with the title "Testing for Resolution and Contrast" The topic was also taught to students at RIT.
+
+To date, there are some 29 implementations of the target, all hand programmed in PostScript by Franz Sigg to elicit pixel perfect vector-based detail and tone that have made it possible to measure the limitations and correlation extents of those aspects in print and other imaging domains, where otherwise they would have remained inconceivable or untenable to even explore.
 
 Version 1 shown in Figure 1 used a continuously varying checkerboard pattern to test ConRes.
 
@@ -148,11 +153,11 @@ Since January 2014 Eric Zeise was writing a new ISO standard about the ConRes Ta
 
 ISO_DTS_18621-31, Graphic technology — Measurement of visual attributes of printed materials —Part 31: L-Score method for perceived resolution evaluation utilizing a contrast resolution target.
 
-Eventually, the L-Score method was not used and replaced with improved code. Eric Zeise wrote his own analysis Matlab program in order to understand exactly what was required. The ISO work has progressed to the <q>Preliminary Draft Technical Specification</q> stage with the name ISO/PDTS 18621-31.42 (Nov. 29, 2018). The standard does not contain the Matlab code, only a flowchart of how a program could be structured to do an analysis. Eric Zeise has done an outstanding job in writing the standard. It was a lot of work.
+Eventually, the L-Score method was not used and replaced with improved code. Eric Zeise wrote his own analysis Matlab program in order to understand exactly what was required. The ISO work has progressed to the "Preliminary Draft Technical Specification" stage with the name ISO/PDTS 18621-31.42 (Nov. 29, 2018). The standard does not contain the Matlab code, only a flowchart of how a program could be structured to do an analysis. Eric Zeise has done an outstanding job in writing the standard. It was a lot of work.
 
 In addition to the analysis routine it was also necessary to specify scanner conformance requirements; printer setup and linearization and data path requirements; reporting of results.
 
-Part of the research that Eric conducted showed that the fiducial marks of the existing targets were difficult to unambiguously automatically detect, and therefore a new version named `ISO_ConRes19g.PDF` was created as shown in Figure 18. The reference tint around each patch is now symmetrically distributed, with the fiducial marks in the frame and no longer touching the patches. Also, a step wedge was added to allow verification of <q>linear</q> tone reproduction. The gray background also helps to reduce edge effects due to internal reflections in the paper substrate.
+Part of the research that Eric conducted showed that the fiducial marks of the existing targets were difficult to unambiguously automatically detect, and therefore a new version named `ISO_ConRes19g.PDF` was created as shown in Figure 18. The reference tint around each patch is now symmetrically distributed, with the fiducial marks in the frame and no longer touching the patches. Also, a step wedge was added to allow verification of "linear" tone reproduction. The gray background also helps to reduce edge effects due to internal reflections in the paper substrate.
 
 <figure>
 <img width=100% src="./assets/ISO_ConRes19g.png" background-color:=#FFF />
