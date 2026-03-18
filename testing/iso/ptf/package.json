@@ -1,0 +1,38 @@
+{
+	"private": true,
+	"name": "@conres.io/test-form-generator",
+	"description": "Contrast-Resolution Test Form Generator",
+	"version": "0.0.0-alpha.1",
+	"author": "Saleh Abdel Motaal <saleh@smotaal.io>",
+	"repository": {
+		"url": "https://github.com/conres/conres.io.git",
+		"directory": "testing/iso/ptf"
+	},
+	"license": "MIT",
+	"type": "module",
+	"scripts": {
+		"test": "node 2025/tests/run-tests.js",
+		"test:legacy": "TESTS_ONLY_LEGACY=true node 2025/tests/run-tests.js",
+		"test:classes": "TESTS_SKIP_LEGACY=true node 2025/tests/run-tests.js",
+		"test:legacy-intact": "node 2025/tests/run-tests.js --legacy-intact",
+		"test:generator": "TESTS_MEMORY=true node 2025/tests/run-tests.js --generator",
+		"convert-pdf-color": "node 2025/scripts/convert-pdf-color.js",
+		"doc:classes": "cd 2025/classes && typedoc"
+	},
+	"devDependencies": {
+		"@types/emscripten": "^1.40.1",
+		"@types/node": "*",
+		"icc": "^3.0.0",
+		"pako": "^2.1.0",
+		"pdf-lib": "^1.17.1",
+		"playwright-chromium": "^1.49.0",
+		"prettier": "*",
+		"rollup": "*",
+		"typedoc": "*",
+		"typescript": "*"
+	},
+	"workspaces": {
+		"packages": []
+	},
+	"packageManager": "yarn@4.8.1"
+}

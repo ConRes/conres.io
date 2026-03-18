@@ -84,3 +84,9 @@ typings/
 # next.js build output
 
 .next
+
+# Local Folders
+*.zip
+output/*.log
+/testing/iso/ptf/fixtures/test forms/\[Outdated]/
+/testing/iso/ptf/2025/experiments/output/
