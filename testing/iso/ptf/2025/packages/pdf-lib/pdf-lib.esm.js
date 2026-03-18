@@ -15913,8 +15913,9 @@ var PDFStream = /** @class */ (function (_super) {
         buffer[offset++] = CharCodes$1.m;
         buffer[offset++] = CharCodes$1.Newline;
         var contents = this.getContents();
-        buffer.set(contents, offset);
-        offset += contents.length;
+        for (var idx = 0, len = contents.length; idx < len; idx++) {
+            buffer[offset++] = contents[idx];
+        }
         buffer[offset++] = CharCodes$1.Newline;
         buffer[offset++] = CharCodes$1.e;
         buffer[offset++] = CharCodes$1.n;
