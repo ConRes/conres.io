@@ -396,7 +396,7 @@ The 8-bit variant has identical content stream structure. The only difference is
 | 8      | #22 Lake Forest and Cat   | Lab         | 4      | None        |
 | 9      | #30 Vitznau Map           | sRGB        | 4      | None        |
 | 10     | #30 Vitznau Map           | sGray       | 4      | None        |
-| 11     | #30 Vitznau Map           | LAB         | 4      | None        |
+| 11     | #30 Vitznau Map           | Lab         | 4      | None        |
 | **12** | **#31 Interlaken Map**    | **sRGB**    | **1**  | **/SMask**  |
 | **13** | **#32 Interlaken Aerial** | **sRGB**    | **2**  | **/SMask**  |
 | **14** | **#31 Interlaken Map**    | **sGray**   | **1**  | **/SMask**  |
@@ -458,13 +458,13 @@ The F-01 Fixtures PDF and the 2x-4x PDF both contain the Interlaken Map, but use
 ## 5. Show-and-Tell: Interlaken Map (Original)
 
 **File:** `~/Projects/conres/conres.io/assets/testforms/2025-08-15 - ConRes - ISO PTF - CR1 - Interlaken Map.pdf`
-**Pages:** 3 (from Slugs.json: P-31 Interlaken Map in sRGB, sGray, LAB)
+**Pages:** 3 (from Slugs.json: P-31 Interlaken Map in sRGB, sGray, Lab)
 
 | Page | Title               | Color Space | Images | Masks |
 | ---- | ------------------- | ----------- | ------ | ----- |
 | 0    | P-31 Interlaken Map | sRGB        | 3      | None  |
 | 1    | P-31 Interlaken Map | sGray       | 3      | None  |
-| 2    | P-31 Interlaken Map | LAB         | 3      | None  |
+| 2    | P-31 Interlaken Map | Lab         | 3      | None  |
 
 ### 5.1 Image Properties
 
@@ -534,23 +534,23 @@ entirely from vector paths and text operators.
 | 8    | P-22 Lake and Cat            | Lab         | 4      | None  |
 | 9    | P-30 Vitznau Map             | sRGB        | 6      | None  |
 | 10   | P-30 Vitznau Map             | sGray       | 6      | None  |
-| 11   | P-30 Vitznau Map             | LAB         | 6      | None  |
+| 11   | P-30 Vitznau Map             | Lab         | 6      | None  |
 | 12   | P-31 Interlaken Map          | sRGB        | 3      | None  |
 | 13   | P-31 Interlaken Map          | sGray       | 3      | None  |
-| 14   | P-31 Interlaken Map          | LAB         | 3      | None  |
+| 14   | P-31 Interlaken Map          | Lab         | 3      | None  |
 | 15   | P-32 Interlaken Aerial       | sRGB        | 3      | None  |
 | 16   | P-32 Interlaken Aerial       | sGray       | 3      | None  |
-| 17   | P-32 Interlaken Aerial       | LAB         | 3      | None  |
+| 17   | P-32 Interlaken Aerial       | Lab         | 3      | None  |
 | 18   | P-40 Type Sizes              | sGray       | 0      | N/A   |
 | 19   | P-40 Type Sizes              | SepK        | 0      | N/A   |
 | 20   | P-45 Lissajou                | sGray       | 0      | N/A   |
 | 21   | P-45 Lissajou                | SepK        | 0      | N/A   |
 | 22   | P-CR21-1 ConRes TV25 vs TV75 | sRGB        | 0      | N/A   |
 | 23   | P-CR21-1 ConRes TV25 vs TV75 | sGray       | 0      | N/A   |
-| 24   | P-CR21-1 ConRes TV25 vs TV75 | LAB         | 0      | N/A   |
+| 24   | P-CR21-1 ConRes TV25 vs TV75 | Lab         | 0      | N/A   |
 | 25   | P-CR21-2 ConRes CR21 vs CR20 | sRGB        | 0      | N/A   |
 | 26   | P-CR21-2 ConRes CR21 vs CR20 | sGray       | 0      | N/A   |
-| 27   | P-CR21-2 ConRes CR21 vs CR20 | LAB         | 0      | N/A   |
+| 27   | P-CR21-2 ConRes CR21 vs CR20 | Lab         | 0      | N/A   |
 
 ### 7.2 Findings
 

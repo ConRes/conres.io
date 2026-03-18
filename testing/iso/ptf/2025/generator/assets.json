@@ -1,0 +1,25 @@
+{
+    "assets":[
+        {
+            "name": "2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets",
+            "resources": {
+                "assets" : "../../assets/2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets.pdf",
+                "manifest": "../../assets/2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets/manifest.json"
+            }
+        },
+        {
+            "name": "2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets (8-bit)",
+            "resources": {
+                "assets" : "../../assets/2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets (8-bit).pdf",
+                "manifest": "../../assets/2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets (8-bit)/manifest.json"
+            }
+        },
+        {
+            "name": "2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets - Maps",
+            "resources": {
+                "assets" : "../../assets/2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets - Maps.pdf",
+                "manifest": "../../assets/2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets - Maps/manifest.json"
+            }
+        }
+    ]
+}

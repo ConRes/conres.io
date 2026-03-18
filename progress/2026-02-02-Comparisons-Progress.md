@@ -371,7 +371,7 @@ The config schema in `2026-02-02-REFACTOR-FIXTURES-BASELINE.json` already has:
         "transform": {
           "colorspace": "Lab",
           "intent": "relative-colorimetric",
-          "black-point-compensation": true
+          "blackpoint-compensation": true
         }
       }]
     }]
@@ -1910,7 +1910,7 @@ Explicit mode selection (auto-detected from presence of `reference` field).
 
 - [x] Phase 5C: "Unique" Metric Implementation `COMPLETE + CRITICAL FIX`
   - [x] Add `unique` to `DeltaEMetrics.metricDefinitions.metricsTypes`
-  - [x] **CRITICAL FIX**: Changed from counting unique delta-E values to counting unique LAB COLORS
+  - [x] **CRITICAL FIX**: Changed from counting unique delta-E values to counting unique Lab COLORS
   - [x] Implement unique color counting in `DeltaEMetrics.addFromPixelArrays()`
     - Track unique Lab colors separately for reference and sample images
     - Round to 1 decimal place for grouping (avoids floating point noise)
