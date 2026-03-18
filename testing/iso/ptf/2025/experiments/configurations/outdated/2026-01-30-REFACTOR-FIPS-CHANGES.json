@@ -1,0 +1,97 @@
+{
+    "$schema": "./verification-matrix-config.schema.json",
+    "description": "FIPS - Verification Matrix",
+    "inputs": {
+        "2025-08-15 - ConRes - ISO PTF - CR1 (F9d) Fixtures - F-01": {
+            "pdf": "../../../tests/fixtures/pdfs/2025-08-15 - ConRes - ISO PTF - CR1 (F9d) Fixtures - F-01.pdf"
+        }
+    },
+    "outputs": {
+        "FIPS_WIDE_28T-TYPEavg - Relative Colorimetric": {
+            "profile": "../../../tests/fixtures/profiles/FIPS_WIDE_28T-TYPEavg.icc",
+            "intent": "relative-colorimetric",
+            "blackpoint-compensation": true
+        }
+    },
+    "configurations": {
+        "Refactored - Main Thread - Color-Engine 2026-01-30": {
+            "implementation": "Refactored",
+            "engine": "2026-01-30",
+            "modality": "Main Thread"
+        },
+        "Refactored - # Workers - Color-Engine 2026-01-30": {
+            "implementation": "Refactored",
+            "engine": "2026-01-30",
+            "modality": "Workers"
+        },
+        "Refactored - Main Thread - Color-Engine 2026-01-21": {
+            "implementation": "Refactored",
+            "engine": "2026-01-21",
+            "modality": "Main Thread"
+        },
+        "Refactored - # Workers - Color-Engine 2026-01-21": {
+            "implementation": "Refactored",
+            "engine": "2026-01-21",
+            "modality": "Workers"
+        }
+    },
+    "changes": {
+        "enabled": true,
+        "groups": [
+            {
+                "description": "Multiprofile Black-Point Scaling for RGB profiles in Content Streams",
+                "input": "2025-08-15 - ConRes - ISO PTF - CR1 (F9d) Fixtures - F-01",
+                "pairs": [
+                    {
+                        "R2026-01-21": "Refactored - Main Thread - Color-Engine 2026-01-21",
+                        "R2026-01-30": "Refactored - Main Thread - Color-Engine 2026-01-30"
+                    },
+                    {
+                        "R2026-01-21": "Refactored - # Workers - Color-Engine 2026-01-21",
+                        "R2026-01-30": "Refactored - # Workers - Color-Engine 2026-01-30"
+                    }
+                ],
+                "aspects": [
+                    {
+                        "type": "Color",
+                        "resource": "Contents",
+                        "input": {
+                            "colorspace": "ICCBasedRGB",
+                            "values": [
+                                0,
+                                0,
+                                0
+                            ]
+                        },
+                        "R2026-01-21": {
+                            "colorspace": "DeviceRGB",
+                            "values": [
+                                0.03529,
+                                0.03137,
+                                0.03922
+                            ],
+                            "tolerances": [
+                                0.0025,
+                                0.0025,
+                                0.0025
+                            ]
+                        },
+                        "R2026-01-30": {
+                            "colorspace": "DeviceRGB",
+                            "values": [
+                                0.0052,
+                                0.0000,
+                                0.0042
+                            ],
+                            "tolerances": [
+                                0.0025,
+                                0.0025,
+                                0.0025
+                            ]
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+}

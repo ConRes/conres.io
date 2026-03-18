@@ -1,0 +1,62 @@
+{
+    "$schema": "./verification-matrix-config.schema.json",
+    "description": "Template Method Pattern Removal - Verification Matrix",
+    "datePrefix": "2026-01-26",
+    "inputs": {
+        "2025-08-15 - ConRes - ISO PTF - CR1 (F9d) Fixtures - F-01": {
+            "pdf": "../../../tests/fixtures/pdfs/2025-08-15 - ConRes - ISO PTF - CR1 (F9d) Fixtures - F-01.pdf"
+        },
+        "2025-08-15 - ConRes - ISO PTF - CR1 - Type Sizes and Lissajou": {
+            "pdf": "../../../tests/fixtures/pdfs/2025-08-15 - ConRes - ISO PTF - CR1 - Type Sizes and Lissajou.pdf"
+        }
+    },
+    "outputs": {
+        "eciCMYK v2 - Relative Colorimetric": {
+            "profile": "../../../tests/fixtures/profiles/eciCMYK v2.icc",
+            "intent": "relative-colorimetric"
+        },
+        "eciCMYK v2 - K-Only GCR": {
+            "profile": "../../../tests/fixtures/profiles/eciCMYK v2.icc",
+            "intent": "k-only-gcr"
+        },
+        "FIPS_WIDE_28T-TYPEavg - Relative Colorimetric": {
+            "profile": "../../../tests/fixtures/profiles/FIPS_WIDE_28T-TYPEavg.icc",
+            "intent": "relative-colorimetric"
+        }
+    },
+    "configurations": {
+        "Refactored - Main Thread - Color-Engine 2026-01-21": {
+            "implementation": "Refactored",
+            "engine": "2026-01-21",
+            "modality": "Main Thread"
+        },
+        "Legacy - Main Thread - Color-Engine 2026-01-21": {
+            "implementation": "Legacy",
+            "engine": "2026-01-21",
+            "modality": "Main Thread"
+        },
+        "Refactored - # Workers - Color-Engine 2026-01-21": {
+            "implementation": "Refactored",
+            "engine": "2026-01-21",
+            "modality": "Workers"
+        },
+        "Legacy - # Workers - Color-Engine 2026-01-21": {
+            "implementation": "Legacy",
+            "engine": "2026-01-21",
+            "modality": "Workers"
+        }
+    },
+    "comparison": {
+        "enabled": true,
+        "pairs": [
+            {
+                "expected": "Legacy - Main Thread - Color-Engine 2026-01-21",
+                "actual": "Refactored - Main Thread - Color-Engine 2026-01-21"
+            },
+            {
+                "expected": "Legacy - # Workers - Color-Engine 2026-01-21",
+                "actual": "Refactored - # Workers - Color-Engine 2026-01-21"
+            }
+        ]
+    }
+}

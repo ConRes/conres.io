@@ -1,0 +1,37 @@
+{
+    "$schema": "./verification-matrix-config.schema.json",
+    "description": "FIPS - Verification Matrix",
+    "inputs": {
+        "2025-08-15 - ConRes - ISO PTF - CR1 (F9d) Fixtures - F-01": {
+            "pdf": "../../../tests/fixtures/pdfs/2025-08-15 - ConRes - ISO PTF - CR1 (F9d) Fixtures - F-01.pdf"
+        }
+    },
+    "outputs": {
+        "FIPS_WIDE_28T-TYPEavg - Relative Colorimetric": {
+            "profile": "../../../tests/fixtures/profiles/FIPS_WIDE_28T-TYPEavg.icc",
+            "intent": "relative-colorimetric",
+            "blackpoint-compensation": true
+        }
+    },
+    "configurations": {
+        "Refactored - Main Thread - Color-Engine 2026-01-30": {
+            "implementation": "Refactored",
+            "engine": "2026-01-30",
+            "modality": "Main Thread"
+        },
+        "Refactored - # Workers - Color-Engine 2026-01-30": {
+            "implementation": "Refactored",
+            "engine": "2026-01-30",
+            "modality": "Workers"
+        }
+    },
+    "comparison": {
+        "enabled": true,
+        "pairs": [
+            {
+                "expected": "Refactored - Main Thread - Color-Engine 2026-01-30",
+                "actual": "Refactored - # Workers - Color-Engine 2026-01-30"
+            }
+        ]
+    }
+}

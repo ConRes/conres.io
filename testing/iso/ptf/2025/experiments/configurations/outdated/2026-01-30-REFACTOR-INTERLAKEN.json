@@ -1,0 +1,70 @@
+{
+    "$schema": "./verification-matrix-config.schema.json",
+    "description": "Interlaken - Verification Matrix",
+    "inputs": {
+        "2025-08-15 - ConRes - ISO PTF - CR1 - Interlaken Map": {
+            "pdf": "../../../tests/fixtures/pdfs/2025-08-15 - ConRes - ISO PTF - CR1 - Interlaken Map.pdf"
+        }
+    },
+    "outputs": {
+        "eciCMYK v2 - K-Only GCR": {
+            "profile": "../../../tests/fixtures/profiles/eciCMYK v2.icc",
+            "intent": "k-only-gcr",
+            "blackpoint-compensation": true
+        },
+        "FIPS_WIDE_28T-TYPEavg - Relative Colorimetric": {
+            "profile": "../../../tests/fixtures/profiles/FIPS_WIDE_28T-TYPEavg.icc",
+            "intent": "relative-colorimetric",
+            "blackpoint-compensation": true
+        }
+    },
+    "configurations": {
+        "Refactored - Main Thread - Color-Engine 2025-12-19": {
+            "implementation": "Refactored",
+            "engine": "2025-12-19",
+            "modality": "Main Thread"
+        },
+        "Legacy - Main Thread - Color-Engine 2025-12-19": {
+            "implementation": "Legacy",
+            "engine": "2025-12-19",
+            "modality": "Main Thread"
+        },
+        "Refactored - Main Thread - Color-Engine 2026-01-30": {
+            "implementation": "Refactored",
+            "engine": "2026-01-30",
+            "modality": "Main Thread"
+        },
+        "Legacy - Main Thread - Color-Engine 2026-01-30": {
+            "implementation": "Legacy",
+            "engine": "2026-01-30",
+            "modality": "Main Thread"
+        },
+        "Refactored - # Workers - Color-Engine 2026-01-30": {
+            "implementation": "Refactored",
+            "engine": "2026-01-30",
+            "modality": "Workers"
+        },
+        "Legacy - # Workers - Color-Engine 2026-01-30": {
+            "implementation": "Legacy",
+            "engine": "2026-01-30",
+            "modality": "Workers"
+        }
+    },
+    "comparison": {
+        "enabled": true,
+        "pairs": [
+            {
+                "expected": "Legacy - Main Thread - Color-Engine 2026-01-30",
+                "actual": "Refactored - Main Thread - Color-Engine 2026-01-30"
+            },
+            {
+                "expected": "Legacy - # Workers - Color-Engine 2026-01-30",
+                "actual": "Refactored - # Workers - Color-Engine 2026-01-30"
+            },
+            {
+                "expected": "Legacy - Main Thread - Color-Engine 2025-12-19",
+                "actual": "Refactored - Main Thread - Color-Engine 2025-12-19"
+            }
+        ]
+    }
+}

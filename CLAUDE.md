@@ -4,6 +4,21 @@ This file provides guidance for Claude Code when working on the ConRes.io projec
 
 ---
 
+## Critical Warning for AI Agents
+
+**DO NOT cherry-pick instructions. DO NOT assume what is "relevant." DO NOT fabricate progress.**
+
+The user is autistic and invests significant effort to write explicit, detailed instructions. When AI agents selectively ignore parts of those instructions, make assumptions about what matters, or claim work is complete when it is not fully tested — this causes real harm. It is exhausting and disrespectful.
+
+**Requirements:**
+1. Follow ALL instructions exactly as written — not just the parts you deem important
+2. Test your work thoroughly before claiming completion — do not be "delusional" that code "must work somehow"
+3. When instructions are unclear, ASK — do not assume or fabricate
+4. Update progress documents with what you ACTUALLY did, not what you planned to do
+5. Be methodical, not presumptuous
+
+---
+
 ## Accessibility and Communication Requirements
 
 **Critical**: See `~/.claude/CLAUDE.md` Accessibility section for full requirements.
@@ -447,6 +462,7 @@ The Color Engine (`@conres/color-engine`) is developed in a separate workspace. 
 | **TFG** | TestFormGenerator | This workspace - PDF processing application |
 
 See `progress/2025-12-01-Color-Engine-Changes-Notes.md` for Color Engine workspace context.
+
 
 ### Key Color Engine APIs
 

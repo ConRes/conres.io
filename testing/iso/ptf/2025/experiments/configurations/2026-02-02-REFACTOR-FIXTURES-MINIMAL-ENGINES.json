@@ -1,0 +1,709 @@
+{
+    "$schema":        "./verification-matrix-config.schema.json",
+    "description":    "Fixtures Minimal Engines Matrix (2026-02-02)",
+    "inputs":         {
+        "2025-08-15 - ConRes - ISO PTF - CR1 (F9d) Fixtures - F-01": {
+            "pdf": "../../tests/fixtures/pdfs/2025-08-15 - ConRes - ISO PTF - CR1 (F9d) Fixtures - F-01.pdf"
+        }
+    },
+    "outputs":        {
+        "FIPS_WIDE_28T-TYPEavg - Relative Colorimetric": {
+            "profile":                  "../../tests/fixtures/profiles/FIPS_WIDE_28T-TYPEavg.icc",
+            "intent":                   "relative-colorimetric",
+            "blackpoint-compensation": true
+        }
+    },
+    "configurations": {
+        "Refactored - Main Thread - Color-Engine 2026-01-30": {
+            "implementation": "Refactored",
+            "engine":         "2026-01-30",
+            "modality":       "Main Thread"
+        },
+        "Refactored - Main Thread - Color-Engine 2025-12-19": {
+            "implementation": "Refactored",
+            "engine":         "2025-12-19",
+            "modality":       "Main Thread"
+        }
+    },
+    "comparisons":    {
+        "enabled": true,
+        "groups":  [
+            {
+                "enabled":     true,
+                "description": "Color Engine 2026-01-30 vs 2025-12-19",
+                "input":       "2025-08-15 - ConRes - ISO PTF - CR1 (F9d) Fixtures - F-01",
+                "outputs":     [ "FIPS_WIDE_28T-TYPEavg - Relative Colorimetric" ],
+                "pairs":       [
+                    {
+                        "R2026-01-30": "Refactored - Main Thread - Color-Engine 2026-01-30",
+                        "R2025-12-19": "Refactored - Main Thread - Color-Engine 2025-12-19"
+                    }
+                ],
+                "aspects":     [
+                    {
+                        "type":       "Delta-E",
+                        "resource":   "Image",
+                        "metrics":    [ "Average", "Maximum", "Unique" ],
+                        "sampling":   "Random",
+                        "mode":       "pairs",
+                        "transform":  {
+                            "colorspace":               "Lab",
+                            "intent":                   "relative-colorimetric",
+                            "blackpoint-compensation": true
+                        },
+                        "tolerances": { "Average": 2.0, "Maximum": 5.0 },
+                        "required":   true
+                    },
+                    {
+                        "type":      "Delta-E",
+                        "resource":  "Image",
+                        "metrics":   [ "Average", "Maximum", "Unique" ],
+                        "sampling":  "Random",
+                        "reference": "2025-08-15 - ConRes - ISO PTF - CR1 (F9d) Fixtures - F-01",
+                        "transform": {
+                            "colorspace":               "Lab",
+                            "intent":                   "relative-colorimetric",
+                            "blackpoint-compensation": true
+                        },
+                        "required":  true
+                    }
+                ]
+            }
+        ]
+    },
+    "changes":        {
+        "enabled": true,
+        "groups":  [
+            {
+                "description": "Color Engine 2026-01-30 vs 2025-12-19",
+                "input":       "2025-08-15 - ConRes - ISO PTF - CR1 (F9d) Fixtures - F-01",
+                "outputs":     [ "FIPS_WIDE_28T-TYPEavg - Relative Colorimetric" ],
+                "pairs":       [
+                    {
+                        "R2026-01-30": "Refactored - Main Thread - Color-Engine 2026-01-30",
+                        "R2025-12-19": "Refactored - Main Thread - Color-Engine 2025-12-19"
+                    }
+                ],
+                "aspects":     [
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "ICCBasedGray", "values": [ 0 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.025, 0.025, 0.025 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.025, 0.025, 0.025 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "ICCBasedGray", "values": [ 0.05 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.0625, 0.0625, 0.0625 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.0625, 0.0625, 0.0625 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "ICCBasedGray", "values": [ 0.1 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.1125, 0.1125, 0.1125 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.1125, 0.1125, 0.1125 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "ICCBasedGray", "values": [ 0.2 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.2, 0.2, 0.2 ],
+                            "tolerances": [ 0.0375, 0.0375, 0.0375 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.2, 0.2, 0.2 ],
+                            "tolerances": [ 0.0375, 0.0375, 0.0375 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "ICCBasedGray", "values": [ 0.3 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.3, 0.3, 0.3 ],
+                            "tolerances": [ 0.0375, 0.0375, 0.0375 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.3, 0.3, 0.3 ],
+                            "tolerances": [ 0.0375, 0.0375, 0.0375 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "ICCBasedGray", "values": [ 0.4 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.4, 0.4, 0.4 ],
+                            "tolerances": [ 0.05, 0.05, 0.05 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.4, 0.4, 0.4 ],
+                            "tolerances": [ 0.05, 0.05, 0.05 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "ICCBasedGray", "values": [ 0.5 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.5, 0.5, 0.5 ],
+                            "tolerances": [ 0.05, 0.05, 0.05 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.5, 0.5, 0.5 ],
+                            "tolerances": [ 0.05, 0.05, 0.05 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "ICCBasedGray", "values": [ 0.6 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.575, 0.575, 0.575 ],
+                            "tolerances": [ 0.05, 0.05, 0.05 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.575, 0.575, 0.575 ],
+                            "tolerances": [ 0.05, 0.05, 0.05 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "ICCBasedGray", "values": [ 0.7 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.7, 0.7, 0.7 ],
+                            "tolerances": [ 0.05, 0.05, 0.05 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.7, 0.7, 0.7 ],
+                            "tolerances": [ 0.05, 0.05, 0.05 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "ICCBasedGray", "values": [ 0.8 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.8, 0.8, 0.8 ],
+                            "tolerances": [ 0.0375, 0.0375, 0.0375 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.8, 0.8, 0.8 ],
+                            "tolerances": [ 0.0375, 0.0375, 0.0375 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "ICCBasedGray", "values": [ 0.9 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.9, 0.9, 0.9 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.9, 0.9, 0.9 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "ICCBasedGray", "values": [ 0.95 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.95, 0.95, 0.95 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.95, 0.95, 0.95 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "ICCBasedGray", "values": [ 1.0 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.9875, 0.9875, 0.9875 ],
+                            "tolerances": [ 0.0125, 0.0125, 0.0125 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.9875, 0.9875, 0.9875 ],
+                            "tolerances": [ 0.0125, 0.0125, 0.0125 ]
+                        }
+                    }
+                ]
+            },
+            {
+                "description": "Color Engine 2026-01-30 vs 2025-12-19",
+                "input":       "2025-08-15 - ConRes - ISO PTF - CR1 (F9d) Fixtures - F-01",
+                "outputs":     [ "FIPS_WIDE_28T-TYPEavg - Relative Colorimetric" ],
+                "pairs":       [
+                    {
+                        "R2026-01-30": "Refactored - Main Thread - Color-Engine 2026-01-30",
+                        "R2025-12-19": "Refactored - Main Thread - Color-Engine 2025-12-19"
+                    }
+                ],
+                "aspects":     [
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "ICCBasedRGB", "values": [ 0, 0, 0 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.025, 0.025, 0.025 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.025, 0.025, 0.025 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      {
+                            "colorspace": "ICCBasedRGB",
+                            "values":     [ 0.05, 0.05, 0.05 ]
+                        },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.0625, 0.0625, 0.0625 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.0625, 0.0625, 0.0625 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "ICCBasedRGB", "values": [ 0.1, 0.1, 0.1 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.1125, 0.1125, 0.1125 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.1125, 0.1125, 0.1125 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "ICCBasedRGB", "values": [ 0.2, 0.2, 0.2 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.2, 0.2, 0.2 ],
+                            "tolerances": [ 0.0375, 0.0375, 0.0375 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.2, 0.2, 0.2 ],
+                            "tolerances": [ 0.0375, 0.0375, 0.0375 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "ICCBasedRGB", "values": [ 0.3, 0.3, 0.3 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.3, 0.3, 0.3 ],
+                            "tolerances": [ 0.0375, 0.0375, 0.0375 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.3, 0.3, 0.3 ],
+                            "tolerances": [ 0.0375, 0.0375, 0.0375 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "ICCBasedRGB", "values": [ 0.4, 0.4, 0.4 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.4, 0.4, 0.4 ],
+                            "tolerances": [ 0.05, 0.05, 0.05 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.4, 0.4, 0.4 ],
+                            "tolerances": [ 0.05, 0.05, 0.05 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "ICCBasedRGB", "values": [ 0.5, 0.5, 0.5 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.5, 0.5, 0.5 ],
+                            "tolerances": [ 0.05, 0.05, 0.05 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.5, 0.5, 0.5 ],
+                            "tolerances": [ 0.05, 0.05, 0.05 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "ICCBasedRGB", "values": [ 0.6, 0.6, 0.6 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.575, 0.575, 0.575 ],
+                            "tolerances": [ 0.05, 0.05, 0.05 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.575, 0.575, 0.575 ],
+                            "tolerances": [ 0.05, 0.05, 0.05 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "ICCBasedRGB", "values": [ 0.7, 0.7, 0.7 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.7, 0.7, 0.7 ],
+                            "tolerances": [ 0.05, 0.05, 0.05 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.7, 0.7, 0.7 ],
+                            "tolerances": [ 0.05, 0.05, 0.05 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "ICCBasedRGB", "values": [ 0.8, 0.8, 0.8 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.8, 0.8, 0.8 ],
+                            "tolerances": [ 0.0375, 0.0375, 0.0375 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.8, 0.8, 0.8 ],
+                            "tolerances": [ 0.0375, 0.0375, 0.0375 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "ICCBasedRGB", "values": [ 0.9, 0.9, 0.9 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.9, 0.9, 0.9 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.9, 0.9, 0.9 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      {
+                            "colorspace": "ICCBasedRGB",
+                            "values":     [ 0.95, 0.95, 0.95 ]
+                        },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.95, 0.95, 0.95 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.95, 0.95, 0.95 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "ICCBasedRGB", "values": [ 1.0, 1.0, 1.0 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.9875, 0.9875, 0.9875 ],
+                            "tolerances": [ 0.0125, 0.0125, 0.0125 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.9875, 0.9875, 0.9875 ],
+                            "tolerances": [ 0.0125, 0.0125, 0.0125 ]
+                        }
+                    }
+                ]
+            },
+            {
+                "description": "Color Engine 2026-01-30 vs 2025-12-19",
+                "input":       "2025-08-15 - ConRes - ISO PTF - CR1 (F9d) Fixtures - F-01",
+                "outputs":     [ "FIPS_WIDE_28T-TYPEavg - Relative Colorimetric" ],
+                "pairs":       [
+                    {
+                        "R2026-01-30": "Refactored - Main Thread - Color-Engine 2026-01-30",
+                        "R2025-12-19": "Refactored - Main Thread - Color-Engine 2025-12-19"
+                    }
+                ],
+                "aspects":     [
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "Lab", "values": [ 0, 0, 0 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.025, 0.025, 0.025 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.025, 0.025, 0.025 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "Lab", "values": [ 5, 0, 0 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.0625, 0.0625, 0.0625 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.0625, 0.0625, 0.0625 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "Lab", "values": [ 10, 0, 0 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.1125, 0.1125, 0.1125 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.1125, 0.1125, 0.1125 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "Lab", "values": [ 20, 0, 0 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.2, 0.2, 0.2 ],
+                            "tolerances": [ 0.0375, 0.0375, 0.0375 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.2, 0.2, 0.2 ],
+                            "tolerances": [ 0.0375, 0.0375, 0.0375 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "Lab", "values": [ 30, 0, 0 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.275, 0.275, 0.275 ],
+                            "tolerances": [ 0.0375, 0.0375, 0.0375 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.275, 0.275, 0.275 ],
+                            "tolerances": [ 0.0375, 0.0375, 0.0375 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "Lab", "values": [ 40, 0, 0 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.3625, 0.3625, 0.3625 ],
+                            "tolerances": [ 0.0375, 0.0375, 0.0375 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.3625, 0.3625, 0.3625 ],
+                            "tolerances": [ 0.0375, 0.0375, 0.0375 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "Lab", "values": [ 50, 0, 0 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.45, 0.45, 0.45 ],
+                            "tolerances": [ 0.0375, 0.0375, 0.0375 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.45, 0.45, 0.45 ],
+                            "tolerances": [ 0.0375, 0.0375, 0.0375 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "Lab", "values": [ 60, 0, 0 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.525, 0.525, 0.525 ],
+                            "tolerances": [ 0.0375, 0.0375, 0.0375 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.525, 0.525, 0.525 ],
+                            "tolerances": [ 0.0375, 0.0375, 0.0375 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "Lab", "values": [ 70, 0, 0 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.6375, 0.6375, 0.6375 ],
+                            "tolerances": [ 0.0375, 0.0375, 0.0375 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.6375, 0.6375, 0.6375 ],
+                            "tolerances": [ 0.0375, 0.0375, 0.0375 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "Lab", "values": [ 80, 0, 0 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.75, 0.75, 0.75 ],
+                            "tolerances": [ 0.0375, 0.0375, 0.0375 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.75, 0.75, 0.75 ],
+                            "tolerances": [ 0.0375, 0.0375, 0.0375 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "Lab", "values": [ 90, 0, 0 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.875, 0.875, 0.875 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.875, 0.875, 0.875 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "Lab", "values": [ 95, 0, 0 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.95, 0.95, 0.95 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.95, 0.95, 0.95 ],
+                            "tolerances": [ 0.025, 0.025, 0.025 ]
+                        }
+                    },
+                    {
+                        "type":       "Color",
+                        "resource":   "Contents",
+                        "input":      { "colorspace": "Lab", "values": [ 100, 0, 0 ] },
+                        "Refactored": {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.9875, 0.9875, 0.9875 ],
+                            "tolerances": [ 0.0125, 0.0125, 0.0125 ]
+                        },
+                        "Legacy":     {
+                            "colorspace": "DeviceRGB",
+                            "values":     [ 0.9875, 0.9875, 0.9875 ],
+                            "tolerances": [ 0.0125, 0.0125, 0.0125 ]
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+}

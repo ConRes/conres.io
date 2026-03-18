@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>ISO Perceptual Test Form - conres.io</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <link rel=stylesheet href="https://smotaal.io/markout/styles/styles.css" />
+    <style>
+        html {
+            --shade: #66aa99f6;
+            /* --shade-dark: #336699f6; */
+        }
+
+        label+select {
+            display: flex;
+            place-self: center;
+            margin: 1em auto;
+        }
+
+        :is(article, aside, nav, section) h1 {
+            font-size: 1.75em;
+        }
+
+        article :is(ul, ol) {
+            display: block;
+            width: fit-content;
+            margin: 0 auto;
+            place-items: start;
+            text-align: start;
+            /* outline: 1px solid red; */
+        }
+
+        article+hr:has(+ article) {
+            border-width: 1px;
+            /* margin-top: 1em; */
+            /* width: 50%; */
+            /* outline: 1px solid red; */
+        }
+
+        article div {
+            /* outline: 1px solid red; */
+            width: fit-content;
+            /* width: minmax(min-content, max-content); */
+            /* max-width: minmax(min-content, max-content); */
+            margin: 0 auto;
+        }
+
+        article progress {
+            /* outline: 1px solid red; */
+        }
+
+        article img.inline-icon {
+            height: 1em;
+            display: inline-block;
+            margin-block: 0.125em -0.125em;
+            margin-inline: 0.125em;
+            /* vertical-align: middle; */
+            /* justify-self: first baseline; */
+        }
+
+        /* article :is(ul, ol):has(> li > *) li { */
+        article :is(ul, ol)>li {
+            /* outline: 1px solid red; */
+            margin-block: 0.5em;
+        }
+
+        article fieldset {
+            border: none;
+        }
+
+        article :is(form, fieldset) {
+            display: grid;
+            width: fit-content;
+            margin: 1em auto;
+            grid-template-columns: [row-start] 1fr [field-start] 3fr [row-end];
+            gap: 1em;
+        }
+
+        article :is(form, fieldset) label:not(:has(+ .full-row)) {
+            grid-column: row-start;
+            text-align: right;
+        }
+
+        article :is(form, fieldset) input {
+            grid-column: field-start;
+        }
+
+        article :is(form, fieldset) :is(p, ul, ol, progress, progress + output, .full-row, label:has(+ .full-row, + progress)) {
+            grid-column-start: row-start;
+            grid-column-end: row-end;
+            place-self: center;
+            /* outline: 1px solid green; */
+        }
+
+        article :is(form, fieldset) progress+output {
+            margin-block-start: -1em;
+            font-size: smaller;
+        }
+
+        article :is(article, section):has(fieldset, input, button):not(:focus-within) {
+            /* opacity: 0.5; */
+        }
+
+        form>article :is(article, section):has(>fieldset:disabled) {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "pdf-lib": "../packages/pdf-lib/pdf-lib.esm.js",
+                "icc": "../packages/icc/index.js"
+            }
+        }
+    </script>
+    <script type="module" src="../generate.js"></script>
+</head>
+
+<body>
+    <main>
+        <form id="test-form-convert-color-only-form" onsubmit="return false;" disabled>
+            <article id="generator" style="text-align: center;">
+                <header>
+                    <!-- <img width=75% alt="conres.io" src="/assets/conres-io-preview.png" /> -->
+                    <h1>Contrast-Resolution Perceptual Test Form Generator</h1>
+                    <p>This page is intended to generate individualized PDF files used to conduct the ISO
+                        Contrast-Resolution perceptual round robin tests.</p>
+                </header>
+                <section id="serialization">
+                    <!-- <h2>Serialization</h2> -->
+                    <article id="validation">
+                        <h2>Validation</h2>
+                        <fieldset name="validation-fieldset">
+                            <label for="test-form-file-input" class="full-row">Select the color converted PDF
+                                file:</label>
+                            <input type="file" id="prepared-test-form-file-input" class="full-row"
+                                accept="application/pdf" />
+                            <div class="full-row">
+                                <button id="test-form-validation-button">Validate</button>
+                            </div>
+                            <fieldset name="validation-progress-fieldset" style="opacity:0;" class="full-row">
+                                <progress id="test-form-validation-progress" name="test-form-validation-progress"
+                                    value="0" max="100"></progress>
+                                <output id="test-form-validation-progress-output">0%</output>
+                            </fieldset>
+                        </fieldset>
+                    </article>
+                    <hr />
+                    <article id="generation">
+                        <h2>Generation</h2>
+                        <fieldset name="generation-fieldset">
+                            <label class="full-row">The labelled PDF and metadata files are ready to be generated:</label>
+                            <div class="full-row">
+                                <button id="test-form-generation-button">Generate</button>
+                                <p>Once generated, you should see two new files in your downloads, the labelled test
+                                    form as a PDF and
+                                    metadata in a JSON file. Make sure you keep them together.</p>
+                                <p><b>Note</b>: If you will be submitting those prints, the metadata file must by
+                                    submitted along with your prints.</p>
+                            </div>
+                            <div class="full-row">
+                                <label for="debugging-input"><input type="checkbox"
+                                        id="test-form-generation-debugging-checkbox" class="full-row" />
+                                    Debugging</label>
+                                <p>Enable debugging to see the generated PDF and metadata files in the console.</p>
+                                <p><b>Note</b>: This is only for testing purposes and should not be used in production.
+                                </p>
+                            </div>
+                            <fieldset name="generation-progess-fieldset" style="opacity:0;" class="full-row">
+                                <progress id="test-form-generation-progress" name="test-form-generation-progress"
+                                    max="100"></progress>
+                                <output id="test-form-generation-progress-output">0%</output>
+                            </fieldset>
+                        </fieldset>
+                    </article>
+                </section>
+            </article>
+
+        </form>
+    </main>
+</body>
+
+</html>

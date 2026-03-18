@@ -2,8 +2,8 @@
 
 **Project:** ConRes PDF Test Form Generator  
 **Purpose:** Integrate Color Engine for in-browser color transformation, eliminating Adobe Acrobat dependency  
-**Last Updated:** 2025-12-19  
-**Status:** 🟢 Phase 4-5 Complete - Worker Parallelization, SIMD, Adaptive BPC, Isomorphic Compatibility
+**Last Updated:** 2026-02-03
+**Status:** 🟢 Lab Output Support - Lab color space for content streams and images, 32-bit policy decision pending
 
 ---
 
@@ -261,6 +261,8 @@ static async convertDocumentColors(
 - [x] Can convert all RGB/Gray color spaces to CMYK
 - [x] K-Only GCR works for neutral grays
 - [x] Transparency blending spaces are updated (via full workflow integration)
+- [x] Lab output support for content streams and images (8-bit, 16-bit)
+- [ ] Lab 32-bit output: Policy decision pending (PDF spec limits images to 16-bit max)
 - [ ] Output matches Adobe Acrobat reference conversions (within tolerance)
   - [ ] Analyze Adobe Acrobat reference PDF to identify matching elements
   - [ ] Determine the reasonable tolerances in a `JSON` file with the `- Specs.json` next to the respective reference PDF
@@ -846,6 +848,163 @@ Test categories:
   - Total: 120 extracted PDF files, all structurally valid
 - [x] Output saved to `testing/iso/ptf/2025/experiments/output/2025-12-17-002/`
 - [x] **Technical Note**: Files are larger than minimal because `copyPages()` copies all page resources including unused images. This is acceptable for debugging/analysis purposes.
+
+### 2026-02-03 (Session 16 - Lab Output Support & 32-bit Policy Research)
+
+- [x] **Lab Color Space Output Support**
+  - Content streams: Lab values work correctly (32-bit float text values)
+  - Images: Fixed `#applyImageResult()` in `pdf-page-color-converter.js` to use Lab color space array reference instead of defaulting to DeviceRGB
+  - Lab descriptor retrieved before image processing (moved from after content streams)
+  - Lab 8-bit and 16-bit output verified working in output folder `2026-02-03-005`
+
+- [x] **Code Fixes Applied**
+  - `pdf-page-color-converter.js`:
+    - Added `#currentLabDescriptor` field to store Lab color space descriptor
+    - Modified `convertColor()` to get Lab descriptor before image/stream processing
+    - Updated `#applyImageResult()` to handle Lab output using descriptor's ref or resource
+    - Fixed outdated comment "ensures 8-bit for CMYK" → "Update bits per component from converter result"
+  - `pdf-image-color-converter.js`:
+    - Fixed `applyWorkerResult()` hardcoded `bitsPerComponent: 8` to properly cascade from worker result → configuration → input
+
+- [x] **32-bit Output Research (ISO 32000-2)**
+  - **Image XObjects**: BitsPerComponent "shall be 1, 2, 4, 8, or (in PDF 1.5) 16"
+  - **Shading dictionaries**: BitsPerCoordinate allows up to 32 (for coordinates only), BitsPerComponent still limited to 16
+  - **JPXDecode (JPEG2000)**: Bit depth determined by decoder, but not native 32-bit float
+  - **Conclusion**: 32-bit per component is NOT valid for PDF image XObjects; maximum is 16-bit
+
+- [ ] **Policy Decision Pending**
+  - For Lab 32-bit output:
+    - Content streams: Work fine (text values)
+    - Images: Must use 16-bit maximum per PDF spec
+  - Options being considered:
+    1. Clamp 32-bit to 16-bit for images with warning
+    2. Error when 32-bit requested for images
+    3. Separate output bit depth settings for images vs content streams
+    4. Explore JPEG2000 (JPXDecode) as potential workaround
+
+- [x] **Current Test Results (output 2026-02-03-005)**
+  - Lab 8-bit output: Working
+  - Lab 16-bit output: Working
+  - Lab 32-bit main thread: Error "An error exists on this page" (invalid BitsPerComponent)
+  - Lab 32-bit workers: Outputs 16-bit instead (correct constraint enforcement)
+
+### 2026-01-31 (Session 15 - Policy Refactor & Profile Type Enforcement)
+
+- [x] **ColorConversionPolicy Declauding Complete**
+  - Flat, rules-driven policy class replaces inheritance hierarchy
+  - Deleted `ColorEngineColorConversionPolicy` - logic moved to declarative rules
+  - Rules engine supports engine-version-specific overrides
+  - Added `evaluateConversion()` method with rule tracing
+
+- [x] **Policy API Changes**
+  - `isBigEndian: boolean` → `endianness: 'native' | 'big' | 'little'`
+  - `isPlanar: boolean` → `layout: 'packed' | 'planar'`
+  - Removed `FORMAT_PROPERTIES` Map (non-deterministic)
+  - Converted `FORMAT_LOOKUP` from Map to Record
+  - Added `requiresMultiprofileBlackPointScaling()` for `cmsFLAGS_MULTIPROFILE_BPC_SCALING`
+
+- [x] **Policy Propagation Fix**
+  - **Root Cause:** `PDFDocumentColorConverter` was not using `createChildConverter()` to instantiate `PDFPageColorConverter`
+  - **Fix:** Changed direct instantiation to `this.createChildConverter(PDFPageColorConverter, pageConfig)`
+  - Policy now correctly propagates through the entire converter hierarchy
+
+- [x] **Profile Type Enforcement**
+  - Removed all string profile fallbacks (`?? 'sRGB'`, `?? 'sGray'`)
+  - Profile types changed from `ArrayBuffer | string` to `ArrayBuffer` only
+  - Only exception: `'Lab'` string for `colorEngine.createLab4Profile()`
+  - Files fixed: `pdf-content-stream-color-converter.js`, `buffer-registry.js`, `worker-pool-entrypoint.js`, `lookup-table-color-converter.js`, `pdf-page-color-converter.js`, `worker-pool.js`
+
+- [x] **Content Stream Converter Refactor**
+  - Refactored `PDFContentStreamColorConverter.convertBatchUncached()` to use inherited `convertColorsBuffer()` method
+  - Removed direct `ColorEngineService.convertColors()` bypass
+  - Content stream conversions now respect policy rules (multiprofile BPC scaling, etc.)
+
+- [x] **Worker Path Fix**
+  - Fixed `worker-pool-entrypoint.js` color engine path construction
+  - Was prepending extra `../` to already-relative path
+
+- [x] **241 tests pass, 4 pre-existing failures** (unrelated to policy refactor)
+
+### 2026-01-22 (Session 14 - Color Converter Class Hierarchy Complete)
+
+- [x] **Color Converter Class Hierarchy Complete**
+  - New class-based architecture in `testing/iso/ptf/2025/classes/`
+  - 96 tests passing across 10 test files
+
+- [x] **Class Files Created**
+  - `color-converter.js` - Abstract base class with template method pattern
+  - `image-color-converter.js` - Image pixel buffer conversion
+  - `lookup-table-color-converter.js` - Cached color lookups for content streams
+  - `pdf-content-stream-color-converter.js` - PDF content stream color operations
+  - `pdf-document-color-converter.js` - Document-level conversion orchestration
+  - `pdf-image-color-converter.js` - PDF image XObject conversion
+  - `pdf-page-color-converter.js` - Per-page conversion coordination
+  - `profile-pool.js` - ICC profile caching with SharedArrayBuffer support
+  - `buffer-registry.js` - PDF stream to SharedArrayBuffer mapping
+
+- [x] **Integration Tests Created**
+  - `tests/ColorConverterClasses.test.js` - 11 integration tests covering:
+    - Full class hierarchy inheritance chain
+    - Configuration derivation (document → page → image)
+    - Per-page and per-image rendering intent overrides
+    - Memory cleanup with ProfilePool and BufferRegistry
+    - Shared ProfilePool between converters
+    - Document conversion hook order
+    - Worker mode support flags
+    - Lab image handling
+    - Dispose idempotency
+
+- [x] **Stub Scripts Updated to Use Class-Based Implementation**
+  - `experiments/convert-pdf-color.js` - Main CLI tool
+  - `experiments/scripts/convert-colors.js` - Batch color conversion
+  - `experiments/scripts/inspect-content-stream-colors.js` - Content stream parsing
+  - `experiments/scripts/trace-pdf-conversion.js` - Conversion tracing
+  - `experiments/scripts/matrix-benchmark.js` - Configuration benchmarks
+  - `experiments/scripts/benchmark-final.js` - Comprehensive benchmarks
+  - `experiments/scripts/benchmark-transform-methods.js` - Transform method benchmarks
+  - All scripts support `--legacy` flag for backward compatibility
+
+- [x] **Parity Verification Script Created**
+  - `experiments/scripts/compare-implementations.js` - Compares legacy vs new implementation
+  - Reports timing, file size, and content hash differences
+
+### 2026-01-07 (Session 13 - Color Engine 2026-01-07 Feature Integration)
+
+- [x] **New Color Engine Features Integrated**
+  - **Feature 1: createMultiprofileTransform** - Chains 2+ ICC profiles in a single transform
+  - **Feature 2: Direct Gray/Lab → K-Only CMYK** - Single transform replaces two-step workarounds
+
+- [x] **ColorEngineService.js Updates**
+  - Fixed sGray profile stub: `createSRGBProfile()` → `createGray2Profile()` (proper gamma 2.2 gray)
+  - Added `#multiprofileTransformCache` for caching multiprofile transforms
+  - Added `#getOrCreateMultiprofileTransform(profiles, inputFormat, outputFormat, intent, flags)`
+  - Added `convertPixelBufferMultiprofile(inputPixels, options)` public method
+  - Updated `dispose()` to clean up multiprofile cache
+
+- [x] **PDFService.js Updates**
+  - Replaced Gray ICC → sRGB → CMYK two-step workaround (lines 1051-1102)
+  - New approach: `Gray ICC → CMYK (Multi)` using `convertPixelBufferMultiprofile([Gray, CMYK])`
+  - Both indexed and direct conversion paths updated
+
+- [x] **Worker Files Updated**
+  - `ColorTransformWorker.js`: Fixed sGray stub to use `createGray2Profile()`
+  - `StreamTransformWorker.js`: Fixed sGray stub to use `createGray2Profile()`
+
+- [x] **CLI Tool Updates (`convert-pdf-color.js`)**
+  - Added `--using-color-engine-package=<path>` option for package version selection
+  - Added `--transform-method=<method>` option: `direct` | `multiprofile` (default: multiprofile)
+  - Transform method displayed in options output
+
+- [x] **Transform Notation Convention Established**
+  - `A → B (Direct)` = `createTransform(A, B)` - 2 profiles
+  - `A → B (Multi)` = `createMultiprofileTransform([A, B])` - 2+ profiles
+  - `A → B → C (Multi)` = `createMultiprofileTransform([A, B, C])` - 3+ profiles
+
+- [x] **Intentional Exceptions Documented**
+  - Lab → CMYK: Always uses Relative Colorimetric + BPC (never K-Only GCR)
+  - RGB Output with K-Only GCR: Falls back to Relative Colorimetric + BPC
+
+- [x] **All 50 tests passing**
 
 ---
 
