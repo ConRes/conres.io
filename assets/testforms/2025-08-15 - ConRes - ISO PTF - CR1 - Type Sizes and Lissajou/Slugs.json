@@ -1,0 +1,56 @@
+{
+    "pages": [
+        {
+            "metadata": {
+                "title": "P-40 Type Sizes",
+                "resolution": {
+                    "values": [
+                        1200
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "sGray",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-40 Type Sizes",
+                "resolution": {
+                    "values": [
+                        1200
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "SepK",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-45 Lissajou",
+                "resolution": {
+                    "values": [
+                        1200
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "sGray",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-45 Lissajou",
+                "resolution": {
+                    "values": [
+                        1200
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "SepK",
+                "isColorManaged": true
+            }
+        }
+    ]
+}

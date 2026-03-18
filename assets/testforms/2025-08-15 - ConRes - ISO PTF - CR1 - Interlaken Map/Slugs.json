@@ -1,0 +1,43 @@
+{
+    "pages": [
+        {
+            "metadata": {
+                "title": "P-31 Interlaken Map",
+                "resolution": {
+                    "values": [
+                        900
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "sRGB",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-31 Interlaken Map",
+                "resolution": {
+                    "values": [
+                        900
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "sGray",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-31 Interlaken Map",
+                "resolution": {
+                    "values": [
+                        900
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "Lab",
+                "isColorManaged": true
+            }
+        }
+    ]
+}

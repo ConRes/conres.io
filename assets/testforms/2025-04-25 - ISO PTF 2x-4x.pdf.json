@@ -92,7 +92,7 @@
             "metadata": {
                 "title": "#30 Vitznau Map",
                 "resolution": { "value": 825.763, "unit": "ppi" },
-                "colorSpace": "LAB",
+                "colorSpace": "Lab",
                 "isColorManaged": true
             }
         },

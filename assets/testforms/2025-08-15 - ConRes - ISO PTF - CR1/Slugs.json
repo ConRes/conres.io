@@ -1,0 +1,374 @@
+{
+    "pages": [
+        {
+            "metadata": {
+                "title": "#P-20 London",
+                "resolution": {
+                    "values": [
+                        2400,
+                        1200
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "sRGB",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-20 London",
+                "resolution": {
+                    "values": [
+                        2400,
+                        1200
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "sGray",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-20 London",
+                "resolution": {
+                    "values": [
+                        2400,
+                        1200
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "Lab",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-21 Winter Trees",
+                "resolution": {
+                    "values": [
+                        1200
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "sRGB",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-21 Winter Trees",
+                "resolution": {
+                    "values": [
+                        1200
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "sGray",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-21 Winter Trees",
+                "resolution": {
+                    "values": [
+                        1200
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "Lab",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-22 Lake and Cat",
+                "resolution": {
+                    "values": [
+                        1800,
+                        1200
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "sRGB",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-22 Lake and Cat",
+                "resolution": {
+                    "values": [
+                        1800,
+                        1200
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "sGray",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-22 Lake and Cat",
+                "resolution": {
+                    "values": [
+                        1800,
+                        1200
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "Lab",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-30 Vitznau Map",
+                "resolution": {
+                    "values": [
+                        900
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "sRGB",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-30 Vitznau Map",
+                "resolution": {
+                    "values": [
+                        900
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "sGray",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-30 Vitznau Map",
+                "resolution": {
+                    "values": [
+                        900
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "Lab",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-31 Interlaken Map",
+                "resolution": {
+                    "values": [
+                        900
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "sRGB",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-31 Interlaken Map",
+                "resolution": {
+                    "values": [
+                        900
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "sGray",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-31 Interlaken Map",
+                "resolution": {
+                    "values": [
+                        900
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "Lab",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-32 Interlaken Aerial",
+                "resolution": {
+                    "values": [
+                        900
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "sRGB",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-32 Interlaken Aerial",
+                "resolution": {
+                    "values": [
+                        900
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "sGray",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-32 Interlaken Aerial",
+                "resolution": {
+                    "values": [
+                        900
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "Lab",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-40 Type Sizes",
+                "resolution": {
+                    "values": [
+                        1200
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "sGray",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-40 Type Sizes",
+                "resolution": {
+                    "values": [
+                        1200
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "SepK",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-45 Lissajou",
+                "resolution": {
+                    "values": [
+                        1200
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "sGray",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-45 Lissajou",
+                "resolution": {
+                    "values": [
+                        1200
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "SepK",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-CR21-1 ConRes TV25 vs TV75",
+                "resolution": {
+                    "values": [
+                        1200
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "sRGB",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-CR21-1 ConRes TV25 vs TV75",
+                "resolution": {
+                    "values": [
+                        1200
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "sGray",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-CR21-1 ConRes TV25 vs TV75",
+                "resolution": {
+                    "values": [
+                        1200
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "Lab",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-CR21-2 ConRes CR21 vs CR20",
+                "resolution": {
+                    "values": [
+                        1200
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "sRGB",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-CR21-2 ConRes CR21 vs CR20",
+                "resolution": {
+                    "values": [
+                        1200
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "sGray",
+                "isColorManaged": true
+            }
+        },
+        {
+            "metadata": {
+                "title": "P-CR21-2 ConRes CR21 vs CR20",
+                "resolution": {
+                    "values": [
+                        1200
+                    ],
+                    "unit": "ppi"
+                },
+                "colorSpace": "Lab",
+                "isColorManaged": true
+            }
+        }
+    ]
+}
