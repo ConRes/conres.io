@@ -49,8 +49,8 @@ function createMockRef(objectNumber) {
 /**
  * Tests that PDFContentStreamColorConverter extends LookupTableColorConverter.
  *
- * @param {typeof import('../../classes/pdf-content-stream-color-converter.js').PDFContentStreamColorConverter} PDFContentStreamColorConverter
- * @param {typeof import('../../classes/lookup-table-color-converter.js').LookupTableColorConverter} LookupTableColorConverter
+ * @param {typeof import('../../classes/baseline/pdf-content-stream-color-converter.js').PDFContentStreamColorConverter} PDFContentStreamColorConverter
+ * @param {typeof import('../../classes/baseline/lookup-table-color-converter.js').LookupTableColorConverter} LookupTableColorConverter
  */
 async function invokeInheritanceTest(PDFContentStreamColorConverter, LookupTableColorConverter) {
     const config = {
@@ -78,7 +78,7 @@ async function invokeInheritanceTest(PDFContentStreamColorConverter, LookupTable
 /**
  * Tests content stream parsing.
  *
- * @param {typeof import('../../classes/pdf-content-stream-color-converter.js').PDFContentStreamColorConverter} PDFContentStreamColorConverter
+ * @param {typeof import('../../classes/baseline/pdf-content-stream-color-converter.js').PDFContentStreamColorConverter} PDFContentStreamColorConverter
  */
 async function invokeContentStreamParsingTest(PDFContentStreamColorConverter) {
     const converter = new PDFContentStreamColorConverter({
@@ -130,7 +130,7 @@ async function invokeContentStreamParsingTest(PDFContentStreamColorConverter) {
 /**
  * Tests content stream rebuilding with mock conversion.
  *
- * @param {typeof import('../../classes/pdf-content-stream-color-converter.js').PDFContentStreamColorConverter} PDFContentStreamColorConverter
+ * @param {typeof import('../../classes/baseline/pdf-content-stream-color-converter.js').PDFContentStreamColorConverter} PDFContentStreamColorConverter
  */
 async function invokeContentStreamRebuildingTest(PDFContentStreamColorConverter) {
     const converter = new PDFContentStreamColorConverter({
@@ -154,7 +154,8 @@ async function invokeContentStreamRebuildingTest(PDFContentStreamColorConverter)
         cacheHit: false,
     }];
 
-    const newText = converter.rebuildContentStream(originalText, replacements).text;
+    const { segments } = converter.rebuildContentStream(originalText, replacements);
+    const newText = [...segments].join('');
 
     // console.log('Rebuilt content stream:', newText);
 
@@ -171,7 +172,7 @@ async function invokeContentStreamRebuildingTest(PDFContentStreamColorConverter)
 /**
  * Tests hooks are called in correct order.
  *
- * @param {typeof import('../../classes/pdf-content-stream-color-converter.js').PDFContentStreamColorConverter} PDFContentStreamColorConverter
+ * @param {typeof import('../../classes/baseline/pdf-content-stream-color-converter.js').PDFContentStreamColorConverter} PDFContentStreamColorConverter
  */
 async function invokeHookOrderTest(PDFContentStreamColorConverter) {
     const callOrder = [];
@@ -252,7 +253,7 @@ async function invokeHookOrderTest(PDFContentStreamColorConverter) {
 /**
  * Tests worker task preparation.
  *
- * @param {typeof import('../../classes/pdf-content-stream-color-converter.js').PDFContentStreamColorConverter} PDFContentStreamColorConverter
+ * @param {typeof import('../../classes/baseline/pdf-content-stream-color-converter.js').PDFContentStreamColorConverter} PDFContentStreamColorConverter
  */
 async function invokeWorkerTaskPreparationTest(PDFContentStreamColorConverter) {
     const converter = new PDFContentStreamColorConverter({
@@ -287,7 +288,7 @@ async function invokeWorkerTaskPreparationTest(PDFContentStreamColorConverter) {
 /**
  * Tests worker mode is supported.
  *
- * @param {typeof import('../../classes/pdf-content-stream-color-converter.js').PDFContentStreamColorConverter} PDFContentStreamColorConverter
+ * @param {typeof import('../../classes/baseline/pdf-content-stream-color-converter.js').PDFContentStreamColorConverter} PDFContentStreamColorConverter
  */
 async function invokeWorkerModeSupportTest(PDFContentStreamColorConverter) {
     const converter = new PDFContentStreamColorConverter({
@@ -308,7 +309,7 @@ async function invokeWorkerModeSupportTest(PDFContentStreamColorConverter) {
 /**
  * Tests parsing with decimal starting with dot.
  *
- * @param {typeof import('../../classes/pdf-content-stream-color-converter.js').PDFContentStreamColorConverter} PDFContentStreamColorConverter
+ * @param {typeof import('../../classes/baseline/pdf-content-stream-color-converter.js').PDFContentStreamColorConverter} PDFContentStreamColorConverter
  */
 async function invokeDecimalParsingTest(PDFContentStreamColorConverter) {
     const converter = new PDFContentStreamColorConverter({
@@ -336,7 +337,7 @@ async function invokeDecimalParsingTest(PDFContentStreamColorConverter) {
 /**
  * Tests dispose cleans up resources.
  *
- * @param {typeof import('../../classes/pdf-content-stream-color-converter.js').PDFContentStreamColorConverter} PDFContentStreamColorConverter
+ * @param {typeof import('../../classes/baseline/pdf-content-stream-color-converter.js').PDFContentStreamColorConverter} PDFContentStreamColorConverter
  */
 async function invokeDisposeTest(PDFContentStreamColorConverter) {
     const converter = new PDFContentStreamColorConverter({
@@ -361,16 +362,16 @@ async function invokeDisposeTest(PDFContentStreamColorConverter) {
 // ============================================================================
 
 describe('PDFContentStreamColorConverter', () => {
-    /** @type {typeof import('../../classes/pdf-content-stream-color-converter.js').PDFContentStreamColorConverter} */
+    /** @type {typeof import('../../classes/baseline/pdf-content-stream-color-converter.js').PDFContentStreamColorConverter} */
     let PDFContentStreamColorConverter;
-    /** @type {typeof import('../../classes/lookup-table-color-converter.js').LookupTableColorConverter} */
+    /** @type {typeof import('../../classes/baseline/lookup-table-color-converter.js').LookupTableColorConverter} */
     let LookupTableColorConverter;
 
     before(async () => {
-        const ltModule = await import('../../classes/lookup-table-color-converter.js');
+        const ltModule = await import('../../classes/baseline/lookup-table-color-converter.js');
         LookupTableColorConverter = ltModule.LookupTableColorConverter;
 
-        const csModule = await import('../../classes/pdf-content-stream-color-converter.js');
+        const csModule = await import('../../classes/baseline/pdf-content-stream-color-converter.js');
         PDFContentStreamColorConverter = csModule.PDFContentStreamColorConverter;
     });
 

@@ -89,7 +89,7 @@ describe('ColorEngineProvider', () => {
         skip: TruthyEnvironmentParameterMatcher.test(process.env.TESTS_ONLY_LEGACY),
     }, async () => {
         const result = await page?.evaluate(async () => {
-            const { ColorEngineProvider } = await import('../classes/color-engine-provider.js');
+            const { ColorEngineProvider } = await import('../classes/baseline/color-engine-provider.js');
 
             const provider = new ColorEngineProvider();
             await provider.initialize();
@@ -110,7 +110,7 @@ describe('ColorEngineProvider', () => {
         skip: TruthyEnvironmentParameterMatcher.test(process.env.TESTS_ONLY_LEGACY),
     }, async () => {
         const result = await page?.evaluate(async () => {
-            const { ColorEngineProvider } = await import('../classes/color-engine-provider.js');
+            const { ColorEngineProvider } = await import('../classes/baseline/color-engine-provider.js');
 
             const provider = new ColorEngineProvider();
 
@@ -134,7 +134,7 @@ describe('ColorEngineProvider', () => {
         skip: TruthyEnvironmentParameterMatcher.test(process.env.TESTS_ONLY_LEGACY),
     }, async () => {
         const result = await page?.evaluate(async () => {
-            const { ColorEngineProvider } = await import('../classes/color-engine-provider.js');
+            const { ColorEngineProvider } = await import('../classes/baseline/color-engine-provider.js');
 
             const provider = new ColorEngineProvider();
 
@@ -158,7 +158,7 @@ describe('ColorEngineProvider', () => {
         skip: TruthyEnvironmentParameterMatcher.test(process.env.TESTS_ONLY_LEGACY),
     }, async () => {
         const result = await page?.evaluate(async () => {
-            const { ColorEngineProvider } = await import('../classes/color-engine-provider.js');
+            const { ColorEngineProvider } = await import('../classes/baseline/color-engine-provider.js');
 
             const provider = new ColorEngineProvider();
             await provider.initialize();
@@ -196,7 +196,7 @@ describe('ColorEngineProvider', () => {
         skip: TruthyEnvironmentParameterMatcher.test(process.env.TESTS_ONLY_LEGACY),
     }, async () => {
         const result = await page?.evaluate(async () => {
-            const { ColorEngineProvider } = await import('../classes/color-engine-provider.js');
+            const { ColorEngineProvider } = await import('../classes/baseline/color-engine-provider.js');
 
             const provider = new ColorEngineProvider();
             await provider.initialize();
@@ -219,7 +219,7 @@ describe('ColorEngineProvider', () => {
         const profilePath = FIXTURES.sRGBProfile;
 
         const result = await page?.evaluate(async (path) => {
-            const { ColorEngineProvider } = await import('../classes/color-engine-provider.js');
+            const { ColorEngineProvider } = await import('../classes/baseline/color-engine-provider.js');
 
             // Load profile fixture
             const response = await fetch(path);
@@ -257,7 +257,7 @@ describe('ColorEngineProvider', () => {
         const profilePath = FIXTURES.eciCMYKProfile;
 
         const result = await page?.evaluate(async (path) => {
-            const { ColorEngineProvider } = await import('../classes/color-engine-provider.js');
+            const { ColorEngineProvider } = await import('../classes/baseline/color-engine-provider.js');
 
             // Load CMYK profile
             const response = await fetch(path);
@@ -307,7 +307,7 @@ describe('ColorEngineProvider', () => {
         const profilePath = FIXTURES.eciCMYKProfile;
 
         const result = await page?.evaluate(async (path) => {
-            const { ColorEngineProvider } = await import('../classes/color-engine-provider.js');
+            const { ColorEngineProvider } = await import('../classes/baseline/color-engine-provider.js');
 
             // Load CMYK profile
             const response = await fetch(path);
@@ -372,7 +372,7 @@ describe('ColorEngineProvider', () => {
         skip: TruthyEnvironmentParameterMatcher.test(process.env.TESTS_ONLY_LEGACY),
     }, async () => {
         const result = await page?.evaluate(async () => {
-            const { ColorEngineProvider } = await import('../classes/color-engine-provider.js');
+            const { ColorEngineProvider } = await import('../classes/baseline/color-engine-provider.js');
 
             const provider = new ColorEngineProvider();
             await provider.initialize();
@@ -392,7 +392,7 @@ describe('ColorEngineProvider', () => {
         skip: TruthyEnvironmentParameterMatcher.test(process.env.TESTS_ONLY_LEGACY),
     }, async () => {
         const result = await page?.evaluate(async () => {
-            const { ColorEngineProvider } = await import('../classes/color-engine-provider.js');
+            const { ColorEngineProvider } = await import('../classes/baseline/color-engine-provider.js');
 
             const provider = new ColorEngineProvider();
             await provider.initialize();
@@ -418,7 +418,7 @@ describe('ColorEngineProvider', () => {
         // This test verifies the constructor accepts enginePath
         // We use the default path since we don't have multiple versions loaded
         const result = await page?.evaluate(async () => {
-            const { ColorEngineProvider, DEFAULT_ENGINE_PATH } = await import('../classes/color-engine-provider.js');
+            const { ColorEngineProvider, DEFAULT_ENGINE_PATH } = await import('../classes/baseline/color-engine-provider.js');
 
             const provider = new ColorEngineProvider({
                 enginePath: DEFAULT_ENGINE_PATH,

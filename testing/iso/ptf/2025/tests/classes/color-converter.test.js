@@ -17,7 +17,7 @@ import { TruthyEnvironmentParameterMatcher } from '../helpers.js';
 
 /**
  * Test configuration object.
- * @type {import('../../classes/color-converter.js').ColorConverterConfiguration}
+ * @type {import('../../classes/baseline/color-converter.js').ColorConverterConfiguration}
  */
 const TEST_CONFIG = {
     renderingIntent: 'relative-colorimetric',
@@ -35,7 +35,7 @@ const TEST_CONFIG = {
 /**
  * Tests that configuration is frozen at construction.
  *
- * @param {typeof import('../../classes/color-converter.js').ColorConverter} ColorConverter
+ * @param {typeof import('../../classes/baseline/color-converter.js').ColorConverter} ColorConverter
  */
 async function invokeConfigurationFrozenTest(ColorConverter) {
     const converter = new ColorConverter(TEST_CONFIG);
@@ -63,7 +63,7 @@ async function invokeConfigurationFrozenTest(ColorConverter) {
 /**
  * Tests parent-child relationship establishment.
  *
- * @param {typeof import('../../classes/color-converter.js').ColorConverter} ColorConverter
+ * @param {typeof import('../../classes/baseline/color-converter.js').ColorConverter} ColorConverter
  */
 async function invokeParentChildRelationshipTest(ColorConverter) {
     const parent = new ColorConverter(TEST_CONFIG);
@@ -90,7 +90,7 @@ async function invokeParentChildRelationshipTest(ColorConverter) {
 /**
  * Tests per-reference configuration overrides.
  *
- * @param {typeof import('../../classes/color-converter.js').ColorConverter} ColorConverter
+ * @param {typeof import('../../classes/baseline/color-converter.js').ColorConverter} ColorConverter
  */
 async function invokePerReferenceOverridesTest(ColorConverter) {
     const converter = new ColorConverter(TEST_CONFIG);
@@ -123,7 +123,7 @@ async function invokePerReferenceOverridesTest(ColorConverter) {
 /**
  * Tests template method lifecycle hooks.
  *
- * @param {typeof import('../../classes/color-converter.js').ColorConverter} ColorConverter
+ * @param {typeof import('../../classes/baseline/color-converter.js').ColorConverter} ColorConverter
  */
 async function invokeTemplateMethodTest(ColorConverter) {
     const callOrder = [];
@@ -155,7 +155,7 @@ async function invokeTemplateMethodTest(ColorConverter) {
 /**
  * Tests abstract method throws when not overridden.
  *
- * @param {typeof import('../../classes/color-converter.js').ColorConverter} ColorConverter
+ * @param {typeof import('../../classes/baseline/color-converter.js').ColorConverter} ColorConverter
  */
 async function invokeAbstractMethodThrowsTest(ColorConverter) {
     const converter = new ColorConverter(TEST_CONFIG);
@@ -172,7 +172,7 @@ async function invokeAbstractMethodThrowsTest(ColorConverter) {
 /**
  * Tests reference normalization for different types.
  *
- * @param {typeof import('../../classes/color-converter.js').ColorConverter} ColorConverter
+ * @param {typeof import('../../classes/baseline/color-converter.js').ColorConverter} ColorConverter
  */
 async function invokeReferenceNormalizationTest(ColorConverter) {
     const converter = new ColorConverter(TEST_CONFIG);
@@ -196,7 +196,7 @@ async function invokeReferenceNormalizationTest(ColorConverter) {
 /**
  * Tests worker mode defaults.
  *
- * @param {typeof import('../../classes/color-converter.js').ColorConverter} ColorConverter
+ * @param {typeof import('../../classes/baseline/color-converter.js').ColorConverter} ColorConverter
  */
 async function invokeWorkerModeDefaultsTest(ColorConverter) {
     const converter = new ColorConverter(TEST_CONFIG);
@@ -210,7 +210,7 @@ async function invokeWorkerModeDefaultsTest(ColorConverter) {
 /**
  * Tests dispose cleans up state.
  *
- * @param {typeof import('../../classes/color-converter.js').ColorConverter} ColorConverter
+ * @param {typeof import('../../classes/baseline/color-converter.js').ColorConverter} ColorConverter
  */
 async function invokeDisposeTest(ColorConverter) {
     const converter = new ColorConverter(TEST_CONFIG);
@@ -228,7 +228,7 @@ async function invokeDisposeTest(ColorConverter) {
 /**
  * Tests ensureReady() waits for initialization.
  *
- * @param {typeof import('../../classes/color-converter.js').ColorConverter} ColorConverter
+ * @param {typeof import('../../classes/baseline/color-converter.js').ColorConverter} ColorConverter
  */
 async function invokeEnsureReadyTest(ColorConverter) {
     const converter = new ColorConverter(TEST_CONFIG);
@@ -245,7 +245,7 @@ async function invokeEnsureReadyTest(ColorConverter) {
 /**
  * Tests colorEngineProvider getter returns the provider instance.
  *
- * @param {typeof import('../../classes/color-converter.js').ColorConverter} ColorConverter
+ * @param {typeof import('../../classes/baseline/color-converter.js').ColorConverter} ColorConverter
  */
 async function invokeColorEngineProviderGetterTest(ColorConverter) {
     const converter = new ColorConverter(TEST_CONFIG);
@@ -262,8 +262,8 @@ async function invokeColorEngineProviderGetterTest(ColorConverter) {
 /**
  * Tests shared ColorEngineProvider injection via options.
  *
- * @param {typeof import('../../classes/color-converter.js').ColorConverter} ColorConverter
- * @param {typeof import('../../classes/color-engine-provider.js').ColorEngineProvider} ColorEngineProvider
+ * @param {typeof import('../../classes/baseline/color-converter.js').ColorConverter} ColorConverter
+ * @param {typeof import('../../classes/baseline/color-engine-provider.js').ColorEngineProvider} ColorEngineProvider
  */
 async function invokeSharedColorEngineProviderTest(ColorConverter, ColorEngineProvider) {
     // Create a shared provider
@@ -292,16 +292,16 @@ async function invokeSharedColorEngineProviderTest(ColorConverter, ColorEnginePr
 // ============================================================================
 
 describe('ColorConverter', () => {
-    /** @type {typeof import('../../classes/color-converter.js').ColorConverter} */
+    /** @type {typeof import('../../classes/baseline/color-converter.js').ColorConverter} */
     let ColorConverter;
-    /** @type {typeof import('../../classes/color-engine-provider.js').ColorEngineProvider} */
+    /** @type {typeof import('../../classes/baseline/color-engine-provider.js').ColorEngineProvider} */
     let ColorEngineProvider;
 
     before(async () => {
         // Dynamic import to avoid module resolution issues
-        const module = await import('../../classes/color-converter.js');
+        const module = await import('../../classes/baseline/color-converter.js');
         ColorConverter = module.ColorConverter;
-        const providerModule = await import('../../classes/color-engine-provider.js');
+        const providerModule = await import('../../classes/baseline/color-engine-provider.js');
         ColorEngineProvider = providerModule.ColorEngineProvider;
     });
 

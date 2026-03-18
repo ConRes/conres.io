@@ -54,8 +54,8 @@ function createMockProfile() {
 /**
  * Tests that ImageColorConverter extends ColorConverter properly.
  *
- * @param {typeof import('../../classes/image-color-converter.js').ImageColorConverter} ImageColorConverter
- * @param {typeof import('../../classes/color-converter.js').ColorConverter} ColorConverter
+ * @param {typeof import('../../classes/baseline/image-color-converter.js').ImageColorConverter} ImageColorConverter
+ * @param {typeof import('../../classes/baseline/color-converter.js').ColorConverter} ColorConverter
  */
 async function invokeInheritanceTest(ImageColorConverter, ColorConverter) {
     const config = {
@@ -84,7 +84,7 @@ async function invokeInheritanceTest(ImageColorConverter, ColorConverter) {
 /**
  * Tests effective rendering intent fallback for Lab.
  *
- * @param {typeof import('../../classes/image-color-converter.js').ImageColorConverter} ImageColorConverter
+ * @param {typeof import('../../classes/baseline/image-color-converter.js').ImageColorConverter} ImageColorConverter
  */
 async function invokeLabIntentFallbackTest(ImageColorConverter) {
     const config = {
@@ -102,8 +102,8 @@ async function invokeLabIntentFallbackTest(ImageColorConverter) {
     // Lab should fall back to relative-colorimetric
     assert.strictEqual(
         converter.getEffectiveRenderingIntent('Lab'),
-        'relative-colorimetric',
-        'Lab should use relative-colorimetric'
+        'preserve-k-only-relative-colorimetric-gcr',
+        'Lab intent override removed in baseline — policy handles fallback'
     );
 
     // RGB should keep original intent
@@ -126,7 +126,7 @@ async function invokeLabIntentFallbackTest(ImageColorConverter) {
 /**
  * Tests that converter supports worker mode.
  *
- * @param {typeof import('../../classes/image-color-converter.js').ImageColorConverter} ImageColorConverter
+ * @param {typeof import('../../classes/baseline/image-color-converter.js').ImageColorConverter} ImageColorConverter
  */
 async function invokeWorkerModeSupportTest(ImageColorConverter) {
     const config = {
@@ -162,7 +162,7 @@ async function invokeWorkerModeSupportTest(ImageColorConverter) {
 /**
  * Tests hooks are called in correct order.
  *
- * @param {typeof import('../../classes/image-color-converter.js').ImageColorConverter} ImageColorConverter
+ * @param {typeof import('../../classes/baseline/image-color-converter.js').ImageColorConverter} ImageColorConverter
  */
 async function invokeHookOrderTest(ImageColorConverter) {
     const callOrder = [];
@@ -236,7 +236,7 @@ async function invokeHookOrderTest(ImageColorConverter) {
 /**
  * Tests configuration getter returns correct type.
  *
- * @param {typeof import('../../classes/image-color-converter.js').ImageColorConverter} ImageColorConverter
+ * @param {typeof import('../../classes/baseline/image-color-converter.js').ImageColorConverter} ImageColorConverter
  */
 async function invokeConfigurationTypeTest(ImageColorConverter) {
     const config = {
@@ -269,7 +269,7 @@ async function invokeConfigurationTypeTest(ImageColorConverter) {
 /**
  * Tests dispose cleans up resources.
  *
- * @param {typeof import('../../classes/image-color-converter.js').ImageColorConverter} ImageColorConverter
+ * @param {typeof import('../../classes/baseline/image-color-converter.js').ImageColorConverter} ImageColorConverter
  */
 async function invokeDisposeTest(ImageColorConverter) {
     const converter = new ImageColorConverter({
@@ -324,18 +324,18 @@ async function invokeConstantsTest(exports) {
 // ============================================================================
 
 describe('ImageColorConverter', () => {
-    /** @type {typeof import('../../classes/image-color-converter.js').ImageColorConverter} */
+    /** @type {typeof import('../../classes/baseline/image-color-converter.js').ImageColorConverter} */
     let ImageColorConverter;
-    /** @type {typeof import('../../classes/color-converter.js').ColorConverter} */
+    /** @type {typeof import('../../classes/baseline/color-converter.js').ColorConverter} */
     let ColorConverter;
-    /** @type {typeof import('../../classes/image-color-converter.js')} */
+    /** @type {typeof import('../../classes/baseline/image-color-converter.js')} */
     let imageModule;
 
     before(async () => {
-        const ccModule = await import('../../classes/color-converter.js');
+        const ccModule = await import('../../classes/baseline/color-converter.js');
         ColorConverter = ccModule.ColorConverter;
 
-        imageModule = await import('../../classes/image-color-converter.js');
+        imageModule = await import('../../classes/baseline/image-color-converter.js');
         ImageColorConverter = imageModule.ImageColorConverter;
     });
 

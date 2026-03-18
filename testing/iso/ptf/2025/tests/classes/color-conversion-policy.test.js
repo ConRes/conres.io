@@ -39,7 +39,7 @@ import {
     TYPE_Lab_16,
     TYPE_Lab_16_SE,
     TYPE_Lab_FLT,
-} from '../../classes/color-conversion-policy.js';
+} from '../../classes/baseline/color-conversion-policy.js';
 
 // ============================================================================
 // Test Data: All Format Scenarios
@@ -50,8 +50,8 @@ import {
  * Each entry maps an input descriptor to the expected output format.
  *
  * @type {Array<{
- *   inputDescriptor: import('../../classes/color-conversion-policy.js').PixelFormatDescriptor,
- *   outputDescriptor: import('../../classes/color-conversion-policy.js').PixelFormatDescriptor,
+ *   inputDescriptor: import('../../classes/baseline/color-conversion-policy.js').PixelFormatDescriptor,
+ *   outputDescriptor: import('../../classes/baseline/color-conversion-policy.js').PixelFormatDescriptor,
  *   inputFormat: number,
  *   outputFormat: number,
  *   description: string,

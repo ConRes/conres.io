@@ -17,7 +17,7 @@ describe('CompositeColorConverter', () => {
 
     test('creates WorkerPool when useWorkers is true', async () => {
         const result = await page.evaluate(async () => {
-            const { CompositeColorConverter } = await import('./classes/composite-color-converter.js');
+            const { CompositeColorConverter } = await import('./classes/baseline/composite-color-converter.js');
             const converter = new CompositeColorConverter({
                 renderingIntent: 'relative-colorimetric',
                 blackPointCompensation: true,
@@ -37,7 +37,7 @@ describe('CompositeColorConverter', () => {
 
     test('uses shared WorkerPool when provided', async () => {
         const result = await page.evaluate(async () => {
-            const { CompositeColorConverter } = await import('./classes/composite-color-converter.js');
+            const { CompositeColorConverter } = await import('./classes/baseline/composite-color-converter.js');
             const { WorkerPool } = await import('./services/WorkerPool.js');
 
             const sharedPool = new WorkerPool({});
@@ -67,7 +67,7 @@ describe('CompositeColorConverter', () => {
 
     test('does not create WorkerPool when useWorkers is false', async () => {
         const result = await page.evaluate(async () => {
-            const { CompositeColorConverter } = await import('./classes/composite-color-converter.js');
+            const { CompositeColorConverter } = await import('./classes/baseline/composite-color-converter.js');
             const converter = new CompositeColorConverter({
                 renderingIntent: 'relative-colorimetric',
                 blackPointCompensation: true,

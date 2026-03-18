@@ -60,8 +60,8 @@ function createMockContext() {
 /**
  * Tests that PDFPageColorConverter extends ColorConverter.
  *
- * @param {typeof import('../../classes/pdf-page-color-converter.js').PDFPageColorConverter} PDFPageColorConverter
- * @param {typeof import('../../classes/color-converter.js').ColorConverter} ColorConverter
+ * @param {typeof import('../../classes/baseline/pdf-page-color-converter.js').PDFPageColorConverter} PDFPageColorConverter
+ * @param {typeof import('../../classes/baseline/color-converter.js').ColorConverter} ColorConverter
  */
 async function invokeInheritanceTest(PDFPageColorConverter, ColorConverter) {
     const config = {
@@ -90,7 +90,7 @@ async function invokeInheritanceTest(PDFPageColorConverter, ColorConverter) {
 /**
  * Tests configuration derivation for images.
  *
- * @param {typeof import('../../classes/pdf-page-color-converter.js').PDFPageColorConverter} PDFPageColorConverter
+ * @param {typeof import('../../classes/baseline/pdf-page-color-converter.js').PDFPageColorConverter} PDFPageColorConverter
  */
 async function invokeImageConfigDerivationTest(PDFPageColorConverter) {
     const converter = new PDFPageColorConverter({
@@ -120,7 +120,7 @@ async function invokeImageConfigDerivationTest(PDFPageColorConverter) {
 /**
  * Tests configuration derivation for content streams.
  *
- * @param {typeof import('../../classes/pdf-page-color-converter.js').PDFPageColorConverter} PDFPageColorConverter
+ * @param {typeof import('../../classes/baseline/pdf-page-color-converter.js').PDFPageColorConverter} PDFPageColorConverter
  */
 async function invokeContentStreamConfigDerivationTest(PDFPageColorConverter) {
     const converter = new PDFPageColorConverter({
@@ -152,7 +152,7 @@ async function invokeContentStreamConfigDerivationTest(PDFPageColorConverter) {
 /**
  * Tests per-reference configuration overrides.
  *
- * @param {typeof import('../../classes/pdf-page-color-converter.js').PDFPageColorConverter} PDFPageColorConverter
+ * @param {typeof import('../../classes/baseline/pdf-page-color-converter.js').PDFPageColorConverter} PDFPageColorConverter
  */
 async function invokePerReferenceOverrideTest(PDFPageColorConverter) {
     const converter = new PDFPageColorConverter({
@@ -190,7 +190,7 @@ async function invokePerReferenceOverrideTest(PDFPageColorConverter) {
 /**
  * Tests hooks are called in correct order.
  *
- * @param {typeof import('../../classes/pdf-page-color-converter.js').PDFPageColorConverter} PDFPageColorConverter
+ * @param {typeof import('../../classes/baseline/pdf-page-color-converter.js').PDFPageColorConverter} PDFPageColorConverter
  */
 async function invokeHookOrderTest(PDFPageColorConverter) {
     const callOrder = [];
@@ -264,7 +264,7 @@ async function invokeHookOrderTest(PDFPageColorConverter) {
 /**
  * Tests worker mode is supported.
  *
- * @param {typeof import('../../classes/pdf-page-color-converter.js').PDFPageColorConverter} PDFPageColorConverter
+ * @param {typeof import('../../classes/baseline/pdf-page-color-converter.js').PDFPageColorConverter} PDFPageColorConverter
  */
 async function invokeWorkerModeSupportTest(PDFPageColorConverter) {
     const converter = new PDFPageColorConverter({
@@ -289,7 +289,7 @@ async function invokeWorkerModeSupportTest(PDFPageColorConverter) {
 /**
  * Tests worker pool ownership - standalone creates own pool.
  *
- * @param {typeof import('../../classes/pdf-page-color-converter.js').PDFPageColorConverter} PDFPageColorConverter
+ * @param {typeof import('../../classes/baseline/pdf-page-color-converter.js').PDFPageColorConverter} PDFPageColorConverter
  */
 async function invokeStandaloneWorkerPoolTest(PDFPageColorConverter) {
     const converter = new PDFPageColorConverter({
@@ -319,7 +319,7 @@ async function invokeStandaloneWorkerPoolTest(PDFPageColorConverter) {
 /**
  * Tests worker pool sharing - uses provided pool.
  *
- * @param {typeof import('../../classes/pdf-page-color-converter.js').PDFPageColorConverter} PDFPageColorConverter
+ * @param {typeof import('../../classes/baseline/pdf-page-color-converter.js').PDFPageColorConverter} PDFPageColorConverter
  */
 async function invokeSharedWorkerPoolTest(PDFPageColorConverter) {
     // Create a mock worker pool
@@ -361,7 +361,7 @@ async function invokeSharedWorkerPoolTest(PDFPageColorConverter) {
 /**
  * Tests dispose cleans up resources.
  *
- * @param {typeof import('../../classes/pdf-page-color-converter.js').PDFPageColorConverter} PDFPageColorConverter
+ * @param {typeof import('../../classes/baseline/pdf-page-color-converter.js').PDFPageColorConverter} PDFPageColorConverter
  */
 async function invokeDisposeTest(PDFPageColorConverter) {
     const converter = new PDFPageColorConverter({
@@ -390,16 +390,16 @@ async function invokeDisposeTest(PDFPageColorConverter) {
 // ============================================================================
 
 describe('PDFPageColorConverter', () => {
-    /** @type {typeof import('../../classes/pdf-page-color-converter.js').PDFPageColorConverter} */
+    /** @type {typeof import('../../classes/baseline/pdf-page-color-converter.js').PDFPageColorConverter} */
     let PDFPageColorConverter;
-    /** @type {typeof import('../../classes/color-converter.js').ColorConverter} */
+    /** @type {typeof import('../../classes/baseline/color-converter.js').ColorConverter} */
     let ColorConverter;
 
     before(async () => {
-        const ccModule = await import('../../classes/color-converter.js');
+        const ccModule = await import('../../classes/baseline/color-converter.js');
         ColorConverter = ccModule.ColorConverter;
 
-        const pageModule = await import('../../classes/pdf-page-color-converter.js');
+        const pageModule = await import('../../classes/baseline/pdf-page-color-converter.js');
         PDFPageColorConverter = pageModule.PDFPageColorConverter;
     });
 

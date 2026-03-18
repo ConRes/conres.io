@@ -18,7 +18,7 @@ import { TruthyEnvironmentParameterMatcher } from '../helpers.js';
 /**
  * Creates a mock PDF stream object.
  * @param {number} size - Content size in bytes
- * @returns {import('../../classes/buffer-registry.js').PDFStream}
+ * @returns {import('../../classes/baseline/buffer-registry.js').PDFStream}
  */
 function createMockStream(size) {
     const contents = new Uint8Array(size);
@@ -35,7 +35,7 @@ function createMockStream(size) {
 /**
  * Tests getting a shared view for a stream.
  *
- * @param {typeof import('../../classes/buffer-registry.js').BufferRegistry} BufferRegistry
+ * @param {typeof import('../../classes/baseline/buffer-registry.js').BufferRegistry} BufferRegistry
  */
 async function invokeGetSharedViewTest(BufferRegistry) {
     const registry = new BufferRegistry();
@@ -58,7 +58,7 @@ async function invokeGetSharedViewTest(BufferRegistry) {
 /**
  * Tests caching of shared views.
  *
- * @param {typeof import('../../classes/buffer-registry.js').BufferRegistry} BufferRegistry
+ * @param {typeof import('../../classes/baseline/buffer-registry.js').BufferRegistry} BufferRegistry
  */
 async function invokeCachingTest(BufferRegistry) {
     const registry = new BufferRegistry();
@@ -86,7 +86,7 @@ async function invokeCachingTest(BufferRegistry) {
 /**
  * Tests creating shared buffer from raw data.
  *
- * @param {typeof import('../../classes/buffer-registry.js').BufferRegistry} BufferRegistry
+ * @param {typeof import('../../classes/baseline/buffer-registry.js').BufferRegistry} BufferRegistry
  */
 async function invokeCreateSharedBufferTest(BufferRegistry) {
     const registry = new BufferRegistry();
@@ -112,7 +112,7 @@ async function invokeCreateSharedBufferTest(BufferRegistry) {
 /**
  * Tests bulk stream registration.
  *
- * @param {typeof import('../../classes/buffer-registry.js').BufferRegistry} BufferRegistry
+ * @param {typeof import('../../classes/baseline/buffer-registry.js').BufferRegistry} BufferRegistry
  */
 async function invokeRegisterStreamsTest(BufferRegistry) {
     const registry = new BufferRegistry();
@@ -137,7 +137,7 @@ async function invokeRegisterStreamsTest(BufferRegistry) {
 /**
  * Tests applying converted data back to stream.
  *
- * @param {typeof import('../../classes/buffer-registry.js').BufferRegistry} BufferRegistry
+ * @param {typeof import('../../classes/baseline/buffer-registry.js').BufferRegistry} BufferRegistry
  */
 async function invokeApplyToStreamTest(BufferRegistry) {
     const registry = new BufferRegistry();
@@ -157,7 +157,7 @@ async function invokeApplyToStreamTest(BufferRegistry) {
 /**
  * Tests SharedArrayBuffer feature detection.
  *
- * @param {typeof import('../../classes/buffer-registry.js').BufferRegistry} BufferRegistry
+ * @param {typeof import('../../classes/baseline/buffer-registry.js').BufferRegistry} BufferRegistry
  */
 async function invokeFeatureDetectionTest(BufferRegistry) {
     const supportsShared = BufferRegistry.supportsSharedBuffers;
@@ -172,7 +172,7 @@ async function invokeFeatureDetectionTest(BufferRegistry) {
 /**
  * Tests dispose clears tracking state.
  *
- * @param {typeof import('../../classes/buffer-registry.js').BufferRegistry} BufferRegistry
+ * @param {typeof import('../../classes/baseline/buffer-registry.js').BufferRegistry} BufferRegistry
  */
 async function invokeDisposeTest(BufferRegistry) {
     const registry = new BufferRegistry();
@@ -197,7 +197,7 @@ async function invokeDisposeTest(BufferRegistry) {
 /**
  * Tests stats getter returns expected shape.
  *
- * @param {typeof import('../../classes/buffer-registry.js').BufferRegistry} BufferRegistry
+ * @param {typeof import('../../classes/baseline/buffer-registry.js').BufferRegistry} BufferRegistry
  */
 async function invokeStatsTest(BufferRegistry) {
     const registry = new BufferRegistry();
@@ -222,7 +222,7 @@ async function invokeStatsTest(BufferRegistry) {
 /**
  * Tests hasMapping returns correct values.
  *
- * @param {typeof import('../../classes/buffer-registry.js').BufferRegistry} BufferRegistry
+ * @param {typeof import('../../classes/baseline/buffer-registry.js').BufferRegistry} BufferRegistry
  */
 async function invokeHasMappingTest(BufferRegistry) {
     const registry = new BufferRegistry();
@@ -247,11 +247,11 @@ async function invokeHasMappingTest(BufferRegistry) {
 // ============================================================================
 
 describe('BufferRegistry', () => {
-    /** @type {typeof import('../../classes/buffer-registry.js').BufferRegistry} */
+    /** @type {typeof import('../../classes/baseline/buffer-registry.js').BufferRegistry} */
     let BufferRegistry;
 
     before(async () => {
-        const module = await import('../../classes/buffer-registry.js');
+        const module = await import('../../classes/baseline/buffer-registry.js');
         BufferRegistry = module.BufferRegistry;
     });
 

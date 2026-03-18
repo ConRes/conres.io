@@ -153,13 +153,13 @@ function createMockRef(objectNumber) {
  * Tests full class hierarchy inheritance chain.
  *
  * @param {{
- *   ColorConverter: typeof import('../../classes/color-converter.js').ColorConverter,
- *   ImageColorConverter: typeof import('../../classes/image-color-converter.js').ImageColorConverter,
- *   PDFImageColorConverter: typeof import('../../classes/pdf-image-color-converter.js').PDFImageColorConverter,
- *   LookupTableColorConverter: typeof import('../../classes/lookup-table-color-converter.js').LookupTableColorConverter,
- *   PDFContentStreamColorConverter: typeof import('../../classes/pdf-content-stream-color-converter.js').PDFContentStreamColorConverter,
- *   PDFPageColorConverter: typeof import('../../classes/pdf-page-color-converter.js').PDFPageColorConverter,
- *   PDFDocumentColorConverter: typeof import('../../classes/pdf-document-color-converter.js').PDFDocumentColorConverter,
+ *   ColorConverter: typeof import('../../classes/baseline/color-converter.js').ColorConverter,
+ *   ImageColorConverter: typeof import('../../classes/baseline/image-color-converter.js').ImageColorConverter,
+ *   PDFImageColorConverter: typeof import('../../classes/baseline/pdf-image-color-converter.js').PDFImageColorConverter,
+ *   LookupTableColorConverter: typeof import('../../classes/baseline/lookup-table-color-converter.js').LookupTableColorConverter,
+ *   PDFContentStreamColorConverter: typeof import('../../classes/baseline/pdf-content-stream-color-converter.js').PDFContentStreamColorConverter,
+ *   PDFPageColorConverter: typeof import('../../classes/baseline/pdf-page-color-converter.js').PDFPageColorConverter,
+ *   PDFDocumentColorConverter: typeof import('../../classes/baseline/pdf-document-color-converter.js').PDFDocumentColorConverter,
  * }} classes
  */
 async function invokeInheritanceChainTest(classes) {
@@ -244,7 +244,7 @@ async function invokeInheritanceChainTest(classes) {
  * Tests configuration derivation chain from document → page → image.
  *
  * @param {{
- *   PDFDocumentColorConverter: typeof import('../../classes/pdf-document-color-converter.js').PDFDocumentColorConverter,
+ *   PDFDocumentColorConverter: typeof import('../../classes/baseline/pdf-document-color-converter.js').PDFDocumentColorConverter,
  * }} classes
  */
 async function invokeConfigurationDerivationTest(classes) {
@@ -286,7 +286,7 @@ async function invokeConfigurationDerivationTest(classes) {
  * Tests per-page rendering intent overrides.
  *
  * @param {{
- *   PDFDocumentColorConverter: typeof import('../../classes/pdf-document-color-converter.js').PDFDocumentColorConverter,
+ *   PDFDocumentColorConverter: typeof import('../../classes/baseline/pdf-document-color-converter.js').PDFDocumentColorConverter,
  * }} classes
  */
 async function invokePageOverridesTest(classes) {
@@ -328,7 +328,7 @@ async function invokePageOverridesTest(classes) {
  * Tests per-image rendering intent overrides.
  *
  * @param {{
- *   PDFDocumentColorConverter: typeof import('../../classes/pdf-document-color-converter.js').PDFDocumentColorConverter,
+ *   PDFDocumentColorConverter: typeof import('../../classes/baseline/pdf-document-color-converter.js').PDFDocumentColorConverter,
  * }} classes
  */
 async function invokeImageOverridesTest(classes) {
@@ -370,9 +370,9 @@ async function invokeImageOverridesTest(classes) {
  * Tests memory cleanup with ProfilePool and BufferRegistry.
  *
  * @param {{
- *   PDFDocumentColorConverter: typeof import('../../classes/pdf-document-color-converter.js').PDFDocumentColorConverter,
- *   ProfilePool: typeof import('../../classes/profile-pool.js').ProfilePool,
- *   BufferRegistry: typeof import('../../classes/buffer-registry.js').BufferRegistry,
+ *   PDFDocumentColorConverter: typeof import('../../classes/baseline/pdf-document-color-converter.js').PDFDocumentColorConverter,
+ *   ProfilePool: typeof import('../../classes/baseline/profile-pool.js').ProfilePool,
+ *   BufferRegistry: typeof import('../../classes/baseline/buffer-registry.js').BufferRegistry,
  * }} classes
  */
 async function invokeMemoryCleanupTest(classes) {
@@ -408,8 +408,8 @@ async function invokeMemoryCleanupTest(classes) {
  * Tests shared ProfilePool between converters.
  *
  * @param {{
- *   PDFDocumentColorConverter: typeof import('../../classes/pdf-document-color-converter.js').PDFDocumentColorConverter,
- *   ProfilePool: typeof import('../../classes/profile-pool.js').ProfilePool,
+ *   PDFDocumentColorConverter: typeof import('../../classes/baseline/pdf-document-color-converter.js').PDFDocumentColorConverter,
+ *   ProfilePool: typeof import('../../classes/baseline/profile-pool.js').ProfilePool,
  * }} classes
  */
 async function invokeSharedProfilePoolTest(classes) {
@@ -467,7 +467,7 @@ async function invokeSharedProfilePoolTest(classes) {
  * Tests hooks are called in correct order for document conversion.
  *
  * @param {{
- *   PDFDocumentColorConverter: typeof import('../../classes/pdf-document-color-converter.js').PDFDocumentColorConverter,
+ *   PDFDocumentColorConverter: typeof import('../../classes/baseline/pdf-document-color-converter.js').PDFDocumentColorConverter,
  * }} classes
  */
 async function invokeDocumentHookOrderTest(classes) {
@@ -550,10 +550,10 @@ async function invokeDocumentHookOrderTest(classes) {
  * Tests worker mode support flags.
  *
  * @param {{
- *   PDFDocumentColorConverter: typeof import('../../classes/pdf-document-color-converter.js').PDFDocumentColorConverter,
- *   PDFPageColorConverter: typeof import('../../classes/pdf-page-color-converter.js').PDFPageColorConverter,
- *   PDFImageColorConverter: typeof import('../../classes/pdf-image-color-converter.js').PDFImageColorConverter,
- *   PDFContentStreamColorConverter: typeof import('../../classes/pdf-content-stream-color-converter.js').PDFContentStreamColorConverter,
+ *   PDFDocumentColorConverter: typeof import('../../classes/baseline/pdf-document-color-converter.js').PDFDocumentColorConverter,
+ *   PDFPageColorConverter: typeof import('../../classes/baseline/pdf-page-color-converter.js').PDFPageColorConverter,
+ *   PDFImageColorConverter: typeof import('../../classes/baseline/pdf-image-color-converter.js').PDFImageColorConverter,
+ *   PDFContentStreamColorConverter: typeof import('../../classes/baseline/pdf-content-stream-color-converter.js').PDFContentStreamColorConverter,
  * }} classes
  */
 async function invokeWorkerModeSupportTest(classes) {
@@ -614,7 +614,7 @@ async function invokeWorkerModeSupportTest(classes) {
  * Tests Lab image handling (should use Relative Colorimetric, not K-Only GCR).
  *
  * @param {{
- *   PDFImageColorConverter: typeof import('../../classes/pdf-image-color-converter.js').PDFImageColorConverter,
+ *   PDFImageColorConverter: typeof import('../../classes/baseline/pdf-image-color-converter.js').PDFImageColorConverter,
  * }} classes
  */
 async function invokeLabImageHandlingTest(classes) {
@@ -631,10 +631,10 @@ async function invokeLabImageHandlingTest(classes) {
         verbose: false,
     });
 
-    // Lab images should fall back to relative-colorimetric
+    // Baseline: getEffectiveRenderingIntent returns configured intent — policy handles Lab fallback
     const effectiveIntent = converter.getEffectiveRenderingIntent('Lab');
-    assert.strictEqual(effectiveIntent, 'relative-colorimetric',
-        'Lab images should use relative-colorimetric, not K-Only GCR');
+    assert.strictEqual(effectiveIntent, 'preserve-k-only-relative-colorimetric-gcr',
+        'Baseline returns configured intent — policy rules handle Lab → Relative Colorimetric fallback');
 
     // RGB should keep the configured intent
     const rgbIntent = converter.getEffectiveRenderingIntent('RGB');
@@ -648,7 +648,7 @@ async function invokeLabImageHandlingTest(classes) {
  * Tests dispose is idempotent (can be called multiple times).
  *
  * @param {{
- *   PDFDocumentColorConverter: typeof import('../../classes/pdf-document-color-converter.js').PDFDocumentColorConverter,
+ *   PDFDocumentColorConverter: typeof import('../../classes/baseline/pdf-document-color-converter.js').PDFDocumentColorConverter,
  * }} classes
  */
 async function invokeDisposeIdempotencyTest(classes) {
@@ -682,7 +682,7 @@ async function invokeDisposeIdempotencyTest(classes) {
  * Tests applyWorkerResult for PDFContentStreamColorConverter.
  *
  * @param {{
- *   PDFContentStreamColorConverter: typeof import('../../classes/pdf-content-stream-color-converter.js').PDFContentStreamColorConverter,
+ *   PDFContentStreamColorConverter: typeof import('../../classes/baseline/pdf-content-stream-color-converter.js').PDFContentStreamColorConverter,
  * }} classes
  */
 async function invokeContentStreamApplyWorkerResultTest(classes) {
@@ -737,7 +737,7 @@ async function invokeContentStreamApplyWorkerResultTest(classes) {
  * Tests applyWorkerResult for PDFPageColorConverter.
  *
  * @param {{
- *   PDFPageColorConverter: typeof import('../../classes/pdf-page-color-converter.js').PDFPageColorConverter,
+ *   PDFPageColorConverter: typeof import('../../classes/baseline/pdf-page-color-converter.js').PDFPageColorConverter,
  * }} classes
  */
 async function invokePageApplyWorkerResultTest(classes) {
@@ -796,7 +796,7 @@ async function invokePageApplyWorkerResultTest(classes) {
  * Tests applyWorkerResult for PDFDocumentColorConverter.
  *
  * @param {{
- *   PDFDocumentColorConverter: typeof import('../../classes/pdf-document-color-converter.js').PDFDocumentColorConverter,
+ *   PDFDocumentColorConverter: typeof import('../../classes/baseline/pdf-document-color-converter.js').PDFDocumentColorConverter,
  * }} classes
  */
 async function invokeDocumentApplyWorkerResultTest(classes) {
@@ -870,7 +870,7 @@ async function invokeRGBPDFConversionTest(page, pdfPath, profilePath) {
             const { PDFDocument } = await import('pdf-lib');
             // Browser context: paths relative to /testing/iso/ptf/2025/tests/index.html
             const { PDFService } = await import('../services/PDFService.js');
-            const { PDFDocumentColorConverter } = await import('../classes/pdf-document-color-converter.js');
+            const { PDFDocumentColorConverter } = await import('../classes/baseline/pdf-document-color-converter.js');
 
             // Load PDF fixture
             const pdfResponse = await fetch(pdfPath);
@@ -949,7 +949,7 @@ async function invokeFullDocumentConversionTest(page, pdfPath, profilePath) {
             const { PDFDocument } = await import('pdf-lib');
             // Browser context: paths relative to /testing/iso/ptf/2025/tests/index.html
             const { PDFService } = await import('../services/PDFService.js');
-            const { PDFDocumentColorConverter } = await import('../classes/pdf-document-color-converter.js');
+            const { PDFDocumentColorConverter } = await import('../classes/baseline/pdf-document-color-converter.js');
 
             // Load PDF fixture
             const pdfResponse = await fetch(pdfPath);
@@ -1030,7 +1030,7 @@ async function invokeKOnlyGCRConversionTest(page, pdfPath, profilePath) {
             const { PDFDocument } = await import('pdf-lib');
             // Browser context: paths relative to /testing/iso/ptf/2025/tests/index.html
             const { PDFService } = await import('../services/PDFService.js');
-            const { PDFDocumentColorConverter } = await import('../classes/pdf-document-color-converter.js');
+            const { PDFDocumentColorConverter } = await import('../classes/baseline/pdf-document-color-converter.js');
 
             // Load PDF fixture
             const pdfResponse = await fetch(pdfPath);
@@ -1138,52 +1138,52 @@ async function invokeFixtureAccessibilityTest(page, pdfPath, profilePath) {
 // ============================================================================
 
 describe('ColorConverterClasses Integration', () => {
-    /** @type {typeof import('../../classes/color-converter.js').ColorConverter} */
+    /** @type {typeof import('../../classes/baseline/color-converter.js').ColorConverter} */
     let ColorConverter;
-    /** @type {typeof import('../../classes/image-color-converter.js').ImageColorConverter} */
+    /** @type {typeof import('../../classes/baseline/image-color-converter.js').ImageColorConverter} */
     let ImageColorConverter;
-    /** @type {typeof import('../../classes/pdf-image-color-converter.js').PDFImageColorConverter} */
+    /** @type {typeof import('../../classes/baseline/pdf-image-color-converter.js').PDFImageColorConverter} */
     let PDFImageColorConverter;
-    /** @type {typeof import('../../classes/lookup-table-color-converter.js').LookupTableColorConverter} */
+    /** @type {typeof import('../../classes/baseline/lookup-table-color-converter.js').LookupTableColorConverter} */
     let LookupTableColorConverter;
-    /** @type {typeof import('../../classes/pdf-content-stream-color-converter.js').PDFContentStreamColorConverter} */
+    /** @type {typeof import('../../classes/baseline/pdf-content-stream-color-converter.js').PDFContentStreamColorConverter} */
     let PDFContentStreamColorConverter;
-    /** @type {typeof import('../../classes/pdf-page-color-converter.js').PDFPageColorConverter} */
+    /** @type {typeof import('../../classes/baseline/pdf-page-color-converter.js').PDFPageColorConverter} */
     let PDFPageColorConverter;
-    /** @type {typeof import('../../classes/pdf-document-color-converter.js').PDFDocumentColorConverter} */
+    /** @type {typeof import('../../classes/baseline/pdf-document-color-converter.js').PDFDocumentColorConverter} */
     let PDFDocumentColorConverter;
-    /** @type {typeof import('../../classes/profile-pool.js').ProfilePool} */
+    /** @type {typeof import('../../classes/baseline/profile-pool.js').ProfilePool} */
     let ProfilePool;
-    /** @type {typeof import('../../classes/buffer-registry.js').BufferRegistry} */
+    /** @type {typeof import('../../classes/baseline/buffer-registry.js').BufferRegistry} */
     let BufferRegistry;
 
     before(async () => {
         // Dynamic imports
-        const colorConverterModule = await import('../../classes/color-converter.js');
+        const colorConverterModule = await import('../../classes/baseline/color-converter.js');
         ColorConverter = colorConverterModule.ColorConverter;
 
-        const imageModule = await import('../../classes/image-color-converter.js');
+        const imageModule = await import('../../classes/baseline/image-color-converter.js');
         ImageColorConverter = imageModule.ImageColorConverter;
 
-        const pdfImageModule = await import('../../classes/pdf-image-color-converter.js');
+        const pdfImageModule = await import('../../classes/baseline/pdf-image-color-converter.js');
         PDFImageColorConverter = pdfImageModule.PDFImageColorConverter;
 
-        const lookupTableModule = await import('../../classes/lookup-table-color-converter.js');
+        const lookupTableModule = await import('../../classes/baseline/lookup-table-color-converter.js');
         LookupTableColorConverter = lookupTableModule.LookupTableColorConverter;
 
-        const pdfContentStreamModule = await import('../../classes/pdf-content-stream-color-converter.js');
+        const pdfContentStreamModule = await import('../../classes/baseline/pdf-content-stream-color-converter.js');
         PDFContentStreamColorConverter = pdfContentStreamModule.PDFContentStreamColorConverter;
 
-        const pdfPageModule = await import('../../classes/pdf-page-color-converter.js');
+        const pdfPageModule = await import('../../classes/baseline/pdf-page-color-converter.js');
         PDFPageColorConverter = pdfPageModule.PDFPageColorConverter;
 
-        const pdfDocumentModule = await import('../../classes/pdf-document-color-converter.js');
+        const pdfDocumentModule = await import('../../classes/baseline/pdf-document-color-converter.js');
         PDFDocumentColorConverter = pdfDocumentModule.PDFDocumentColorConverter;
 
-        const profilePoolModule = await import('../../classes/profile-pool.js');
+        const profilePoolModule = await import('../../classes/baseline/profile-pool.js');
         ProfilePool = profilePoolModule.ProfilePool;
 
-        const bufferRegistryModule = await import('../../classes/buffer-registry.js');
+        const bufferRegistryModule = await import('../../classes/baseline/buffer-registry.js');
         BufferRegistry = bufferRegistryModule.BufferRegistry;
     });
 

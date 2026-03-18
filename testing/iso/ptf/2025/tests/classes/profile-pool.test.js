@@ -38,7 +38,7 @@ function createMockProfile(size, seed = 0) {
 /**
  * Tests profile loading and caching.
  *
- * @param {typeof import('../../classes/profile-pool.js').ProfilePool} ProfilePool
+ * @param {typeof import('../../classes/baseline/profile-pool.js').ProfilePool} ProfilePool
  */
 async function invokeProfileLoadingTest(ProfilePool) {
     const pool = new ProfilePool({ maxProfiles: 10 });
@@ -63,7 +63,7 @@ async function invokeProfileLoadingTest(ProfilePool) {
 /**
  * Tests reference counting via multiple getProfile calls.
  *
- * @param {typeof import('../../classes/profile-pool.js').ProfilePool} ProfilePool
+ * @param {typeof import('../../classes/baseline/profile-pool.js').ProfilePool} ProfilePool
  */
 async function invokeReferenceCountingTest(ProfilePool) {
     const pool = new ProfilePool({ maxProfiles: 10 });
@@ -88,7 +88,7 @@ async function invokeReferenceCountingTest(ProfilePool) {
 /**
  * Tests LRU eviction when limits are exceeded.
  *
- * @param {typeof import('../../classes/profile-pool.js').ProfilePool} ProfilePool
+ * @param {typeof import('../../classes/baseline/profile-pool.js').ProfilePool} ProfilePool
  */
 async function invokeLRUEvictionTest(ProfilePool) {
     const pool = new ProfilePool({
@@ -125,7 +125,7 @@ async function invokeLRUEvictionTest(ProfilePool) {
 /**
  * Tests deduplication of concurrent loads.
  *
- * @param {typeof import('../../classes/profile-pool.js').ProfilePool} ProfilePool
+ * @param {typeof import('../../classes/baseline/profile-pool.js').ProfilePool} ProfilePool
  */
 async function invokeConcurrentLoadDeduplicationTest(ProfilePool) {
     const pool = new ProfilePool({ maxProfiles: 10 });
@@ -153,7 +153,7 @@ async function invokeConcurrentLoadDeduplicationTest(ProfilePool) {
 /**
  * Tests FNV-1a hashing produces consistent keys.
  *
- * @param {typeof import('../../classes/profile-pool.js').ProfilePool} ProfilePool
+ * @param {typeof import('../../classes/baseline/profile-pool.js').ProfilePool} ProfilePool
  */
 async function invokeHashingConsistencyTest(ProfilePool) {
     const pool = new ProfilePool({ maxProfiles: 10 });
@@ -182,7 +182,7 @@ async function invokeHashingConsistencyTest(ProfilePool) {
 /**
  * Tests SharedArrayBuffer feature detection.
  *
- * @param {typeof import('../../classes/profile-pool.js').ProfilePool} ProfilePool
+ * @param {typeof import('../../classes/baseline/profile-pool.js').ProfilePool} ProfilePool
  */
 async function invokeSharedBufferFeatureDetectionTest(ProfilePool) {
     // Static property should reflect runtime capability
@@ -198,7 +198,7 @@ async function invokeSharedBufferFeatureDetectionTest(ProfilePool) {
 /**
  * Tests dispose clears all state.
  *
- * @param {typeof import('../../classes/profile-pool.js').ProfilePool} ProfilePool
+ * @param {typeof import('../../classes/baseline/profile-pool.js').ProfilePool} ProfilePool
  */
 async function invokeDisposeTest(ProfilePool) {
     const pool = new ProfilePool({ maxProfiles: 10 });
@@ -218,7 +218,7 @@ async function invokeDisposeTest(ProfilePool) {
 /**
  * Tests stats getter returns expected shape.
  *
- * @param {typeof import('../../classes/profile-pool.js').ProfilePool} ProfilePool
+ * @param {typeof import('../../classes/baseline/profile-pool.js').ProfilePool} ProfilePool
  */
 async function invokeStatsTest(ProfilePool) {
     const pool = new ProfilePool({
@@ -244,11 +244,11 @@ async function invokeStatsTest(ProfilePool) {
 // ============================================================================
 
 describe('ProfilePool', () => {
-    /** @type {typeof import('../../classes/profile-pool.js').ProfilePool} */
+    /** @type {typeof import('../../classes/baseline/profile-pool.js').ProfilePool} */
     let ProfilePool;
 
     before(async () => {
-        const module = await import('../../classes/profile-pool.js');
+        const module = await import('../../classes/baseline/profile-pool.js');
         ProfilePool = module.ProfilePool;
     });
 

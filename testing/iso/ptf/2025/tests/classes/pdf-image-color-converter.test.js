@@ -65,8 +65,8 @@ function createMockRef(objectNumber) {
 /**
  * Tests that PDFImageColorConverter extends ImageColorConverter properly.
  *
- * @param {typeof import('../../classes/pdf-image-color-converter.js').PDFImageColorConverter} PDFImageColorConverter
- * @param {typeof import('../../classes/image-color-converter.js').ImageColorConverter} ImageColorConverter
+ * @param {typeof import('../../classes/baseline/pdf-image-color-converter.js').PDFImageColorConverter} PDFImageColorConverter
+ * @param {typeof import('../../classes/baseline/image-color-converter.js').ImageColorConverter} ImageColorConverter
  */
 async function invokeInheritanceTest(PDFImageColorConverter, ImageColorConverter) {
     const config = {
@@ -95,7 +95,7 @@ async function invokeInheritanceTest(PDFImageColorConverter, ImageColorConverter
 /**
  * Tests that Lab images use relative-colorimetric intent.
  *
- * @param {typeof import('../../classes/pdf-image-color-converter.js').PDFImageColorConverter} PDFImageColorConverter
+ * @param {typeof import('../../classes/baseline/pdf-image-color-converter.js').PDFImageColorConverter} PDFImageColorConverter
  */
 async function invokeLabImageIntentTest(PDFImageColorConverter) {
     const config = {
@@ -111,11 +111,11 @@ async function invokeLabImageIntentTest(PDFImageColorConverter) {
 
     const converter = new PDFImageColorConverter(config);
 
-    // Lab should fall back to relative-colorimetric
+    // Baseline: getEffectiveRenderingIntent returns configured intent — policy handles Lab fallback
     assert.strictEqual(
         converter.getEffectiveRenderingIntent('Lab'),
-        'relative-colorimetric',
-        'Lab should use relative-colorimetric'
+        'preserve-k-only-relative-colorimetric-gcr',
+        'Baseline returns configured intent — policy rules handle Lab fallback'
     );
 
     converter.dispose();
@@ -124,7 +124,7 @@ async function invokeLabImageIntentTest(PDFImageColorConverter) {
 /**
  * Tests worker task preparation.
  *
- * @param {typeof import('../../classes/pdf-image-color-converter.js').PDFImageColorConverter} PDFImageColorConverter
+ * @param {typeof import('../../classes/baseline/pdf-image-color-converter.js').PDFImageColorConverter} PDFImageColorConverter
  */
 async function invokeWorkerTaskPreparationTest(PDFImageColorConverter) {
     const config = {
@@ -168,7 +168,7 @@ async function invokeWorkerTaskPreparationTest(PDFImageColorConverter) {
 /**
  * Tests configuration includes compressOutput.
  *
- * @param {typeof import('../../classes/pdf-image-color-converter.js').PDFImageColorConverter} PDFImageColorConverter
+ * @param {typeof import('../../classes/baseline/pdf-image-color-converter.js').PDFImageColorConverter} PDFImageColorConverter
  */
 async function invokeConfigurationTypeTest(PDFImageColorConverter) {
     const config = {
@@ -203,7 +203,7 @@ async function invokeConfigurationTypeTest(PDFImageColorConverter) {
 /**
  * Tests dispose cleans up resources.
  *
- * @param {typeof import('../../classes/pdf-image-color-converter.js').PDFImageColorConverter} PDFImageColorConverter
+ * @param {typeof import('../../classes/baseline/pdf-image-color-converter.js').PDFImageColorConverter} PDFImageColorConverter
  */
 async function invokeDisposeTest(PDFImageColorConverter) {
     const converter = new PDFImageColorConverter({
@@ -227,7 +227,7 @@ async function invokeDisposeTest(PDFImageColorConverter) {
 /**
  * Tests worker mode is supported.
  *
- * @param {typeof import('../../classes/pdf-image-color-converter.js').PDFImageColorConverter} PDFImageColorConverter
+ * @param {typeof import('../../classes/baseline/pdf-image-color-converter.js').PDFImageColorConverter} PDFImageColorConverter
  */
 async function invokeWorkerModeSupportTest(PDFImageColorConverter) {
     const converter = new PDFImageColorConverter({
@@ -251,16 +251,16 @@ async function invokeWorkerModeSupportTest(PDFImageColorConverter) {
 // ============================================================================
 
 describe('PDFImageColorConverter', () => {
-    /** @type {typeof import('../../classes/pdf-image-color-converter.js').PDFImageColorConverter} */
+    /** @type {typeof import('../../classes/baseline/pdf-image-color-converter.js').PDFImageColorConverter} */
     let PDFImageColorConverter;
-    /** @type {typeof import('../../classes/image-color-converter.js').ImageColorConverter} */
+    /** @type {typeof import('../../classes/baseline/image-color-converter.js').ImageColorConverter} */
     let ImageColorConverter;
 
     before(async () => {
-        const imageModule = await import('../../classes/image-color-converter.js');
+        const imageModule = await import('../../classes/baseline/image-color-converter.js');
         ImageColorConverter = imageModule.ImageColorConverter;
 
-        const pdfModule = await import('../../classes/pdf-image-color-converter.js');
+        const pdfModule = await import('../../classes/baseline/pdf-image-color-converter.js');
         PDFImageColorConverter = pdfModule.PDFImageColorConverter;
     });
 

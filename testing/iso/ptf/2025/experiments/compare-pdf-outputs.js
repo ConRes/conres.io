@@ -40,7 +40,7 @@ import { ImageSampler } from './classes/image-sampler.mjs';
 import { ContentStreamColorExtractor } from './classes/content-stream-color-extractor.mjs';
 
 // Production color conversion classes
-import { PDFImageColorSampler } from '../classes/pdf-image-color-sampler.js';
+import { PDFImageColorSampler } from '../classes/baseline/pdf-image-color-sampler.js';
 
 // ============================================================================
 // PDF Image Extraction Utilities

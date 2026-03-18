@@ -36,8 +36,8 @@ function createMockProfile() {
 /**
  * Tests that LookupTableColorConverter extends ColorConverter.
  *
- * @param {typeof import('../../classes/lookup-table-color-converter.js').LookupTableColorConverter} LookupTableColorConverter
- * @param {typeof import('../../classes/color-converter.js').ColorConverter} ColorConverter
+ * @param {typeof import('../../classes/baseline/lookup-table-color-converter.js').LookupTableColorConverter} LookupTableColorConverter
+ * @param {typeof import('../../classes/baseline/color-converter.js').ColorConverter} ColorConverter
  */
 async function invokeInheritanceTest(LookupTableColorConverter, ColorConverter) {
     const config = {
@@ -62,7 +62,7 @@ async function invokeInheritanceTest(LookupTableColorConverter, ColorConverter) 
 /**
  * Tests lookup table caching behavior.
  *
- * @param {typeof import('../../classes/lookup-table-color-converter.js').LookupTableColorConverter} LookupTableColorConverter
+ * @param {typeof import('../../classes/baseline/lookup-table-color-converter.js').LookupTableColorConverter} LookupTableColorConverter
  */
 async function invokeLookupTableCachingTest(LookupTableColorConverter) {
     // Create concrete implementation for testing
@@ -126,7 +126,7 @@ async function invokeLookupTableCachingTest(LookupTableColorConverter) {
 /**
  * Tests batch conversion with caching.
  *
- * @param {typeof import('../../classes/lookup-table-color-converter.js').LookupTableColorConverter} LookupTableColorConverter
+ * @param {typeof import('../../classes/baseline/lookup-table-color-converter.js').LookupTableColorConverter} LookupTableColorConverter
  */
 async function invokeBatchConversionTest(LookupTableColorConverter) {
     class TestConverter extends LookupTableColorConverter {
@@ -177,7 +177,7 @@ async function invokeBatchConversionTest(LookupTableColorConverter) {
 /**
  * Tests cache threshold behavior.
  *
- * @param {typeof import('../../classes/lookup-table-color-converter.js').LookupTableColorConverter} LookupTableColorConverter
+ * @param {typeof import('../../classes/baseline/lookup-table-color-converter.js').LookupTableColorConverter} LookupTableColorConverter
  */
 async function invokeCacheThresholdTest(LookupTableColorConverter) {
     class TestConverter extends LookupTableColorConverter {
@@ -238,7 +238,7 @@ async function invokeCacheThresholdTest(LookupTableColorConverter) {
 /**
  * Tests clear lookup table.
  *
- * @param {typeof import('../../classes/lookup-table-color-converter.js').LookupTableColorConverter} LookupTableColorConverter
+ * @param {typeof import('../../classes/baseline/lookup-table-color-converter.js').LookupTableColorConverter} LookupTableColorConverter
  */
 async function invokeClearLookupTableTest(LookupTableColorConverter) {
     class TestConverter extends LookupTableColorConverter {
@@ -277,7 +277,7 @@ async function invokeClearLookupTableTest(LookupTableColorConverter) {
 /**
  * Tests populate lookup table.
  *
- * @param {typeof import('../../classes/lookup-table-color-converter.js').LookupTableColorConverter} LookupTableColorConverter
+ * @param {typeof import('../../classes/baseline/lookup-table-color-converter.js').LookupTableColorConverter} LookupTableColorConverter
  */
 async function invokePopulateLookupTableTest(LookupTableColorConverter) {
     class TestConverter extends LookupTableColorConverter {
@@ -327,7 +327,7 @@ async function invokePopulateLookupTableTest(LookupTableColorConverter) {
 /**
  * Tests hooks are called in correct order.
  *
- * @param {typeof import('../../classes/lookup-table-color-converter.js').LookupTableColorConverter} LookupTableColorConverter
+ * @param {typeof import('../../classes/baseline/lookup-table-color-converter.js').LookupTableColorConverter} LookupTableColorConverter
  */
 async function invokeHookOrderTest(LookupTableColorConverter) {
     const callOrder = [];
@@ -389,7 +389,7 @@ async function invokeHookOrderTest(LookupTableColorConverter) {
 /**
  * Tests abstract method throws.
  *
- * @param {typeof import('../../classes/lookup-table-color-converter.js').LookupTableColorConverter} LookupTableColorConverter
+ * @param {typeof import('../../classes/baseline/lookup-table-color-converter.js').LookupTableColorConverter} LookupTableColorConverter
  */
 async function invokeAbstractMethodThrowsTest(LookupTableColorConverter) {
     const converter = new LookupTableColorConverter({
@@ -416,16 +416,16 @@ async function invokeAbstractMethodThrowsTest(LookupTableColorConverter) {
 // ============================================================================
 
 describe('LookupTableColorConverter', () => {
-    /** @type {typeof import('../../classes/lookup-table-color-converter.js').LookupTableColorConverter} */
+    /** @type {typeof import('../../classes/baseline/lookup-table-color-converter.js').LookupTableColorConverter} */
     let LookupTableColorConverter;
-    /** @type {typeof import('../../classes/color-converter.js').ColorConverter} */
+    /** @type {typeof import('../../classes/baseline/color-converter.js').ColorConverter} */
     let ColorConverter;
 
     before(async () => {
-        const ccModule = await import('../../classes/color-converter.js');
+        const ccModule = await import('../../classes/baseline/color-converter.js');
         ColorConverter = ccModule.ColorConverter;
 
-        const ltModule = await import('../../classes/lookup-table-color-converter.js');
+        const ltModule = await import('../../classes/baseline/lookup-table-color-converter.js');
         LookupTableColorConverter = ltModule.LookupTableColorConverter;
     });
 
