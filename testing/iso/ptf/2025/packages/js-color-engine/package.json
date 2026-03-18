@@ -1,0 +1,18 @@
+{
+  "private": true,
+  "name": "@conres/js-color-engine",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "test": "node --test ./specs/**/*.{test,spec}.js",
+    "docs:build": "yarn workspace @conres/js-color-engine-documentation run build",
+    "docs:dev": "yarn workspace @conres/js-color-engine-documentation run dev",
+    "docs:validate": "yarn workspace @conres/js-color-engine-documentation run validate",
+    "docs:export": "yarn workspace @conres/js-color-engine-documentation run export:legacy",
+    "docs:clean": "yarn workspace @conres/js-color-engine-documentation run clean"
+  },
+  "devDependencies": {
+    "jscolorengine": "^1.0.4",
+    "typescript": "^5.9.2"
+  }
+}
