@@ -68,8 +68,8 @@ export class GhostscriptService {
     /**
      * Processes PostScript data with Ghostscript
      * @param {string} slugTemplateText - The slug template text
-     * @param {object} slugData - Data to inject into the template
-     * @param {object} metadata - Metadata for the slug
+     * @param {{ pages: Array<{ metadata: { title?: string, variant?: string, colorSpace?: string, resolution?: { values?: number[], value?: number, unit?: string } } }> }} slugData - Data to inject into the template
+     * @param {{slugs?: Partial<Record<'device'|'colorants'|'substrate'|'settings'|'email', string>>}} metadata - Metadata for the slug
      * @returns {string} - The processed PostScript
      */
     static processSlugTemplate(slugTemplateText, slugData, metadata) {
@@ -86,7 +86,7 @@ export class GhostscriptService {
                             // @ts-ignore
                             variant,
                             colorSpace,
-                            resolution: { value, unit } = /** @type {Partial<{ value: number, unit: string }>} */({}),
+                            resolution: { values, value = values?.join('/'), unit } = /** @type {Partial<{ values: number[], value: number, unit: string }>} */({}),
                         },
                     }) =>
                         [

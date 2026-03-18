@@ -5,6 +5,16 @@
     <title>ISO Perceptual Test Form - conres.io</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <script type="importmap">
+        {
+            "imports": {
+                "pdf-lib": "./packages/pdf-lib/pdf-lib.esm.js",
+                "icc": "./packages/icc/index.js",
+                "pako": "./packages/pako/dist/pako.mjs",
+                "unpkg:pako": "https://unpkg.com/pako@2.1.0/dist/pako.esm.mjs?module"
+            }
+        }
+    </script>
     <link rel=stylesheet href="https://smotaal.io/markout/styles/styles.css" />
     <style>
         html {
@@ -86,7 +96,7 @@
             grid-column: field-start;
         }
 
-        article :is(form, fieldset) :is(p, ul, ol, progress, progress + output, .full-row, label:has(+ .full-row, progress)) {
+        article :is(form, fieldset) :is(p, ul, ol, progress, progress + output, .full-row, label:has(+ .full-row, + progress)) {
             grid-column-start: row-start;
             grid-column-end: row-end;
             place-self: center;
@@ -107,14 +117,6 @@
             pointer-events: none;
         }
     </style>
-    <script type="importmap">
-        {
-            "imports": {
-                "pdf-lib": "./packages/pdf-lib/pdf-lib.esm.js",
-                "icc": "./packages/icc/index.js"
-            }
-        }
-    </script>
     <script type="module" src="./generate.js"></script>
 </head>
 
@@ -199,7 +201,14 @@
                                 <label for="test-form-version-select">Choose the version of the test form you would like
                                     to use:</label>
                                 <select id="test-form-version-select" name="test-form-version">
+                                    <option value="2025-08-15 - ConRes - ISO PTF - CR1 - Interlaken Map">2025-08-15 -
+                                        ConRes - ISO PTF - CR1 - Interlaken Map</option>
+                                    <option value="2025-08-15 - ConRes - ISO PTF - CR1">2025-08-15 - ConRes - ISO PTF -
+                                        CR1</option>
+                                    <option value="2025-05-05 - ISO PTF 2x-4x">2025-05-05 - ISO PTF 2x-4x</option>
                                     <option value="2025-04-25 - ISO PTF 2x-4x">2025-04-25 - ISO PTF 2x-4x</option>
+                                    <option value="2025-04-30 - ISO ConRes Target Revision">2025-04-30 - ISO ConRes
+                                        Target <i><b>Revision</b></i></option>
                                     <option value="2025-03-22 - ISO PTF 2x-4x">2025-03-22 - ISO PTF 2x-4x</option>
                                 </select>
                                 <p>If you already downloaded the PDF and converted the colors in Acrobat, you can skip
@@ -219,8 +228,43 @@
                         </fieldset>
                     </article>
                     <hr />
+                    <article id="color-conversion-auto">
+                        <h2>In-Browser Color Conversion (Beta)</h2>
+                        <fieldset name="color-conversion-fieldset">
+                            <div class="full-row">
+                                <p>Convert colors directly in the browser using the ConRes Color Engine.</p>
+                                <p><b>Note</b>: This is an experimental feature. For production use, Adobe Acrobat color
+                                    conversion (below) is recommended.</p>
+                            </div>
+                            <label for="color-conversion-source-file-input" class="full-row">Select source PDF
+                                file:</label>
+                            <input type="file" id="color-conversion-source-file-input"
+                                name="color-conversion-source-file-input" class="full-row" accept="application/pdf" />
+                            <label for="color-conversion-profile-file-input" class="full-row">Select destination ICC
+                                profile (CMYK):</label>
+                            <input type="file" id="color-conversion-profile-file-input"
+                                name="color-conversion-profile-file-input" class="full-row" accept=".icc,.icm" />
+                            <label for="color-conversion-rendering-intent">Rendering Intent:</label>
+                            <select id="color-conversion-rendering-intent" name="color-conversion-rendering-intent">
+                                <option value="preserve-k-only-relative-colorimetric-gcr" selected>K-Only (Neutral GCR)
+                                </option>
+                                <option value="perceptual">Perceptual</option>
+                                <option value="relative-colorimetric">Relative Colorimetric</option>
+                                <option value="saturation">Saturation</option>
+                                <option value="absolute-colorimetric">Absolute Colorimetric</option>
+                            </select>
+                            <div class="full-row">
+                                <button id="color-conversion-convert-button">Convert Colors</button>
+                            </div>
+                            <fieldset name="color-conversion-progress-fieldset" style="opacity:0;" class="full-row">
+                                <progress id="color-conversion-progress" value="0" max="100"></progress>
+                                <output id="color-conversion-progress-output">0%</output>
+                            </fieldset>
+                        </fieldset>
+                    </article>
+                    <hr />
                     <article id="color-conversion">
-                        <h2>Color Conversion</h2>
+                        <h2>Manual Color Conversion (Adobe Acrobat)</h2>
                         <fieldset name="conversion-fieldset">
                             <div class="full-row">
                                 <p>For this test form, color conversion must be done manually in Adobe Acrobat.</p>
@@ -378,7 +422,8 @@
                     <article id="generation">
                         <h2>Generation</h2>
                         <fieldset name="generation-fieldset">
-                            <label>The labelled PDF and metadata files are ready to be generated:</label>
+                            <label class="full-row">The labelled PDF and metadata files are ready to be
+                                generated:</label>
                             <div class="full-row">
                                 <button id="test-form-generation-button">Generate</button>
                                 <p>Once generated, you should see two new files in your downloads, the labelled test

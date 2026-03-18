@@ -13,8 +13,11 @@ import {
 import { PDFService } from "./services/PDFService.js";
 import { ICCService } from "./services/ICCService.js";
 import { GhostscriptService } from "./services/GhostscriptService.js";
+import { ColorEngineService, RenderingIntents } from "./services/ColorEngineService.js";
 
 const assetLocations = {
+    // 2025-03-22 - ISO Conres PTF 2x-4x
+
     '2025-03-22 - ISO PTF 2x-4x.pdf.json': new URL('../../../../assets/testforms/2025-03-22 - ISO PTF 2x-4x.pdf.json', import.meta.url).href,
     '2025-03-22 - ISO PTF 2x-4x.pdf': /^https?:\/\/(?:www\.)?(?:conres\.io)\//.test(globalThis.location?.href ?? '')
         ? 'https://media.githubusercontent.com/media/ConRes/conres.io/refs/heads/master/assets/testforms/2025-03-22 - ISO PTF 2x-4x.pdf'
@@ -28,12 +31,51 @@ const assetLocations = {
     '2025-03-22 - ISO PTF 2x-4x/Slug Template.ps': new URL('../../../../assets/testforms/2025-03-22 - ISO PTF 2x-4x/Slug Template.ps', import.meta.url).href,
     '2025-03-22 - ISO PTF 2x-4x/Slugs.json': new URL('../../../../assets/testforms/2025-03-22 - ISO PTF 2x-4x/Slugs.json', import.meta.url).href,
 
+    // 2025-04-25 - ISO Conres PTF 2x-4x
+
     '2025-04-25 - ISO PTF 2x-4x/Test Form Template.pdf': /^https?:\/\/(?:www\.)?(?:conres\.io)\//.test(globalThis.location?.href ?? '')
         ? 'https://media.githubusercontent.com/media/ConRes/conres.io/refs/heads/master/assets/testforms/2025-04-25 - ISO PTF 2x-4x.pdf'
         : new URL('../../../../assets/testforms/2025-04-25 - ISO PTF 2x-4x.pdf', import.meta.url).href,
     '2025-04-25 - ISO PTF 2x-4x/Barcode.ps': new URL('../../../../assets/testforms/2025-04-25 - ISO PTF 2x-4x/Barcode.ps', import.meta.url).href,
     '2025-04-25 - ISO PTF 2x-4x/Slug Template.ps': new URL('../../../../assets/testforms/2025-04-25 - ISO PTF 2x-4x/Slug Template.ps', import.meta.url).href,
     '2025-04-25 - ISO PTF 2x-4x/Slugs.json': new URL('../../../../assets/testforms/2025-04-25 - ISO PTF 2x-4x/Slugs.json', import.meta.url).href,
+
+    // 2025-04-25 - ISO Conres PTF 2x-4x
+
+    '2025-05-05 - ISO PTF 2x-4x/Test Form Template.pdf': /^https?:\/\/(?:www\.)?(?:conres\.io)\//.test(globalThis.location?.href ?? '')
+        ? 'https://media.githubusercontent.com/media/ConRes/conres.io/refs/heads/master/assets/testforms/2025-05-05 - ISO PTF 2x-4x.pdf'
+        : new URL('../../../../assets/testforms/2025-05-05 - ISO PTF 2x-4x.pdf', import.meta.url).href,
+    '2025-05-05 - ISO PTF 2x-4x/Barcode.ps': new URL('../../../../assets/testforms/2025-05-05 - ISO PTF 2x-4x/Barcode.ps', import.meta.url).href,
+    '2025-05-05 - ISO PTF 2x-4x/Slug Template.ps': new URL('../../../../assets/testforms/2025-05-05 - ISO PTF 2x-4x/Slug Template.ps', import.meta.url).href,
+    '2025-05-05 - ISO PTF 2x-4x/Slugs.json': new URL('../../../../assets/testforms/2025-05-05 - ISO PTF 2x-4x/Slugs.json', import.meta.url).href,
+
+    // 2025-04-30 - ISO Conres Target Revision
+
+    '2025-05-05 - ISO ConRes21Cr5/Test Form Template.pdf': /^https?:\/\/(?:www\.)?(?:conres\.io)\//.test(globalThis.location?.href ?? '')
+        ? 'https://media.githubusercontent.com/media/ConRes/conres.io/refs/heads/master/assets/testforms/2025-05-05 - ISO ConRes21Cr5.pdf'
+        : new URL('../../../../assets/testforms/2025-05-05 - ISO ConRes21Cr5.pdf', import.meta.url).href,
+    '2025-05-05 - ISO ConRes21Cr5/Barcode.ps': new URL('../../../../assets/testforms/2025-05-05 - ISO ConRes21Cr5/Barcode.ps', import.meta.url).href,
+    '2025-05-05 - ISO ConRes21Cr5/Slug Template.ps': new URL('../../../../assets/testforms/2025-05-05 - ISO ConRes21Cr5/Slug Template.ps', import.meta.url).href,
+    '2025-05-05 - ISO ConRes21Cr5/Slugs.json': new URL('../../../../assets/testforms/2025-05-05 - ISO ConRes21Cr5/Slugs.json', import.meta.url).href,
+    '2025-05-05 - ISO ConRes21Cr5/Settings.json': new URL('../../../../assets/testforms/2025-05-05 - ISO ConRes21Cr5/Settings.json', import.meta.url).href,
+
+    // 2025-08-15 - ISO Conres PTF CR1
+
+    '2025-08-15 - ConRes - ISO PTF - CR1/Test Form Template.pdf': /^https?:\/\/(?:www\.)?(?:conres\.io)\//.test(globalThis.location?.href ?? '')
+        ? 'https://media.githubusercontent.com/media/ConRes/conres.io/refs/heads/master/assets/testforms/2025-08-15 - ConRes - ISO PTF - CR1.pdf'
+        : new URL('../../../../assets/testforms/2025-08-15 - ConRes - ISO PTF - CR1.pdf', import.meta.url).href,
+    '2025-08-15 - ConRes - ISO PTF - CR1/Barcode.ps': new URL('../../../../assets/testforms/2025-08-15 - ConRes - ISO PTF - CR1/Barcode.ps', import.meta.url).href,
+    '2025-08-15 - ConRes - ISO PTF - CR1/Slug Template.ps': new URL('../../../../assets/testforms/2025-08-15 - ConRes - ISO PTF - CR1/Slug Template.ps', import.meta.url).href,
+    '2025-08-15 - ConRes - ISO PTF - CR1/Slugs.json': new URL('../../../../assets/testforms/2025-08-15 - ConRes - ISO PTF - CR1/Slugs.json', import.meta.url).href,
+    '2025-08-15 - ConRes - ISO PTF - CR1/Settings.json': new URL('../../../../assets/testforms/2025-08-15 - ConRes - ISO PTF - CR1/Settings.json', import.meta.url).href,
+
+    '2025-08-15 - ConRes - ISO PTF - CR1 - Interlaken Map/Test Form Template.pdf': /^https?:\/\/(?:www\.)?(?:conres\.io)\//.test(globalThis.location?.href ?? '')
+        ? 'https://media.githubusercontent.com/media/ConRes/conres.io/refs/heads/master/assets/testforms/2025-08-15 - ConRes - ISO PTF - CR1 - Interlaken Map.pdf'
+        : new URL('../../../../assets/testforms/2025-08-15 - ConRes - ISO PTF - CR1 - Interlaken Map.pdf', import.meta.url).href,
+    '2025-08-15 - ConRes - ISO PTF - CR1 - Interlaken Map/Barcode.ps': new URL('../../../../assets/testforms/2025-08-15 - ConRes - ISO PTF - CR1 - Interlaken Map/Barcode.ps', import.meta.url).href,
+    '2025-08-15 - ConRes - ISO PTF - CR1 - Interlaken Map/Slug Template.ps': new URL('../../../../assets/testforms/2025-08-15 - ConRes - ISO PTF - CR1 - Interlaken Map/Slug Template.ps', import.meta.url).href,
+    '2025-08-15 - ConRes - ISO PTF - CR1 - Interlaken Map/Slugs.json': new URL('../../../../assets/testforms/2025-08-15 - ConRes - ISO PTF - CR1 - Interlaken Map/Slugs.json', import.meta.url).href,
+    '2025-08-15 - ConRes - ISO PTF - CR1 - Interlaken Map/Settings.json': new URL('../../../../assets/testforms/2025-08-15 - ConRes - ISO PTF - CR1 - Interlaken Map/Settings.json', import.meta.url).href,
 };
 
 const DEBUG_FIELDSETS = false;
@@ -51,7 +93,7 @@ const DEBUG_METADATA = false;
  */
 
 /**
- * @typedef {'ready'|'overview'|'download' | 'conversion' | 'validation' | 'documentation' | 'generation' | 'exporting' | 'done' | 'aborted'} TestFormGeneratorStage
+ * @typedef {'ready'|'overview'|'download' | 'conversion' | 'color-conversion' | 'validation' | 'documentation' | 'generation' | 'exporting' | 'done' | 'aborted'} TestFormGeneratorStage
  */
 
 /**
@@ -59,12 +101,28 @@ const DEBUG_METADATA = false;
  * @property {TestFormGeneratorStage} [stage]
  * @property {boolean} [aborted]
  * @property {HTMLFormElement} form
- * @property {Partial<Record<TestFormGeneratorStage, HTMLDivElement>>} sections
- * @property {Partial<Record<TestFormGeneratorStage, HTMLFieldSetElement>>} fieldsets
- * @property {Record<string, ArrayBufferLike?>} resources
- * @property {object} [metadata]
+ * @property {Partial<Record<TestFormGeneratorStage, HTMLElement>>} sections
+ * @property {Partial<Record<`${TestFormGeneratorStage}-fieldset`, HTMLFieldSetElement>>} fieldsets
+ * @property {Record<string, ArrayBuffer>} resources
+ * @property {Record<string, unknown>} [metadata]
  */
 
+/**
+ * @typedef {object} TestFormGeneratorOptions
+ * @property {boolean} [overviewStage]
+ * @property {boolean} [downloadStage]
+ * @property {boolean} [conversionStage]
+ * @property {boolean} [validationStage]
+ * @property {boolean} [colorConversionStage] - Enable in-browser color conversion using Color Engine
+ * @property {boolean} [documentationStage]
+ * @property {boolean} [generationStage]
+ * @property {boolean} [disableManifest]
+ * @property {boolean} [disableDownload]
+ * @property {boolean} [disableProfileCountCheck]
+ * @property {'default'|'expert'} [userMode]
+ * @property {string} [destinationProfileUrl] - URL to the destination ICC profile for color conversion
+ * @property {import('./services/ColorEngineService.js').RenderingIntent} [renderingIntent]
+ */
 class TestFormGenerator {
 
     /** @type {AbortController?} */
@@ -72,6 +130,7 @@ class TestFormGenerator {
 
     #aborted = false;
 
+    /** @type {Record<string, string>} */
     #assetLocations = { ...assetLocations };
 
     /** @type {Record<string, Promise<ArrayBuffer>>} */
@@ -79,28 +138,40 @@ class TestFormGenerator {
 
     #cache;
 
-    constructor() {
+    /** @type {TestFormGeneratorOptions} */
+    #options;
+
+    /**
+     * @param {TestFormGeneratorOptions} [options={}]
+     */
+    constructor(options = {}) {
         this.#abortController?.signal.addEventListener('abort', event => {
             this.#aborted = true;
             this.#abortController = null;
         }, { 'once': true });
 
         this.#cache = globalThis.caches?.open?.('conres-testforms');
+
+        this.#options = Object.freeze({ ...options });
     }
 
     /**
      * @param {HTMLFormElement} form
      */
     async execute(form) {
+        /** @type {TestFormGeneratorState['fieldsets']} */
         const fieldsets = {};
+        /** @type {TestFormGeneratorState['sections']} */
         const sections = {};
 
         for (const fieldset of form.querySelectorAll('fieldset')) {
-            fieldsets[fieldset.name] = fieldset;
+            if (!fieldset.name) continue;
+            fieldsets[/** @type {keyof TestFormGeneratorState['fieldsets']} */ (fieldset.name)] = /** @type {HTMLFieldSetElement} */ (fieldset);
         }
 
         for (const section of form.querySelectorAll('article, section')) {
-            sections[section.id] = section;
+            if (!section.id) continue;
+            sections[/** @type {keyof TestFormGeneratorState['sections']} */ (section.id)] = /** @type {HTMLElement} */ (section);
         }
 
         /** @type {TestFormGeneratorState} */
@@ -133,13 +204,16 @@ class TestFormGenerator {
 
         state.stage = 'ready';
 
+        const userMode = this.#options.userMode ?? 'default';
+
         yield state;
-        yield* this.#overviewStage(state);
-        yield* this.#downloadStage(state);
-        yield* this.#conversionStage(state);
-        yield* this.#validationStage(state);
-        yield* this.#documentationStage(state);
-        yield* this.#generationStage(state);
+        if (this.#options.overviewStage ?? (userMode !== 'expert')) yield* this.#overviewStage(state);
+        if (this.#options.downloadStage ?? true) yield* this.#downloadStage(state);
+        if (this.#options.conversionStage ?? (userMode !== 'expert')) yield* this.#conversionStage(state);
+        if (this.#options.colorConversionStage ?? false) yield* this.#colorConversionStage(state);
+        if (this.#options.validationStage ?? true) yield* this.#validationStage(state);
+        if (this.#options.documentationStage ?? true) yield* this.#documentationStage(state);
+        if (this.#options.generationStage ?? true) yield* this.#generationStage(state);
         state.stage = 'done';
         yield state;
     }
@@ -150,30 +224,36 @@ class TestFormGenerator {
     async * #overviewStage(state) {
         state.stage = 'overview';
 
-        /** @type {HTMLFieldSetElement} */
         const fieldset = state.fieldsets['overview-fieldset'];
 
-        yield state;
+        if ((this.#options.userMode ?? 'default') === 'default') {
 
-        if (!fieldset) throw new Error('Export fieldset missing');
+            yield state;
 
-        fieldset.removeAttribute('disabled');
-        (fieldset.parentElement ?? fieldset).scrollIntoView({ behavior: 'smooth', 'block': 'center', 'inline': 'nearest' });
-        await new Promise(resolve => requestAnimationFrame(resolve));
-        if (DEBUG_FIELDSETS) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        } else {
-            // const { promise, resolve, reject } = Promise.withResolvers();
-            const { promise, resolve, reject } = PromiseWithResolvers();
-            const overviewContinueButton = /** @type {HTMLButtonElement} */(state.form.elements.namedItem('test-form-overview-continue-button'));
+            if (!fieldset)
+                throw new Error('Export fieldset missing');
 
-            overviewContinueButton.onclick = () => resolve(undefined);
+            fieldset.removeAttribute('disabled');
+            (fieldset.parentElement ?? fieldset).scrollIntoView({ behavior: 'smooth', 'block': 'center', 'inline': 'nearest' });
+            await new Promise(resolve => requestAnimationFrame(resolve));
+            if (DEBUG_FIELDSETS) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            } else {
+                // const { promise, resolve, reject } = Promise.withResolvers();
+                const { promise, resolve, reject } = PromiseWithResolvers();
+                const overviewContinueButton = /** @type {HTMLButtonElement} */(state.form.elements.namedItem('test-form-overview-continue-button'));
 
-            await promise;
+                overviewContinueButton.onclick = () => resolve(undefined);
+
+                await promise;
+            }
+            // fieldset.focus();
+            // yield state;
+            fieldset.setAttribute('disabled', '');
+        } else if (this.#options.userMode !== 'expert') {
+            throw new Error('Expert mode not supported');
         }
-        // fieldset.focus();
-        // yield state;
-        fieldset.setAttribute('disabled', '');
+
     }
 
     /**
@@ -182,12 +262,13 @@ class TestFormGenerator {
     async * #conversionStage(state) {
         state.stage = 'conversion';
 
-        /** @type {HTMLFieldSetElement} */
         const fieldset = state.fieldsets['conversion-fieldset'];
 
+        // if ((this.#options.userMode ?? 'default') === 'default') {
         yield state;
 
-        if (!fieldset) throw new Error('Export fieldset missing');
+        if (!fieldset)
+            throw new Error('Export fieldset missing');
 
         fieldset.removeAttribute('disabled');
         (fieldset.parentElement ?? fieldset).scrollIntoView({ behavior: 'smooth', 'block': 'center', 'inline': 'nearest' });
@@ -206,20 +287,157 @@ class TestFormGenerator {
         // fieldset.focus();
         // yield state;
         fieldset.setAttribute('disabled', '');
+        // } else if (this.#options.userMode !== 'expert') {
+        //     throw new Error('Expert mode not supported');
+        // }
     }
 
     /**
-     * @param {TestFormGeneratorState} state 
+     * In-browser color conversion stage using Color Engine
+     * @param {TestFormGeneratorState} state
+     */
+    async * #colorConversionStage(state) {
+        state.stage = 'color-conversion';
+
+        const fieldset = state.fieldsets['color-conversion-fieldset'];
+
+        yield state;
+
+        if (!fieldset)
+            throw new Error('Color conversion fieldset missing');
+
+        fieldset.removeAttribute('disabled');
+        (fieldset.parentElement ?? fieldset).scrollIntoView({ behavior: 'smooth', 'block': 'center', 'inline': 'nearest' });
+        await new Promise(resolve => requestAnimationFrame(resolve));
+
+        if (DEBUG_FIELDSETS) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        } else {
+            const { promise, resolve, reject } = PromiseWithResolvers();
+
+            const sourceFileInput = /** @type {HTMLInputElement} */ (state.form.elements.namedItem('color-conversion-source-file-input'));
+            const profileFileInput = /** @type {HTMLInputElement} */ (state.form.elements.namedItem('color-conversion-profile-file-input'));
+            const renderingIntentSelect = /** @type {HTMLSelectElement} */ (state.form.elements.namedItem('color-conversion-rendering-intent'));
+            const convertButton = /** @type {HTMLButtonElement} */ (state.form.elements.namedItem('color-conversion-convert-button'));
+            const progressFieldset = /** @type {HTMLFieldSetElement} */ (state.form.elements.namedItem('color-conversion-progress-fieldset'));
+            const progressBar = /** @type {HTMLProgressElement} */ (progressFieldset?.querySelector('progress'));
+            const progressOutput = /** @type {HTMLOutputElement} */ (state.form.elements.namedItem('color-conversion-progress-output'));
+
+            convertButton.onclick = async () => {
+                try {
+                    const sourceFile = sourceFileInput?.files?.[0];
+                    const profileFile = profileFileInput?.files?.[0];
+
+                    if (!sourceFile) {
+                        alert('Please select a source PDF file.');
+                        return;
+                    }
+
+                    if (!profileFile) {
+                        alert('Please select a destination ICC profile.');
+                        return;
+                    }
+
+                    // Show progress
+                    if (progressFieldset) progressFieldset.style.opacity = '';
+                    if (progressBar) {
+                        progressBar.removeAttribute('value');
+                        progressBar.removeAttribute('max');
+                    }
+                    if (progressOutput) progressOutput.value = 'Loading PDF...';
+
+                    await new Promise(r => requestAnimationFrame(r));
+
+                    // Load the source PDF
+                    const sourceBuffer = await sourceFile.arrayBuffer();
+                    const pdfDocument = await PDFDocument.load(sourceBuffer);
+
+                    if (progressOutput) progressOutput.value = 'Loading ICC profile...';
+                    await new Promise(r => requestAnimationFrame(r));
+
+                    // Load the destination profile
+                    const profileBuffer = await profileFile.arrayBuffer();
+                    const profileHeader = ICCService.parseICCHeaderFromSource(profileBuffer);
+
+                    if (profileHeader.colorSpace !== 'CMYK') {
+                        throw new Error(`Destination profile must be CMYK. Got: ${profileHeader.colorSpace}`);
+                    }
+
+                    if (progressOutput) progressOutput.value = 'Converting colors...';
+                    await new Promise(r => requestAnimationFrame(r));
+
+                    // Get rendering intent
+                    const renderingIntent = /** @type {import('./services/ColorEngineService.js').RenderingIntent} */ (
+                        renderingIntentSelect?.value || 'relative-colorimetric'
+                    );
+
+                    console.time('PDFService.convertColorInPDFDocument');
+
+                    // Perform color conversion
+                    // Note: Blending space update is handled separately in generationStage via replaceTransarencyBlendingSpaceInPDFDocument
+                    const conversionResult = await PDFService.convertColorInPDFDocument(pdfDocument, {
+                        destinationProfile: profileBuffer,
+                        renderingIntent,
+                        convertImages: true,
+                        convertContentStreams: true,
+                        verbose: false,
+                    });
+
+                    console.timeEnd('PDFService.convertColorInPDFDocument');
+                    console.log('Color conversion result:', conversionResult);
+
+                    if (progressOutput) progressOutput.value = 'Saving PDF...';
+                    await new Promise(r => requestAnimationFrame(r));
+
+                    // Save the converted PDF
+                    const convertedBuffer = /** @type {ArrayBuffer} */ ((await pdfDocument.save()).buffer);
+
+                    // Store in resources for next stages
+                    state.resources['Test Form.pdf'] = convertedBuffer;
+                    state.resources['input/Output.icc'] = profileBuffer;
+
+                    // Download the converted PDF
+                    const fileName = sourceFile.name.replace(/\.pdf$/i, '') + ' (Converted).pdf';
+                    await downloadArrayBufferAs(convertedBuffer, fileName, 'application/pdf');
+
+                    if (progressBar) {
+                        progressBar.value = 100;
+                        progressBar.max = 100;
+                    }
+                    if (progressOutput) progressOutput.value = '100% - Conversion complete!';
+
+                    resolve(undefined);
+
+                } catch (error) {
+                    console.error('Color conversion failed:', error);
+                    if (progressOutput) progressOutput.value = `Error: ${error}`;
+                    if (progressBar) {
+                        progressBar.value = 0;
+                        progressBar.max = 100;
+                    }
+                    // Don't reject - allow user to try again
+                }
+            };
+
+            await promise;
+            convertButton.onclick = null;
+        }
+
+        fieldset.setAttribute('disabled', '');
+    }
+
+    /**
+     * @param {TestFormGeneratorState} state
      */
     async * #downloadStage(state) {
         state.stage = 'download';
 
-        /** @type {HTMLFieldSetElement} */
         const fieldset = state.fieldsets['download-fieldset'];
 
         yield state;
 
-        if (!fieldset) throw new Error('Download fieldset missing');
+        if (!fieldset)
+            throw new Error('Download fieldset missing');
 
         fieldset.removeAttribute('disabled');
         (fieldset.parentElement ?? fieldset).scrollIntoView({ behavior: 'smooth', 'block': 'center', 'inline': 'nearest' });
@@ -280,15 +498,16 @@ class TestFormGenerator {
 
                     await new Promise(resolve => requestAnimationFrame(resolve));
 
-                    let nextFrame;
+                    /** @type {number|undefined} */
+                    let nextFrame = undefined;
 
                     const downloadedTestFormArrayBuffer = await this.#loadAsset(`${testFormName}/Test Form Template.pdf`, {
                         /**
                          * @param {FetchState} fetchState 
                          */
                         async update(fetchState) {
-                            if (nextFrame) cancelAnimationFrame(nextFrame);
-                            nextFrame = null;
+                            if (nextFrame) nextFrame = void cancelAnimationFrame(nextFrame);
+
                             if (fetchState.done) {
                                 requestAnimationFrame(() => {
                                     const totalBytes = isNaN(fetchState.totalBytes) ? 0 : fetchState.totalBytes;
@@ -322,7 +541,7 @@ class TestFormGenerator {
                     const pdfDocument = await PDFDocument.load(downloadedTestFormArrayBuffer);
 
                     // await pdfDocument.attach(downloadedTestFormManifestArrayBuffer, 'test-form.manifest.json', { 'mimeType': 'application/json' });
-                    await PDFService.attachManifestToPDF(pdfDocument, downloadedTestFormManifestArrayBuffer, 'test-form.manifest.json');
+                    await PDFService.attachManifestToPDFDocument(pdfDocument, downloadedTestFormManifestArrayBuffer, 'test-form.manifest.json');
 
                     const modifiedTestFormArrayBuffer = /** @type {ArrayBuffer} */ ((await pdfDocument.save({ addDefaultPage: false, updateFieldAppearances: false })).buffer);
 
@@ -353,12 +572,12 @@ class TestFormGenerator {
     async * #validationStage(state) {
         state.stage = 'validation';
 
-        /** @type {HTMLFieldSetElement} */
         const fieldset = state.fieldsets['validation-fieldset'];
 
         yield state;
 
-        if (!fieldset) throw new Error('Validation fieldset missing');
+        if (!fieldset)
+            throw new Error('Validation fieldset missing');
 
         fieldset.removeAttribute('disabled');
         (fieldset.parentElement ?? fieldset).scrollIntoView({ behavior: 'smooth', 'block': 'center', 'inline': 'nearest' });
@@ -375,15 +594,14 @@ class TestFormGenerator {
             const validationProgress = /** @type {HTMLProgressElement} */(validationProgressFieldset.querySelector('progress'));
             const validationProgressOutput = /** @type {HTMLOutputElement} */(state.form.elements.namedItem('test-form-validation-progress-output'));
 
-            validationButton.onclick = async () => {
+            const validate = async () => {
                 validationProgressFieldset.style.opacity = "";
                 validationProgress.removeAttribute('value');
                 validationProgress.removeAttribute('max');
                 validationProgressOutput.value = `Validating…`;
 
                 try {
-                    const resources = {};
-                    state.resources = resources;
+                    state.resources = {};
                     await new Promise(resolve => requestAnimationFrame(resolve));
 
                     const preparedTestFormFile = preparedTestFormFileInput.files?.[0];
@@ -397,26 +615,31 @@ class TestFormGenerator {
                     const pdfDocumentBuffer = await preparedTestFormFile.arrayBuffer();
                     const pdfDocument = await PDFDocument.load(pdfDocumentBuffer);
 
-                    const manifestResult = PDFService.extractManifestFromPDF(pdfDocument);
-                    if (!manifestResult) {
-                        throw new Error('The PDF does not have a valid manifest attached.');
-                    }
+                    const manifestResult = PDFService.extractManifestFromPDFDocument(pdfDocument);
 
-                    const iccProfilesMap = PDFService.extractICCProfilesFromPDF(pdfDocument);
+                    if (!this.#options.disableManifest && !(manifestResult?.buffer instanceof ArrayBuffer))
+                        throw new Error('The PDF does not have a valid manifest attached.');
+
+                    const iccProfilesMap = PDFService.extractICCProfilesFromPDFDocument(pdfDocument);
                     const iccProfilesSet = new Set(iccProfilesMap.values());
 
-                    if (iccProfilesSet.size !== 1)
-                        throw new Error(`The PDF must contain exactly one ICC profile. Found ${iccProfilesSet.size} ICC profiles.`);
+                    if (!this.#options.disableProfileCountCheck) {
+                        if (iccProfilesSet.size !== 1)
+                            throw new Error(`The PDF must contain exactly one ICC profile. Found ${iccProfilesSet.size} ICC profiles.`);
 
-                    const iccProfile = [...iccProfilesSet][0];
+                        const iccProfile = [...iccProfilesSet][0];
 
-                    resources['Test Form.pdf'] = pdfDocumentBuffer.slice();
-                    resources['Slugs.json'] = manifestResult.buffer;
-                    resources['input/Output.icc'] = iccProfile.buffer.buffer.slice();
+                        state.resources['input/Output.icc'] = iccProfile.buffer.buffer.slice();
+                    }
+
+                    state.resources['Test Form.pdf'] = pdfDocumentBuffer.slice();
+
+                    if (manifestResult?.buffer)
+                        state.resources['Slugs.json'] = manifestResult.buffer;
 
                 } catch (error) {
                     console.error('TestFormGenerator %o', error, { ...state });
-                    validationProgressOutput.value = `Validation failed: ${error.message}`;
+                    validationProgressOutput.value = `Validation failed: ${error}`;
                     validationProgress.value = 0;
                     validationProgress.max = 0;
                     state.resources = {};
@@ -430,6 +653,10 @@ class TestFormGenerator {
                 resolve(undefined);
                 return;
             };
+
+            validationButton.onclick = validate;
+
+            if (this.#options.userMode === 'expert') preparedTestFormFileInput.onchange = validate;
 
             await promise;
             validationButton.onclick = null;
@@ -446,12 +673,12 @@ class TestFormGenerator {
     async * #documentationStage(state) {
         state.stage = 'documentation';
 
-        /** @type {HTMLFieldSetElement} */
         const fieldset = state.fieldsets['documentation-fieldset'];
 
         yield state;
 
-        if (!fieldset) throw new Error('Documentation fieldset missing');
+        if (!fieldset)
+            throw new Error('Documentation fieldset missing');
 
         fieldset.removeAttribute('disabled');
         (fieldset.parentElement ?? fieldset).scrollIntoView({ behavior: 'smooth', 'block': 'center', 'inline': 'nearest' });
@@ -524,12 +751,12 @@ class TestFormGenerator {
     async * #generationStage(state) {
         state.stage = 'generation';
 
-        /** @type {HTMLFieldSetElement} */
         const fieldset = state.fieldsets['generation-fieldset'];
 
         yield state;
 
-        if (!fieldset) throw new Error('Generation fieldset missing');
+        if (!fieldset)
+            throw new Error('Generation fieldset missing');
 
         fieldset.removeAttribute('disabled');
         (fieldset.parentElement ?? fieldset).scrollIntoView({ behavior: 'smooth', 'block': 'center', 'inline': 'nearest' });
@@ -542,99 +769,137 @@ class TestFormGenerator {
             const generateTestFormDebuggingCheckbox = /** @type {HTMLInputElement} */(state.form.elements.namedItem('test-form-generation-debugging-checkbox'));
             const { promise, resolve, reject } = PromiseWithResolvers();
 
-            generateTestFormButton.onclick = async () => {
+            const generate = async () => {
                 try {
-                    const resources = {
-                        ...state.resources,
-                        ...{
+                    if (!state?.resources?.['Test Form.pdf'])
+                        throw new Error('Missing Test Form Template.pdf');
+
+                    const testFormDocumentSourceBuffer = /** @type {ArrayBuffer?} */ (state.resources['Test Form.pdf'] || null);;
+
+                    if (!testFormDocumentSourceBuffer)
+                        throw new Error('Missing Test Form Template.pdf');
+
+                    const testFormDocument = await PDFDocument.load(testFormDocumentSourceBuffer);
+
+                    const iccProfileSourceBuffer = /** @type {ArrayBuffer?} */ (state.resources['input/Output.icc'] || null);
+
+                    if (!this.#options.disableProfileCountCheck && !iccProfileSourceBuffer)
+                        throw new Error('Missing ICC profile (input/Output.icc)');
+
+                    const iccProfileHeader = iccProfileSourceBuffer ? ICCService.parseICCHeaderFromSource(iccProfileSourceBuffer) : null;
+
+                    if (iccProfileHeader && iccProfileHeader.colorSpace !== 'RGB' && iccProfileHeader.colorSpace !== 'CMYK')
+                        throw new Error(`The ICC profile must be RGB or CMYK. The ICC profile is ${iccProfileHeader.colorSpace}.`);
+
+                    /** @type {object?} */
+                    const slugsMetadata = state.metadata?.slugs ?? null;
+
+                    state.resources = {
+                        .../** @type {Record<'Slugs.json' | 'input/Output.icc', ArrayBuffer>} */ (state.resources),
+                        ...slugsMetadata && {
                             'Slug Template.ps': await this.#loadAsset('2025-03-22 - ISO PTF 2x-4x/Slug Template.ps'),
                             'input/Barcode.ps': await this.#loadAsset('2025-03-22 - ISO PTF 2x-4x/Barcode.ps'),
                         },
                     };
-                    state.resources = resources;
 
-                    // const iccValidation = ICCService.validateICCColorSpace(resources['input/Output.icc']);
+                    /** @type {object|undefined} */
+                    let attachedManifest = undefined;
 
-                    const iccProfileHeader = ICCService.parseICCHeaderFromSource(resources['input/Output.icc']);
+                    if (slugsMetadata) {
+                        const slugTemplateSourceBuffer = state.resources['Slug Template.ps'];
+                        if (!slugTemplateSourceBuffer)
+                            throw new Error('Missing Slug Template.ps');
 
-                    if (iccProfileHeader.colorSpace !== 'RGB' && iccProfileHeader.colorSpace !== 'CMYK')
-                        throw new Error(`The ICC profile must be RGB or CMYK. The ICC profile is ${iccProfileHeader.colorSpace}.`);
+                        const slugTemplateSourceText = new TextDecoder().decode(new Uint8Array(slugTemplateSourceBuffer));
+                        const attachedManifestBuffer = state.resources['Slugs.json'];
 
-                    const slugTemplateSourceBuffer = resources['Slug Template.ps'];
-                    if (!slugTemplateSourceBuffer) throw new Error('Missing Slug Template.ps');
+                        if (!attachedManifestBuffer)
+                            throw new Error('Missing Slugs.json');
 
-                    const slugTemplateSourceText = new TextDecoder().decode(new Uint8Array(slugTemplateSourceBuffer));
-                    const attachedManifestBuffer = resources['Slugs.json'];
+                        const attachedManifestSourceText = new TextDecoder().decode(new Uint8Array(attachedManifestBuffer));
 
-                    if (!attachedManifestBuffer) throw new Error('Missing Slugs.json');
+                        attachedManifest = JSON.parse(attachedManifestSourceText);
 
-                    const attachedManifestSourceText = new TextDecoder().decode(new Uint8Array(attachedManifestBuffer));
-                    const attachedManifest = JSON.parse(attachedManifestSourceText);
+                        if (!attachedManifest || typeof attachedManifest !== 'object')
+                            throw new Error('Invalid Slugs.json manifest');
 
-                    const slugSourceText = GhostscriptService.processSlugTemplate(
-                        slugTemplateSourceText,
-                        attachedManifest,
-                        state.metadata
-                    );
+                        const slugSourceText = GhostscriptService.processSlugTemplate(
+                            slugTemplateSourceText,
+                            attachedManifest,
+                            state.metadata
+                        );
 
-                    resources['input/Slugs.ps'] = new TextEncoder().encode(slugSourceText).buffer;
+                        state.resources['input/Slugs.ps'] = new TextEncoder().encode(slugSourceText).buffer;
 
-                    const slugsOutputBuffer = await GhostscriptService.generateSlugsPDF(
-                        resources,
-                        iccProfileHeader.colorSpace,
-                        generateTestFormDebuggingCheckbox.checked
-                    );
+                        const slugsOutputBuffer = await GhostscriptService.generateSlugsPDF(
+                            state.resources,
+                            iccProfileHeader?.colorSpace ?? 'CMYK',
+                            generateTestFormDebuggingCheckbox.checked
+                        );
 
-                    resources['output/Slugs.pdf'] = slugsOutputBuffer;
+                        state.resources['output/Slugs.pdf'] = slugsOutputBuffer;
 
-                    if (!resources['Test Form.pdf']) throw new Error('Missing Test Form Template.pdf');
+                        const slugsDocument = await PDFDocument.load(state.resources['output/Slugs.pdf']);
 
-                    const testFormDocument = await PDFDocument.load(resources['Test Form.pdf']);
-                    const slugsDocument = await PDFDocument.load(resources['output/Slugs.pdf']);
+                        await PDFService.embedSlugsIntoPDFDocument(testFormDocument, slugsDocument);
+                    } else if (!this.#options.disableManifest) {
+                        throw new Error('No slugs metadata provided. The test form cannot be generated without slugs metadata.');
+                    } else {
+                        console.warn('No slugs metadata provided. Skipping slug generation.');
+                    }
 
-                    await PDFService.embedSlugsIntoPDF(testFormDocument, slugsDocument);
+                    const iccProfileBytes = new Uint8Array(state.resources['input/Output.icc']);
 
-                    const iccProfileBytes = new Uint8Array(resources['input/Output.icc']);
-
-                    const iccProfilesMap = PDFService.extractICCProfilesFromPDF(testFormDocument);
+                    const iccProfilesMap = PDFService.extractICCProfilesFromPDFDocument(testFormDocument);
                     const iccProfileReference = [...iccProfilesMap.keys()][0];
-                    // const iccProfilesSet = new Set(iccProfilesMap.values());
-                    // const iccProfile = [...iccProfilesSet][0];
 
-                    await PDFService.decalibratePDFDocument(testFormDocument);
+                    console.time('PDFService.decalibrateColorInPDFDocument');
+                    await PDFService.decalibrateColorInPDFDocument(testFormDocument);
+                    console.timeEnd('PDFService.decalibrateColorInPDFDocument');
 
-                    console.time('PDFService.setOutputIntentForPDF');
+                    if (iccProfileHeader) {
+                        console.time('PDFService.replaceTransarencyBlendingSpace');
+                        await PDFService.replaceTransarencyBlendingSpaceInPDFDocument(testFormDocument, `Device${iccProfileHeader.colorSpace}`);
+                        console.timeEnd('PDFService.replaceTransarencyBlendingSpace');
+                    }
 
-                    PDFService.setOutputIntentForPDF(testFormDocument, {
-                        // iccProfile: iccProfileBytes.slice(),
-                        iccProfile: iccProfileReference,
-                        identifier: iccProfileHeader.description || `ICCBased_${iccProfileHeader.colorSpace}`,
-                        subType: 'GTS_PDFX',
-                    });
+                    if (iccProfileHeader) {
+                        console.time('PDFService.setOutputIntentForPDFDocument');
 
-                    console.timeEnd('PDFService.setOutputIntentForPDF');
+                        PDFService.setOutputIntentForPDFDocument(testFormDocument, {
+                            // iccProfile: iccProfileBytes.slice(),
+                            iccProfile: iccProfileReference,
+                            identifier: iccProfileHeader.description || `ICCBased_${iccProfileHeader.colorSpace}`,
+                            subType: 'GTS_PDFX',
+                        });
+                    }
 
-                    resources['output/Test Form.pdf'] = (await testFormDocument.save()).buffer;
+                    console.timeEnd('PDFService.setOutputIntentForPDFDocument');
+
+                    state.resources['output/Test Form.pdf'] = /** @type {ArrayBuffer} */ ((await testFormDocument.save()).buffer);
 
                     /** @satisfies {Parameters<uint8ArrayToBase64>[1]} */
                     const base64Options = { 'alphabet': 'base64' };
 
                     const iccProfileBase64 = uint8ArrayToBase64(iccProfileBytes, base64Options);
 
-                    const slugsBytes = new Uint8Array(resources['output/Slugs.pdf']);
-                    const slugsBase64 = uint8ArrayToBase64(slugsBytes, base64Options);
+                    // const slugsResource = state.resources['output/Slugs.pdf'];
+                    // const slugsBytes = slugsResource ? new Uint8Array(slugsResource) : undefined;
+                    // const slugsBase64 = slugsResource ? uint8ArrayToBase64(slugsBytes, base64Options) : undefined;
 
-                    // const iccProfileHeader = ICCService.parseICCHeader(resources['input/Output.icc']);
+                    // const iccProfileHeader = ICCService.parseICCHeader(state.resources['input/Output.icc']);
 
-                    resources['output/metadata.json'] = new TextEncoder().encode(JSON.stringify({
-                        metadata: state.metadata,
-                        manifest: attachedManifest,
-                        slugs: {
-                            contents: {
-                                type: 'application/pdf',
-                                base64: slugsBase64,
+                    state.resources['output/metadata.json'] = new TextEncoder().encode(JSON.stringify({
+                        metadata: state.metadata || undefined,
+                        manifest: attachedManifest || undefined,
+                        ...slugsMetadata && {
+                            slugs: {
+                                contents: {
+                                    type: 'application/pdf',
+                                    base64: uint8ArrayToBase64(new Uint8Array(state.resources['output/Slugs.pdf']), base64Options),
+                                },
                             },
-                        },
+                        } || {},
                         color: {
                             profile: {
                                 ...iccProfileHeader,
@@ -648,13 +913,20 @@ class TestFormGenerator {
 
                     const isDebugging = generateTestFormDebuggingCheckbox.checked;
 
-                    if (isDebugging) {
-                        await downloadArrayBufferAs(resources['input/Output.icc'], "Output.icc", "application/vnd.iccprofile");
-                        await downloadArrayBufferAs(resources['output/Slugs.pdf'], "Slugs.pdf", "application/pdf");
-                    }
+                    if (!this.#options.disableDownload) {
+                        if (isDebugging) {
+                            if (state.resources['input/Output.icc'])
+                                await downloadArrayBufferAs(state.resources['input/Output.icc'], "Output.icc", "application/vnd.iccprofile");
+                            if (state.resources['output/Slugs.pdf'])
+                                await downloadArrayBufferAs(state.resources['output/Slugs.pdf'], "Slugs.pdf", "application/pdf");
+                        }
 
-                    await downloadArrayBufferAs(resources['output/metadata.json'], "metadata.json", "application/json");
-                    await downloadArrayBufferAs(resources['output/Test Form.pdf'], "Test Form.pdf", "application/pdf");
+                        if (state.resources['output/metadata.json'])
+                            await downloadArrayBufferAs(state.resources['output/metadata.json'], "metadata.json", "application/json");
+
+                        if (state.resources['output/Test Form.pdf'])
+                            await downloadArrayBufferAs(state.resources['output/Test Form.pdf'], "Test Form.pdf", "application/pdf");
+                    }
 
                     resolve(undefined);
                 } catch (error) {
@@ -664,21 +936,35 @@ class TestFormGenerator {
                 }
             };
 
+            generateTestFormButton.onclick = generate;
+
+            if (this.#options.userMode === 'expert') await generate();
+
             await promise;
+
             generateTestFormButton.onclick = null;
         }
 
         fieldset.setAttribute('disabled', '');
     }
 
+    /**
+     * 
+     * @param {string} assetName 
+     * @param {object} [options]
+     * @param {(state: FetchState) => void} [options.update]
+     * @returns 
+     */
     async #loadAsset(assetName, options) {
-        if (this.#aborted) throw new Error('Aborted');
+        if (this.#aborted)
+            throw new Error('Aborted');
 
         if (this.#assetCache[assetName] !== undefined) return this.#assetCache[assetName];
 
         const assetLocation = this.#assetLocations[assetName];
 
-        if (!assetLocation) throw new Error(`Asset location missing: ${assetName}`);
+        if (!assetLocation)
+            throw new Error(`Asset location missing: ${assetName}`);
 
         const { promise, resolve, reject } = PromiseWithResolvers();
 
@@ -736,7 +1022,8 @@ class TestFormGenerator {
                         const clonedResponse = fetchedResponse.clone();
                         const reader = clonedResponse.body?.getReader?.();
 
-                        if (!reader) throw new Error('Failed to read response body');
+                        if (!reader)
+                            throw new Error('Failed to read response body');
 
                         let lastProgress = 0;
 
@@ -771,8 +1058,58 @@ class TestFormGenerator {
 }
 
 globalThis?.document?.addEventListener('DOMContentLoaded', async () => {
-    const testFormGenerator = new TestFormGenerator();
-    const testFormGeneratorState = await testFormGenerator.execute(
-        document.querySelector('form#test-form-generator-form')
-    );
+
+    /** @type {HTMLFormElement?} */
+    const formElement = document.querySelector('form[id^="test-form-"]');
+    const formId = formElement?.id;
+
+    if (!formId) {
+        console.warn('TestFormGenerator: No form found with id starting with "test-form-"');
+        return;
+    }
+
+    if (formId === 'test-form-generator-form') {
+        const testFormGenerator = new TestFormGenerator({
+            userMode: 'expert',
+            colorConversionStage: true,
+        });
+        const testFormGeneratorState = await testFormGenerator.execute(formElement);
+        console.log('TestFormGenerator state:', testFormGeneratorState);
+        return;
+    }
+
+    if (formId === 'test-form-embed-output-intent-only-form') {
+        const testFormGenerator = new TestFormGenerator({
+            overviewStage: false, // Skip the overview stage
+            downloadStage: false, // Skip the download stage
+            conversionStage: false, // Skip the conversion stage
+            documentationStage: false, // Skip the documentation stage
+            disableManifest: true, // Disable manifest generation for this form
+        });
+        const testFormGeneratorState = await testFormGenerator.execute(formElement);
+        console.log('TestFormGenerator state:', testFormGeneratorState);
+        return;
+    }
+
+    if (formId === 'test-form-convert-color-only-form') {
+        const testFormGenerator = new TestFormGenerator({
+            overviewStage: false, // Skip the overview stage
+            downloadStage: false, // Skip the download stage
+            conversionStage: false, // Skip the conversion stage
+            validationStage: true, // Enable the validation stage
+            // convertColorStage: true, // Enable the color conversion stage
+            documentationStage: false, // Skip the documentation stage
+            generationStage: true, // Skip the generation stage
+
+            disableManifest: true, // Disable manifest generation for this form
+            disableDownload: true,
+            userMode: 'expert',
+            disableProfileCountCheck: true,
+        });
+        const testFormGeneratorState = await testFormGenerator.execute(formElement);
+        console.log('TestFormGenerator state:', testFormGeneratorState);
+        return;
+    }
+
+    throw new Error(`TestFormGenerator: Unsupported form id "${formId}". Expected "test-form-generator-form".`);
 });

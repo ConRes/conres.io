@@ -1,5 +1,5 @@
 // @ts-check
-import { parse as parseICCHeaderFromBuffer } from "icc";
+import { parse as parseICCHeaderFromBuffer } from "../packages/icc/index.js";
 import { Buffer } from "../helpers.js";
 
 /**
@@ -8,7 +8,7 @@ import { Buffer } from "../helpers.js";
 export class ICCService {
     /**
      * Parse ICC header from buffer
-     * @param {ArrayBuffer | Uint8Array | Buffer | import('node:buffer').Buffer} iccProfileSource - The ICC profile buffer
+     * @param {ArrayBufferLike | ArrayBuffer | Uint8Array | Buffer | import('node:buffer').Buffer} iccProfileSource - The ICC profile buffer
      * @returns {ReturnType<import('icc')['parse']>} - Parsed ICC header information
      */
     static parseICCHeaderFromSource(iccProfileSource) {
