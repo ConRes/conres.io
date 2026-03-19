@@ -1,0 +1,20 @@
+{
+    "compilerOptions": {
+        "target": "ESNext",
+        "module": "ESNext",
+        "noEmit": true,
+        "strictNullChecks": false,
+        "strictPropertyInitialization": false,
+        "lib": [
+            "ESNext",
+            "DOM"
+        ],
+    },
+    "include": [
+        "src/**/*.js"
+    ],
+    "exclude": [
+        "node_modules",
+        "*/[trash]/**/*"
+    ]
+}
