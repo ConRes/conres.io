@@ -1,0 +1,36 @@
+════════════════════════════════════════════════════════════════════════════════
+Worker Strategy Benchmark
+════════════════════════════════════════════════════════════════════════════════
+
+Output folder: 2025-12-19-015
+CPU cores: 14 (Apple M4 Pro)
+Worker count: 2
+Strategies: baseline, workers-stream
+
+
+════════════════════════════════════════════════════════════════════════════════
+PDF: Interlaken Map (3 pages)
+════════════════════════════════════════════════════════════════════════════════
+
+─ baseline (2 workers) ─
+  Duration: 2m 47.5s
+  Output size: 93.6 MB
+  Saved: 2025-08-15 - ConRes - ISO PTF - CR1 - Interlaken Map - baseline (2025-12-19-015).pdf
+
+─ workers-stream (2 workers) ─
+  Duration: 2m 43.4s
+  Output size: 91.6 MB
+  Saved: 2025-08-15 - ConRes - ISO PTF - CR1 - Interlaken Map - workers-stream-2w (2025-12-19-015).pdf
+
+════════════════════════════════════════════════════════════════════════════════
+SUMMARY
+════════════════════════════════════════════════════════════════════════════════
+
+Interlaken Map:
+  baseline: 2m 47.5s (1.00x vs baseline)
+  workers-stream: 2m 43.4s (1.02x vs baseline)
+
+Results saved: /Users/daflair/Projects/conres/conres.io/testing/iso/ptf/2025/experiments/output/2025-12-19-015/strategy-benchmark-results.json
+
+════════════════════════════════════════════════════════════════════════════════
+Output folder: /Users/daflair/Projects/conres/conres.io/testing/iso/ptf/2025/experiments/output/2025-12-19-015
