@@ -26,6 +26,8 @@ import { ICCService } from '../../services/ICCService.js';
 import { GhostscriptService } from '../../services/GhostscriptService.js';
 import { ManifestColorSpaceResolver } from './manifest-color-space-resolver.js';
 import { AssetPagePreConverter } from './asset-page-pre-converter.js';
+import { OutputProfileAnalyzer } from './output-profile-analyzer.js';
+import { AssemblyPolicyResolver } from './assembly-policy-resolver.js';
 
 // ============================================================================
 // Constants
@@ -110,7 +112,7 @@ export const ASSET_VERSIONS = {
  * @typedef {object} GenerationCallbacks
  * @property {(stage: string, percent: number, message: string) => void | Promise<void>} [onProgress]
  * @property {(state: FetchState) => void} [onDownloadProgress]
- * @property {(colorSpace: string, pdfBuffer: ArrayBuffer, metadataJSON: string) => Promise<void>} [onChainOutput]
+ * @property {(label: string, pdfBuffer: ArrayBuffer, metadataJSON: string) => Promise<void>} [onChainOutput]
  */
 
 /**
@@ -189,6 +191,12 @@ export class TestFormPDFDocumentGenerator {
     /** @type {'in-place' | 'separate-chains' | 'recombined-chains'} */
     #processingStrategy;
 
+    /** @type {import('./assembly-policy-resolver.js').AssemblyUserOverrides | undefined} */
+    #assemblyOverrides;
+
+    /** @type {string | undefined} */
+    #outputProfileName;
+
     /** @type {AbortController} */
     #abortController = new AbortController();
 
@@ -206,13 +214,17 @@ export class TestFormPDFDocumentGenerator {
      * @param {8 | 16} [options.outputBitsPerComponent] - Coerce output bit depth (undefined = auto)
      * @param {boolean} [options.useWorkers=false] - Enable worker-based color conversion (limited to 2 workers)
      * @param {'in-place' | 'separate-chains' | 'recombined-chains'} [options.processingStrategy='in-place'] - Processing strategy
+     * @param {import('./assembly-policy-resolver.js').AssemblyUserOverrides} [options.assemblyOverrides] - User overrides for layout/colorSpace/intent filtering
+     * @param {string} [options.outputProfileName] - ICC profile filename (for slug metadata)
      */
-    constructor({ testFormVersion, resources, debugging = false, outputBitsPerComponent, useWorkers = false, processingStrategy = 'in-place' }) {
+    constructor({ testFormVersion, resources, debugging = false, outputBitsPerComponent, useWorkers = false, processingStrategy = 'in-place', assemblyOverrides, outputProfileName }) {
         this.#testFormVersion = testFormVersion;
         this.#debugging = debugging;
         this.#outputBitsPerComponent = outputBitsPerComponent;
         this.#useWorkers = useWorkers;
         this.#processingStrategy = processingStrategy;
+        this.#assemblyOverrides = assemblyOverrides;
+        this.#outputProfileName = outputProfileName;
         this.#cache = globalThis.caches?.open?.('conres-testforms');
 
         if (resources) {
@@ -276,6 +288,31 @@ export class TestFormPDFDocumentGenerator {
         });
 
         // ----------------------------------------------------------------
+        // 3b. Analyze output profile and resolve assembly policy
+        // ----------------------------------------------------------------
+        await onProgress('preparing', 31, 'Analyzing output profile\u2026');
+
+        const policyResolver = await AssemblyPolicyResolver.load();
+        const profileAnalysis = await OutputProfileAnalyzer.analyzeProfile(
+            iccProfileBuffer,
+            iccProfileHeader,
+            policyResolver.policyData.maxGCRTest,
+        );
+
+        const assemblyPlan = policyResolver.resolve(
+            profileAnalysis,
+            manifest,
+            this.#assemblyOverrides,
+        );
+
+        console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Assembly plan:`, {
+            profileCategory: assemblyPlan.profileCategory,
+            profileCategoryLabel: assemblyPlan.profileCategoryLabel,
+            multiPDF: assemblyPlan.multiPDF,
+            passes: assemblyPlan.generationPasses.length,
+        });
+
+        // ----------------------------------------------------------------
         // 4. Load asset PDF
         // ----------------------------------------------------------------
         await onProgress('assembling', 32, `Loading asset PDF (${manifest.assets.length} assets)\u2026`);
@@ -328,24 +365,42 @@ export class TestFormPDFDocumentGenerator {
         }
 
         // ----------------------------------------------------------------
-        // 6. Pre-convert assets and assemble pages (single-document path)
+        // Branch: multi-pass (multiple rendering intents, e.g., non-Max GCR CMYK)
         // ----------------------------------------------------------------
+        if (assemblyPlan.multiPDF) {
+            return this.#generateMultiIntentPasses(
+                assetPDFBuffer, manifestBuffer,
+                iccProfileBuffer, iccProfileHeader, colorSpaceResolver,
+                assemblyPlan, userMetadata, callbacks,
+            );
+        }
+
+        // ----------------------------------------------------------------
+        // 6. Pre-convert assets and assemble pages (single-document, single-intent path)
+        // ----------------------------------------------------------------
+        const singlePass = assemblyPlan.generationPasses[0];
+
         const preConverter = new AssetPagePreConverter({
             outputProfile: iccProfileBuffer,
             outputColorSpace: iccProfileHeader.colorSpace,
             outputBitsPerComponent: this.#outputBitsPerComponent,
             colorSpaceResolver,
+            renderingIntent: singlePass.intentPass.renderingIntent,
+            blackPointCompensation: singlePass.intentPass.blackPointCompensation,
             debugging: this.#debugging,
             useWorkers: this.#useWorkers,
             interConversionDelay: 500,
         });
+
+        // Use filtered manifest from assembly plan
+        const effectiveManifest = singlePass.manifest;
 
         await onProgress('converting', 36, `Pre-converting ${assetPageCount} asset pages\u2026`);
 
         console.time('Pre-conversion and assembly');
 
         try {
-            const assembledDocument = await this.#assemblePages(preConverter, assetDocument, manifest, async (percent, message) => {
+            const assembledDocument = await this.#assemblePages(preConverter, assetDocument, effectiveManifest, async (percent, message) => {
                 await onProgress('converting', 36 + Math.floor(percent * 0.42), message);
             });
 
@@ -382,13 +437,14 @@ export class TestFormPDFDocumentGenerator {
             // 7. Generate and embed slugs (single-document path)
             // ----------------------------------------------------------------
             if (userMetadata) {
-                await onProgress('slugs', 80, `Loading slug resources (${manifest.pages.length} pages)\u2026`);
+                await onProgress('slugs', 80, `Loading slug resources (${effectiveManifest.pages.length} pages)\u2026`);
 
                 const slugsDocument = await this.#generateSlugsPDF(
-                    manifest.pages, iccProfileBuffer, iccProfileHeader, userMetadata,
+                    effectiveManifest.pages, iccProfileBuffer, iccProfileHeader, userMetadata,
+                    singlePass.intentPass.label, assemblyPlan.profileCategoryLabel,
                 );
 
-                await onProgress('slugs', 88, `Embedding slugs (${manifest.pages.length} pages)\u2026`);
+                await onProgress('slugs', 88, `Embedding slugs (${effectiveManifest.pages.length} pages)\u2026`);
                 await PDFService.embedSlugsIntoPDFDocument(assembledDocument, slugsDocument);
             } else {
                 console.warn(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] No user metadata provided. Skipping slug generation.`);
@@ -411,7 +467,7 @@ export class TestFormPDFDocumentGenerator {
                 (await assembledDocument.save({ addDefaultPage: false, updateFieldAppearances: false, objectsPerTick: 20 })).buffer
             );
 
-            const metadataJSON = this.#buildMetadataJSON(manifest, iccProfileHeader, iccProfileBuffer, userMetadata);
+            const metadataJSON = this.#buildMetadataJSON(manifest, iccProfileHeader, iccProfileBuffer, userMetadata, assemblyPlan);
 
             await onProgress('done', 100, 'Generation complete');
 
@@ -573,6 +629,135 @@ export class TestFormPDFDocumentGenerator {
         await onProgress?.(100, 'Assembly complete');
 
         return assetDocument;
+    }
+
+    /**
+     * Generates one PDF per rendering intent pass (multi-intent mode).
+     *
+     * Each pass runs the full pipeline: load fresh asset document, pre-convert
+     * with the pass-specific rendering intent, assemble, generate slugs,
+     * post-process, save, and deliver via `onChainOutput`.
+     *
+     * @param {ArrayBuffer} assetPDFBuffer - Raw asset PDF bytes (reloaded per pass)
+     * @param {ArrayBuffer} manifestBuffer - Raw manifest bytes for attachment
+     * @param {ArrayBuffer} iccProfileBuffer - Destination ICC profile bytes
+     * @param {{ colorSpace: string, description: string }} iccProfileHeader
+     * @param {ManifestColorSpaceResolver} colorSpaceResolver
+     * @param {import('./assembly-policy-resolver.js').AssemblyPlan} assemblyPlan
+     * @param {UserMetadata | null} userMetadata
+     * @param {GenerationCallbacks} callbacks
+     * @returns {Promise<GenerationResult>}
+     */
+    async #generateMultiIntentPasses(assetPDFBuffer, manifestBuffer, iccProfileBuffer, iccProfileHeader, colorSpaceResolver, assemblyPlan, userMetadata, callbacks) {
+        const { onProgress = () => {}, onChainOutput } = callbacks;
+
+        const metadataJSON = this.#buildMetadataJSON(
+            assemblyPlan.generationPasses[0].manifest,
+            iccProfileHeader, iccProfileBuffer, userMetadata, assemblyPlan,
+        );
+
+        const totalPasses = assemblyPlan.generationPasses.length;
+
+        for (let passIndex = 0; passIndex < totalPasses; passIndex++) {
+            const pass = assemblyPlan.generationPasses[passIndex];
+            const passLabel = pass.intentPass.label;
+
+            const passProgressBase = 36 + Math.floor(passIndex / totalPasses * 52);
+            const passProgressEnd = 36 + Math.floor((passIndex + 1) / totalPasses * 52);
+            const passRange = passProgressEnd - passProgressBase;
+
+            await onProgress('converting', passProgressBase, `Pass ${passIndex + 1}/${totalPasses}: ${passLabel}\u2026`);
+
+            console.time(`Pass: ${passLabel}`);
+
+            // Each pass runs in its own scope so all large objects (the
+            // loaded asset document, assembled document, serialized PDF
+            // buffer, slugs document) become unreachable once the scope
+            // exits, allowing GC to reclaim them before the next pass.
+            await (async () => {
+                // Load fresh asset document for this pass
+                let passDocument = await PDFDocument.load(assetPDFBuffer, { updateMetadata: false });
+
+                // Create pre-converter with pass-specific rendering intent
+                const passPreConverter = new AssetPagePreConverter({
+                    outputProfile: iccProfileBuffer,
+                    outputColorSpace: iccProfileHeader.colorSpace,
+                    outputBitsPerComponent: this.#outputBitsPerComponent,
+                    colorSpaceResolver,
+                    renderingIntent: pass.intentPass.renderingIntent,
+                    blackPointCompensation: pass.intentPass.blackPointCompensation,
+                    debugging: this.#debugging,
+                    useWorkers: this.#useWorkers,
+                    interConversionDelay: 500,
+                });
+
+                try {
+                    let assembledDocument = await this.#assemblePages(
+                        passPreConverter, passDocument, pass.manifest,
+                        async (subPercent, subMessage) => {
+                            const scaledPercent = passProgressBase + Math.floor(subPercent / 100 * passRange);
+                            await onProgress('converting', scaledPercent, `Pass ${passIndex + 1}/${totalPasses} (${passLabel}) \u2014 ${subMessage}`);
+                        },
+                    );
+
+                    // passDocument is now the assembledDocument (in-place assembly);
+                    // null the alias so GC can reclaim earlier intermediate state
+                    passDocument = /** @type {any} */ (null);
+
+                    console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Pass "${passLabel}": ${assembledDocument.getPageCount()} pages assembled`);
+
+                    await assembledDocument.flush();
+
+                    const { removedCount } = PDFService.removeOrphanedObjects(assembledDocument);
+                    if (this.#debugging) {
+                        console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Pass "${passLabel}": removed ${removedCount} orphaned objects`);
+                    }
+
+                    assembledDocument.context.pushGraphicsStateContentStreamRef = undefined;
+                    assembledDocument.context.popGraphicsStateContentStreamRef = undefined;
+
+                    // Generate and embed slugs with pass-specific rendering intent label
+                    if (userMetadata) {
+                        const slugsDocument = await this.#generateSlugsPDF(
+                            pass.manifest.pages, iccProfileBuffer, iccProfileHeader, userMetadata,
+                            passLabel, assemblyPlan.profileCategoryLabel,
+                        );
+                        await PDFService.embedSlugsIntoPDFDocument(assembledDocument, slugsDocument);
+                        // slugsDocument goes out of scope here
+                    }
+
+                    // Full post-process for each pass PDF (each is a standalone PDF)
+                    await this.#postProcess(assembledDocument, iccProfileHeader, iccProfileBuffer, manifestBuffer);
+
+                    const passPDFBuffer = /** @type {ArrayBuffer} */ (
+                        (await assembledDocument.save({ addDefaultPage: false, updateFieldAppearances: false, objectsPerTick: 20 })).buffer
+                    );
+
+                    // Release the assembled document before delivering the buffer —
+                    // onChainOutput triggers a download which keeps passPDFBuffer alive
+                    // briefly, but we don't need the document anymore.
+                    assembledDocument = /** @type {any} */ (null);
+
+                    console.timeEnd(`Pass: ${passLabel}`);
+
+                    // Deliver pass output via onChainOutput callback
+                    if (onChainOutput) {
+                        await onChainOutput(passLabel, passPDFBuffer, metadataJSON);
+                    }
+                    // passPDFBuffer goes out of scope here
+                } finally {
+                    passPreConverter.dispose();
+                }
+            })();
+
+            // Yield for GC between passes — the IIFE scope above has exited,
+            // so all pass-local objects are now unreachable
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+        await onProgress('done', 100, 'Generation complete');
+
+        return { pdfBuffer: null, metadataJSON };
     }
 
     /**
@@ -848,9 +1033,11 @@ export class TestFormPDFDocumentGenerator {
      * @param {ArrayBuffer} iccProfileBuffer - Destination ICC profile bytes
      * @param {{ colorSpace: string }} iccProfileHeader
      * @param {UserMetadata} userMetadata
+     * @param {string} [renderingIntentLabel] - Human-readable rendering intent label for slug metadata
+     * @param {string} [profileCategoryLabel] - Human-readable profile category label for slug metadata
      * @returns {Promise<PDFDocument>} Loaded slugs PDF document
      */
-    async #generateSlugsPDF(pages, iccProfileBuffer, iccProfileHeader, userMetadata) {
+    async #generateSlugsPDF(pages, iccProfileBuffer, iccProfileHeader, userMetadata, renderingIntentLabel, profileCategoryLabel) {
         const [slugsTemplateBuffer, barcodeBuffer] = await Promise.all([
             this.#loadAsset('slugs.ps'),
             this.#loadAsset('barcode.ps'),
@@ -877,7 +1064,12 @@ export class TestFormPDFDocumentGenerator {
         const slugSourceText = GhostscriptService.processSlugTemplate(
             slugTemplateText,
             { pages: normalizedPages },
-            { slugs: userMetadata },
+            {
+                slugs: userMetadata,
+                renderingIntent: renderingIntentLabel,
+                profileCategory: profileCategoryLabel,
+                outputProfileName: this.#outputProfileName,
+            },
         );
 
         /** @type {Record<string, ArrayBuffer>} */
@@ -967,13 +1159,22 @@ export class TestFormPDFDocumentGenerator {
     /**
      * Builds the metadata JSON string for the generation result.
      *
+     * Field order is intentional for readability:
+     *   1. testFormVersion, generatedAt — identification
+     *   2. metadata — user-provided slugs data
+     *   3. settings — all generator options selected on the page
+     *   4. assembly — profile analysis results, rendering intents, filtered pages
+     *   5. manifest — full manifest reference
+     *   6. color — ICC profile header + base64 contents (large, last for readability)
+     *
      * @param {TestFormManifest} manifest
      * @param {{ colorSpace: string, description: string }} iccProfileHeader
      * @param {ArrayBuffer} iccProfileBuffer
      * @param {UserMetadata | null} userMetadata
+     * @param {import('./assembly-policy-resolver.js').AssemblyPlan} [assemblyPlan]
      * @returns {string}
      */
-    #buildMetadataJSON(manifest, iccProfileHeader, iccProfileBuffer, userMetadata) {
+    #buildMetadataJSON(manifest, iccProfileHeader, iccProfileBuffer, userMetadata, assemblyPlan) {
         /** @satisfies {Parameters<uint8ArrayToBase64>[1]} */
         const base64Options = { 'alphabet': 'base64' };
 
@@ -981,6 +1182,25 @@ export class TestFormPDFDocumentGenerator {
             testFormVersion: this.#testFormVersion,
             generatedAt: new Date().toISOString(),
             metadata: userMetadata ? { slugs: userMetadata } : undefined,
+            settings: {
+                debugging: this.#debugging,
+                outputBitsPerComponent: this.#outputBitsPerComponent ?? 'auto',
+                useWorkers: this.#useWorkers,
+                processingStrategy: this.#processingStrategy,
+                assemblyOverrides: this.#assemblyOverrides ?? null,
+            },
+            assembly: assemblyPlan ? {
+                profileCategory: assemblyPlan.profileCategory,
+                profileCategoryLabel: assemblyPlan.profileCategoryLabel,
+                multiPDF: assemblyPlan.multiPDF,
+                generationPasses: assemblyPlan.generationPasses.map(pass => ({
+                    renderingIntent: pass.intentPass.renderingIntent,
+                    blackPointCompensation: pass.intentPass.blackPointCompensation,
+                    label: pass.intentPass.label,
+                    pages: pass.manifest.pages.length,
+                    layouts: pass.manifest.layouts.length,
+                })),
+            } : undefined,
             manifest: manifest ?? undefined,
             color: {
                 profile: {

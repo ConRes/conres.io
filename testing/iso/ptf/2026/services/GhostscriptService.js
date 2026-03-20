@@ -69,7 +69,7 @@ export class GhostscriptService {
      * Processes PostScript data with Ghostscript
      * @param {string} slugTemplateText - The slug template text
      * @param {{ pages: Array<{ metadata: { title?: string, variant?: string, colorSpace?: string, resolution?: { values?: number[], value?: number, unit?: string } } }> }} slugData - Data to inject into the template
-     * @param {{slugs?: Partial<Record<'device'|'colorants'|'substrate'|'settings'|'email', string>>}} metadata - Metadata for the slug
+     * @param {{slugs?: Partial<Record<'device'|'colorants'|'substrate'|'settings'|'email', string>>, renderingIntent?: string, profileCategory?: string, outputProfileName?: string}} metadata - Metadata for the slug
      * @returns {string} - The processed PostScript
      */
     static processSlugTemplate(slugTemplateText, slugData, metadata) {
@@ -93,10 +93,12 @@ export class GhostscriptService {
                             "$<indent><<",
                             title && `$<indent>  /Title (${title})`,
                             variant && `$<indent>  /Variant (${variant})`,
-                            (colorSpace || value) &&
+                            (colorSpace || value || metadata?.renderingIntent || metadata?.outputProfileName) &&
                             `$<indent>  /Parameters (${[
                                 colorSpace,
                                 `${value || ""}${unit || ""}`,
+                                metadata?.renderingIntent,
+                                metadata?.outputProfileName,
                             ]
                                 .filter(Boolean)
                                 .join(" - ")})`,
@@ -112,7 +114,12 @@ export class GhostscriptService {
         slugSourceText = /^(?<indent>[ \t]*)%\|[ \t]+\{\{Slug\}\}.*?$/m[Symbol.replace](
             slugSourceText,
             [
-                `$<indent>/SlugHeader (Slug CR 20250322) def`,
+                `$<indent>/SlugHeader (${[
+                    "Slug CR 20250322",
+                    metadata?.profileCategory,
+                ]
+                    .filter(Boolean)
+                    .join(" - ")}) def`,
                 `$<indent>/SlugFooter (${[
                     metadata?.slugs?.email ?? "user@example.com",
                     /^(?<YYYY>\d{4})-(?<MM>\d{2})-(?<DD>\d{2})T(?<hh>\d{2}):(?<mm>\d{2}):(?<ss>\d{2})\.\d+Z$/[

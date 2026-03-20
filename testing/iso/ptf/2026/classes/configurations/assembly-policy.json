@@ -1,0 +1,111 @@
+{
+    "profileCategories": {
+        "RGB": {
+            "description": "RGB output profile",
+            "includedColorSpaceTypes": ["RGB", "Gray", "Lab"],
+            "excludedColorSpaceTypes": ["DeviceN"],
+            "renderingIntentPasses": [
+                {
+                    "renderingIntent": "relative-colorimetric",
+                    "blackPointCompensation": true,
+                    "label": "Relative Colorimetric with Blackpoint Compensation"
+                }
+            ],
+            "multiPDF": false
+        },
+        "CMYK-MaxGCR": {
+            "description": "CMYK output profile with Maximum GCR",
+            "includedColorSpaceTypes": ["RGB", "Gray", "Lab", "DeviceN"],
+            "excludedColorSpaceTypes": [],
+            "renderingIntentPasses": [
+                {
+                    "renderingIntent": "relative-colorimetric",
+                    "blackPointCompensation": true,
+                    "label": "Relative Colorimetric with Blackpoint Compensation"
+                }
+            ],
+            "multiPDF": false
+        },
+        "CMYK": {
+            "description": "CMYK output profile (non-Max GCR)",
+            "includedColorSpaceTypes": ["RGB", "Gray", "Lab", "DeviceN"],
+            "excludedColorSpaceTypes": [],
+            "renderingIntentPasses": [
+                {
+                    "renderingIntent": "relative-colorimetric",
+                    "blackPointCompensation": true,
+                    "label": "Relative Colorimetric with Blackpoint Compensation"
+                },
+                {
+                    "renderingIntent": "preserve-k-only-relative-colorimetric-gcr",
+                    "blackPointCompensation": true,
+                    "label": "K-Only GCR with Blackpoint Compensation"
+                }
+            ],
+            "multiPDF": true
+        }
+    },
+    "maxGCRTest": {
+        "labTestPoints": [
+            [  0, 0, 0],
+            [ 10, 0, 0],
+            [ 20, 0, 0],
+            [ 30, 0, 0],
+            [ 40, 0, 0],
+            [ 50, 0, 0],
+            [ 60, 0, 0],
+            [ 70, 0, 0],
+            [ 80, 0, 0],
+            [ 90, 0, 0],
+            [100, 0, 0]
+        ],
+        "renderingIntent": "relative-colorimetric",
+        "blackPointCompensation": true,
+        "cmyThresholdPercent": 1.0,
+        "intentComparisonMaxDeltaPercent": 0.5
+    },
+    "renderingIntentLabels": {
+        "perceptual":                                   "Perceptual",
+        "relative-colorimetric":                        "Relative Colorimetric",
+        "saturation":                                   "Saturation",
+        "absolute-colorimetric":                        "Absolute Colorimetric",
+        "preserve-k-only-relative-colorimetric-gcr":    "K-Only GCR"
+    },
+    "profileCategoryLabels": {
+        "RGB":          "RGB",
+        "CMYK":         "CMYK",
+        "CMYK-MaxGCR":  "CMYK (Max-GCR)"
+    },
+    "availableCustomIntents": [
+        {
+            "renderingIntent": "perceptual",
+            "blackPointCompensation": false,
+            "label": "Perceptual"
+        },
+        {
+            "renderingIntent": "relative-colorimetric",
+            "blackPointCompensation": false,
+            "label": "Relative Colorimetric"
+        },
+        {
+            "renderingIntent": "relative-colorimetric",
+            "blackPointCompensation": true,
+            "label": "Relative Colorimetric with Blackpoint Compensation"
+        },
+        {
+            "renderingIntent": "absolute-colorimetric",
+            "blackPointCompensation": false,
+            "label": "Absolute Colorimetric"
+        },
+        {
+            "renderingIntent": "saturation",
+            "blackPointCompensation": false,
+            "label": "Saturation"
+        },
+        {
+            "renderingIntent": "preserve-k-only-relative-colorimetric-gcr",
+            "blackPointCompensation": true,
+            "label": "K-Only GCR with Blackpoint Compensation"
+        }
+    ]
+}

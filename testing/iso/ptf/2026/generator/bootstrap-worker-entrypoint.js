@@ -60,6 +60,8 @@ self.onmessage = async (event) => {
  * @param {8 | 16 | undefined} data.outputBitsPerComponent
  * @param {boolean} data.useWorkers
  * @param {'in-place' | 'separate-chains' | 'recombined-chains'} data.processingStrategy
+ * @param {import('./classes/assembly-policy-resolver.js').AssemblyUserOverrides} [data.assemblyOverrides]
+ * @param {string} [data.outputProfileName]
  */
 async function handleGenerate(data) {
     const { taskId } = data;
@@ -72,6 +74,8 @@ async function handleGenerate(data) {
             outputBitsPerComponent: data.outputBitsPerComponent,
             useWorkers: data.useWorkers,
             processingStrategy: data.processingStrategy,
+            assemblyOverrides: data.assemblyOverrides,
+            outputProfileName: data.outputProfileName,
         });
 
         const result = await generator.generate(
@@ -94,21 +98,19 @@ async function handleGenerate(data) {
                         state,
                     });
                 },
-                onChainOutput: data.processingStrategy === 'separate-chains'
-                    ? async (colorSpace, pdfBuffer, metadataJSON) => {
-                        self.postMessage(
-                            {
-                                type: 'chain-output',
-                                taskId,
-                                colorSpace,
-                                pdfBuffer,
-                                metadataJSON,
-                            },
-                            // Transfer the PDF buffer to avoid copying
-                            [pdfBuffer],
-                        );
-                    }
-                    : undefined,
+                onChainOutput: async (label, pdfBuffer, metadataJSON) => {
+                    self.postMessage(
+                        {
+                            type: 'chain-output',
+                            taskId,
+                            colorSpace: label,
+                            pdfBuffer,
+                            metadataJSON,
+                        },
+                        // Transfer the PDF buffer to avoid copying
+                        [pdfBuffer],
+                    );
+                },
             },
         );
 

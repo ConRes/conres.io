@@ -248,6 +248,56 @@
                     <label for="email-input">Email:</label>
                     <input type="text" id="email-input" name="email" placeholder="Email of participant" />
                 </fieldset>
+                <fieldset name="assembly-filters-fieldset" slot="article">
+                    <details class="full-row" id="assembly-filters-details">
+                        <summary><b>Assembly Filters</b> — Customize page selection and rendering
+                            intents</summary>
+                        <small class="full-row" style="margin-bottom:0.5em;">
+                            <p>Each section starts in <b>Auto</b> mode, determined by the output
+                                profile and test form. Changing any checkbox switches that section
+                                to <b>Custom</b>.</p>
+                        </small>
+                        <fieldset name="layout-toggles-fieldset" class="full-row"
+                            style="display: block; padding: 0.5em;">
+                            <legend>Layouts</legend>
+                            <div>
+                                <label><input type="radio" name="layout-mode" value="auto"
+                                        checked />Auto</label>
+                                <label><input type="radio" name="layout-mode"
+                                        value="custom" />Custom</label>
+                            </div>
+                            <div id="layout-toggles-container" style="padding-left: 1.5em;">
+                                <!-- Populated dynamically from manifest -->
+                            </div>
+                        </fieldset>
+                        <fieldset name="color-space-toggles-fieldset" class="full-row"
+                            style="display: block; padding: 0.5em;">
+                            <legend>Color Spaces</legend>
+                            <div>
+                                <label><input type="radio" name="color-space-mode" value="auto"
+                                        checked />Auto</label>
+                                <label><input type="radio" name="color-space-mode"
+                                        value="custom" />Custom</label>
+                            </div>
+                            <div id="color-space-toggles-container" style="padding-left: 1.5em;">
+                                <!-- Populated dynamically from manifest -->
+                            </div>
+                        </fieldset>
+                        <fieldset name="rendering-intent-fieldset" class="full-row"
+                            style="display: block; padding: 0.5em;">
+                            <legend>Rendering Intent</legend>
+                            <div>
+                                <label><input type="radio" name="rendering-intent-mode" value="auto"
+                                        checked />Auto</label>
+                                <label><input type="radio" name="rendering-intent-mode"
+                                        value="custom" />Custom</label>
+                            </div>
+                            <div id="rendering-intent-checkboxes" style="padding-left: 1.5em;">
+                                <!-- Populated dynamically from assembly policy -->
+                            </div>
+                        </fieldset>
+                    </details>
+                </fieldset>
             </section>
             <section id="generation" slot="article">
                 <h2>Generation</h2>

@@ -61,6 +61,12 @@ export class AssetPagePreConverter {
     /** @type {boolean} */
     #useWorkers;
 
+    /** @type {import('../../classes/baseline/color-converter.js').RenderingIntent} */
+    #renderingIntent;
+
+    /** @type {boolean} */
+    #blackPointCompensation;
+
     /** @type {number} */
     #interConversionDelay;
 
@@ -79,15 +85,19 @@ export class AssetPagePreConverter {
      * @param {string} options.outputColorSpace - e.g., `'CMYK'`
      * @param {8 | 16 | undefined} [options.outputBitsPerComponent]
      * @param {ManifestColorSpaceResolver} options.colorSpaceResolver
+     * @param {import('../../classes/baseline/color-converter.js').RenderingIntent} [options.renderingIntent='relative-colorimetric'] - Rendering intent for color conversion
+     * @param {boolean} [options.blackPointCompensation=true] - Enable blackpoint compensation
      * @param {boolean} [options.debugging=false]
      * @param {boolean} [options.useWorkers=false] - Enable worker-based color conversion (limited to 2 workers)
      * @param {number} [options.interConversionDelay=0] - Milliseconds to yield between conversion steps (browser responsiveness)
      */
-    constructor({ outputProfile, outputColorSpace, outputBitsPerComponent, colorSpaceResolver, debugging = false, useWorkers = false, interConversionDelay = 0 }) {
+    constructor({ outputProfile, outputColorSpace, outputBitsPerComponent, colorSpaceResolver, renderingIntent = 'relative-colorimetric', blackPointCompensation = true, debugging = false, useWorkers = false, interConversionDelay = 0 }) {
         this.#outputProfile = outputProfile;
         this.#outputColorSpace = outputColorSpace;
         this.#outputBitsPerComponent = outputBitsPerComponent;
         this.#colorSpaceResolver = colorSpaceResolver;
+        this.#renderingIntent = renderingIntent;
+        this.#blackPointCompensation = blackPointCompensation;
         this.#debugging = debugging;
         this.#useWorkers = useWorkers;
         this.#interConversionDelay = interConversionDelay;
@@ -372,8 +382,8 @@ export class AssetPagePreConverter {
             /** @type {import('../../classes/baseline/pdf-document-color-converter.js').PDFDocumentColorConverter[]} */
             const converters = subsets.map(subset =>
                 new PDFDocumentColorConverterClass({
-                    renderingIntent: /** @type {any} */ ('preserve-k-only-relative-colorimetric-gcr'),
-                    blackPointCompensation: true,
+                    renderingIntent: this.#renderingIntent,
+                    blackPointCompensation: this.#blackPointCompensation,
                     useAdaptiveBPCClamping: true,
                     destinationProfile: this.#outputProfile,
                     destinationColorSpace: /** @type {ColorType} */ (this.#outputColorSpace),
