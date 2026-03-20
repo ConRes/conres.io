@@ -69,7 +69,7 @@ export class GhostscriptService {
      * Processes PostScript data with Ghostscript
      * @param {string} slugTemplateText - The slug template text
      * @param {{ pages: Array<{ metadata: { title?: string, variant?: string, colorSpace?: string, resolution?: { values?: number[], value?: number, unit?: string } } }> }} slugData - Data to inject into the template
-     * @param {{slugs?: Partial<Record<'device'|'colorants'|'substrate'|'settings'|'email', string>>, renderingIntent?: string, profileCategory?: string}} metadata - Metadata for the slug
+     * @param {{slugs?: Partial<Record<'device'|'colorants'|'substrate'|'settings'|'email', string>>, renderingIntent?: string, profileCategory?: string, outputProfileName?: string}} metadata - Metadata for the slug
      * @returns {string} - The processed PostScript
      */
     static processSlugTemplate(slugTemplateText, slugData, metadata) {
@@ -93,11 +93,12 @@ export class GhostscriptService {
                             "$<indent><<",
                             title && `$<indent>  /Title (${title})`,
                             variant && `$<indent>  /Variant (${variant})`,
-                            (colorSpace || value || metadata?.renderingIntent) &&
+                            (colorSpace || value || metadata?.renderingIntent || metadata?.outputProfileName) &&
                             `$<indent>  /Parameters (${[
                                 colorSpace,
                                 `${value || ""}${unit || ""}`,
                                 metadata?.renderingIntent,
+                                metadata?.outputProfileName,
                             ]
                                 .filter(Boolean)
                                 .join(" - ")})`,

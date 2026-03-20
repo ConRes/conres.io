@@ -194,6 +194,9 @@ export class TestFormPDFDocumentGenerator {
     /** @type {import('./assembly-policy-resolver.js').AssemblyUserOverrides | undefined} */
     #assemblyOverrides;
 
+    /** @type {string | undefined} */
+    #outputProfileName;
+
     /** @type {AbortController} */
     #abortController = new AbortController();
 
@@ -212,14 +215,16 @@ export class TestFormPDFDocumentGenerator {
      * @param {boolean} [options.useWorkers=false] - Enable worker-based color conversion (limited to 2 workers)
      * @param {'in-place' | 'separate-chains' | 'recombined-chains'} [options.processingStrategy='in-place'] - Processing strategy
      * @param {import('./assembly-policy-resolver.js').AssemblyUserOverrides} [options.assemblyOverrides] - User overrides for layout/colorSpace/intent filtering
+     * @param {string} [options.outputProfileName] - ICC profile filename (for slug metadata)
      */
-    constructor({ testFormVersion, resources, debugging = false, outputBitsPerComponent, useWorkers = false, processingStrategy = 'in-place', assemblyOverrides }) {
+    constructor({ testFormVersion, resources, debugging = false, outputBitsPerComponent, useWorkers = false, processingStrategy = 'in-place', assemblyOverrides, outputProfileName }) {
         this.#testFormVersion = testFormVersion;
         this.#debugging = debugging;
         this.#outputBitsPerComponent = outputBitsPerComponent;
         this.#useWorkers = useWorkers;
         this.#processingStrategy = processingStrategy;
         this.#assemblyOverrides = assemblyOverrides;
+        this.#outputProfileName = outputProfileName;
         this.#cache = globalThis.caches?.open?.('conres-testforms');
 
         if (resources) {
@@ -1063,6 +1068,7 @@ export class TestFormPDFDocumentGenerator {
                 slugs: userMetadata,
                 renderingIntent: renderingIntentLabel,
                 profileCategory: profileCategoryLabel,
+                outputProfileName: this.#outputProfileName,
             },
         );
 
@@ -1153,6 +1159,14 @@ export class TestFormPDFDocumentGenerator {
     /**
      * Builds the metadata JSON string for the generation result.
      *
+     * Field order is intentional for readability:
+     *   1. testFormVersion, generatedAt — identification
+     *   2. metadata — user-provided slugs data
+     *   3. settings — all generator options selected on the page
+     *   4. assembly — profile analysis results, rendering intents, filtered pages
+     *   5. manifest — full manifest reference
+     *   6. color — ICC profile header + base64 contents (large, last for readability)
+     *
      * @param {TestFormManifest} manifest
      * @param {{ colorSpace: string, description: string }} iccProfileHeader
      * @param {ArrayBuffer} iccProfileBuffer
@@ -1168,6 +1182,25 @@ export class TestFormPDFDocumentGenerator {
             testFormVersion: this.#testFormVersion,
             generatedAt: new Date().toISOString(),
             metadata: userMetadata ? { slugs: userMetadata } : undefined,
+            settings: {
+                debugging: this.#debugging,
+                outputBitsPerComponent: this.#outputBitsPerComponent ?? 'auto',
+                useWorkers: this.#useWorkers,
+                processingStrategy: this.#processingStrategy,
+                assemblyOverrides: this.#assemblyOverrides ?? null,
+            },
+            assembly: assemblyPlan ? {
+                profileCategory: assemblyPlan.profileCategory,
+                profileCategoryLabel: assemblyPlan.profileCategoryLabel,
+                multiPDF: assemblyPlan.multiPDF,
+                generationPasses: assemblyPlan.generationPasses.map(pass => ({
+                    renderingIntent: pass.intentPass.renderingIntent,
+                    blackPointCompensation: pass.intentPass.blackPointCompensation,
+                    label: pass.intentPass.label,
+                    pages: pass.manifest.pages.length,
+                    layouts: pass.manifest.layouts.length,
+                })),
+            } : undefined,
             manifest: manifest ?? undefined,
             color: {
                 profile: {
@@ -1178,16 +1211,6 @@ export class TestFormPDFDocumentGenerator {
                     },
                 },
             },
-            assembly: assemblyPlan ? {
-                profileCategory: assemblyPlan.profileCategory,
-                profileCategoryLabel: assemblyPlan.profileCategoryLabel,
-                multiPDF: assemblyPlan.multiPDF,
-                renderingIntents: assemblyPlan.generationPasses.map(pass => ({
-                    renderingIntent: pass.intentPass.renderingIntent,
-                    blackPointCompensation: pass.intentPass.blackPointCompensation,
-                    label: pass.intentPass.label,
-                })),
-            } : undefined,
         }, null, 2);
     }
 

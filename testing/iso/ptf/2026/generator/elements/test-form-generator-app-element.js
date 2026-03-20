@@ -1158,6 +1158,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             useWorkers,
             processingStrategy,
             assemblyOverrides,
+            outputProfileName: outputProfileBasename,
         });
 
         let preChainDownloadsCompleted = false;
@@ -1355,6 +1356,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                         useWorkers,
                         processingStrategy,
                         assemblyOverrides,
+                        outputProfileName: outputProfileBasename,
                     },
                     [iccProfileCopy],
                 );

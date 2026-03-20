@@ -61,6 +61,7 @@ self.onmessage = async (event) => {
  * @param {boolean} data.useWorkers
  * @param {'in-place' | 'separate-chains' | 'recombined-chains'} data.processingStrategy
  * @param {import('./classes/assembly-policy-resolver.js').AssemblyUserOverrides} [data.assemblyOverrides]
+ * @param {string} [data.outputProfileName]
  */
 async function handleGenerate(data) {
     const { taskId } = data;
@@ -74,6 +75,7 @@ async function handleGenerate(data) {
             useWorkers: data.useWorkers,
             processingStrategy: data.processingStrategy,
             assemblyOverrides: data.assemblyOverrides,
+            outputProfileName: data.outputProfileName,
         });
 
         const result = await generator.generate(
