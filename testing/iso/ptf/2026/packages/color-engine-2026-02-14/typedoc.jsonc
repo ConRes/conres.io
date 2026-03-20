@@ -1,0 +1,45 @@
+{
+    "$schema": "https://typedoc.org/schema.json",
+    // Explicitly disable plugins (markdown plugin has version incompatibility)
+    "plugin": [
+        "typedoc-plugin-markdown"
+    ],
+    "theme": "markdown",
+    // Skip validation errors during conversion
+    "skipErrorChecking": true,
+    // Exclude vendored packages and helper files that cause TypeScript errors
+    "exclude": [
+        // "**/packages/**",
+        // "**/helpers/**",
+        // "**/helpers.js",
+        // "**/services/**",
+        // "**/experiments/**",
+        // "**/tests/**"
+    ],
+    // Classes-specific entry points
+    "entryPoints": [
+        "src/index.js"
+    ],
+    "router": "module",
+    "mergeReadme": true,
+    "flattenOutputFiles": true,
+    "expandParameters": true,
+    "expandObjects": true,
+    "cleanOutputDir": true,
+    "hidePageHeader": true,
+    "indexFormat": "table",
+    "parametersFormat": "table",
+    "interfacePropertiesFormat": "table",
+    "classPropertiesFormat": "table",
+    "typeAliasPropertiesFormat": "table",
+    "enumMembersFormat": "table",
+    "propertyMembersFormat": "table",
+    "typeDeclarationFormat": "table",
+    "out": "documentation",
+    "excludeNotDocumented": false,
+    "excludeInternal": false,
+    "excludePrivate": false,
+    "excludeProtected": false,
+    "excludeReferences": true,
+    "tsconfig": "../../tsconfig.docs.json"
+}
