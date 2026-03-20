@@ -13,6 +13,7 @@
  */
 
 import { CONTEXT_PREFIX } from '../../services/helpers/runtime.js';
+import { safeDynamicImport } from '../../helpers/import-helpers.js';
 
 // ============================================================================
 // Type Definitions
@@ -132,7 +133,7 @@ export class AssemblyPolicyResolver {
             import.meta.url,
         );
 
-        const { default: policyData } = await import(`${resolvedURL}`, { with: { type: 'json' } });
+        const { default: policyData } = await safeDynamicImport(`${resolvedURL}`, { with: { type: 'json' } });
 
         return new AssemblyPolicyResolver(/** @type {AssemblyPolicyData} */ (policyData));
     }

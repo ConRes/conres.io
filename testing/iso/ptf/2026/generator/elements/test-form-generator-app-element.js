@@ -700,52 +700,6 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             : undefined;
 
         // ----------------------------------------------------------------
-        // Validate: ICC profile required
-        // ----------------------------------------------------------------
-        const iccProfileFile = iccProfileInput?.files?.[0];
-        if (!iccProfileFile) {
-            alert('Please select a calibrated ICC profile.');
-            iccProfileInput?.focus();
-            return;
-        }
-
-        // ----------------------------------------------------------------
-        // Validate: specification fields required (unless debugging)
-        // ----------------------------------------------------------------
-        const fieldIds = ['device-input', 'colorants-input', 'substrate-input', 'settings-input', 'email-input'];
-
-        if (!isDebugging) {
-            for (const fieldId of fieldIds) {
-                const input = /** @type {HTMLInputElement | null} */ (this.querySelector(`#${fieldId}`));
-                if (!input?.value?.trim()) {
-                    alert('Please fill in all specification fields, or enable Debugging to skip validation.');
-                    input?.focus();
-                    return;
-                }
-            }
-        }
-
-        // ----------------------------------------------------------------
-        // Collect user metadata (debugging provides defaults for empty fields)
-        // ----------------------------------------------------------------
-        const debuggingDefaults = isDebugging ? {
-            device: 'a device',
-            colorants: 'some colorants',
-            substrate: 'a substrate',
-            settings: 'some settings',
-            email: 'an email',
-        } : undefined;
-
-        /** @type {UserMetadata} */
-        const userMetadata = {
-            device: /** @type {HTMLInputElement} */ (this.querySelector('#device-input')).value || debuggingDefaults?.device || '',
-            colorants: /** @type {HTMLInputElement} */ (this.querySelector('#colorants-input')).value || debuggingDefaults?.colorants || '',
-            substrate: /** @type {HTMLInputElement} */ (this.querySelector('#substrate-input')).value || debuggingDefaults?.substrate || '',
-            settings: /** @type {HTMLInputElement} */ (this.querySelector('#settings-input')).value || debuggingDefaults?.settings || '',
-            email: /** @type {HTMLInputElement} */ (this.querySelector('#email-input')).value || debuggingDefaults?.email || '',
-        };
-
-        // ----------------------------------------------------------------
         // Collect assembly overrides from filter controls
         // Only sections in "custom" mode produce overrides; "auto" sections
         // are handled by the assembly policy resolver at generation time.
@@ -806,6 +760,64 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                 });
             }
         }
+
+        // ----------------------------------------------------------------
+        // Validate all inputs (single alert for all issues)
+        // ----------------------------------------------------------------
+        const iccProfileFile = iccProfileInput?.files?.[0];
+
+        /** @type {string[]} */
+        const validationErrors = [];
+
+        if (!iccProfileFile) {
+            validationErrors.push('Please select a calibrated ICC profile.');
+        }
+
+        if (!isDebugging) {
+            const fieldIds = ['device-input', 'colorants-input', 'substrate-input', 'settings-input', 'email-input'];
+            const emptyFields = fieldIds.filter(id => {
+                const input = /** @type {HTMLInputElement | null} */ (this.querySelector(`#${id}`));
+                return !input?.value?.trim();
+            });
+            if (emptyFields.length > 0) {
+                validationErrors.push('Please fill in all specification fields, or enable Debugging to skip validation.');
+            }
+        }
+
+        if (assemblyOverrides?.enabledLayoutNames?.length === 0) {
+            validationErrors.push('All layouts are disabled. Enable at least one layout.');
+        }
+        if (assemblyOverrides?.enabledColorSpaceNames?.length === 0) {
+            validationErrors.push('All color spaces are disabled. Enable at least one color space.');
+        }
+        if (assemblyOverrides?.renderingIntentOverrides?.length === 0) {
+            validationErrors.push('No rendering intents selected. Select at least one or switch to Auto mode.');
+        }
+
+        if (validationErrors.length > 0) {
+            alert(validationErrors.join('\n\n'));
+            return;
+        }
+
+        // ----------------------------------------------------------------
+        // Collect user metadata (debugging provides defaults for empty fields)
+        // ----------------------------------------------------------------
+        const debuggingDefaults = isDebugging ? {
+            device: 'a device',
+            colorants: 'some colorants',
+            substrate: 'a substrate',
+            settings: 'some settings',
+            email: 'an email',
+        } : undefined;
+
+        /** @type {UserMetadata} */
+        const userMetadata = {
+            device: /** @type {HTMLInputElement} */ (this.querySelector('#device-input')).value || debuggingDefaults?.device || '',
+            colorants: /** @type {HTMLInputElement} */ (this.querySelector('#colorants-input')).value || debuggingDefaults?.colorants || '',
+            substrate: /** @type {HTMLInputElement} */ (this.querySelector('#substrate-input')).value || debuggingDefaults?.substrate || '',
+            settings: /** @type {HTMLInputElement} */ (this.querySelector('#settings-input')).value || debuggingDefaults?.settings || '',
+            email: /** @type {HTMLInputElement} */ (this.querySelector('#email-input')).value || debuggingDefaults?.email || '',
+        };
 
         // ----------------------------------------------------------------
         // Disable button, show progress
