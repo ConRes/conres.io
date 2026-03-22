@@ -1,5 +1,5 @@
 {
-    "settings": {
+    "settings":    {
         "colorManagement": {
             "defaultSourceProfileForDeviceGray":       "../profiles/sGray.icc",
             "defaultSourceProfileForDeviceGrayPolicy": {
@@ -21,7 +21,7 @@
             }
         }
     },
-    "assets":   [
+    "assets":      [
         { "asset": "CR21",                    "colorSpace": "sRGB"  },
         { "asset": "CR21",                    "colorSpace": "sGray" },
         { "asset": "CR21",                    "colorSpace": "Lab"   },
@@ -40,17 +40,17 @@
         { "asset": "P - ConRes TV25 vs TV75", "colorSpace": "sRGB"  },
         { "asset": "P - ConRes TV25 vs TV75", "colorSpace": "sGray" },
         { "asset": "P - ConRes TV25 vs TV75", "colorSpace": "Lab"   },
+        { "asset": "P - ConRes CR21 vs CR20", "colorSpace": "sRGB"  },
         { "asset": "P - ConRes CR21 vs CR20", "colorSpace": "sGray" },
-        { "asset": "P - ConRes CR21 vs CR20", "colorSpace": "Lab"   },
-        { "asset": "P - ConRes CR21 vs CR20", "colorSpace": "sRGB"  }
+        { "asset": "P - ConRes CR21 vs CR20", "colorSpace": "Lab"   }
     ],
-    "colorSpaces":     {
+    "colorSpaces": {
         "sRGB":  { "type": "RGB",     "profile": "../profiles/sRGB IEC61966-2.1.icc" },
         "sGray": { "type": "Gray",    "profile": "../profiles/sGray.icc"             },
-        "Lab":   { "type": "Lab",     "profile": "Lab"                                  },
-        "SepK":  { "type": "DeviceN"                                                    }
+        "Lab":   { "type": "Lab",     "profile": "Lab"                               },
+        "SepK":  { "type": "DeviceN"                                                 }
     },
-    "layouts":  [
+    "layouts":     [
         {
             "layout":     "P-20 London",
             "colorSpace": "sRGB",
@@ -198,7 +198,7 @@
             "assets":     [ { "asset": "P - ConRes CR21 vs CR20", "colorSpace": "Lab" } ]
         }
     ],
-    "pages":    [
+    "pages":       [
         {
             "layout":     "P-20 London",
             "colorSpace": "sRGB",
