@@ -75,6 +75,9 @@ export class GhostscriptService {
     static processSlugTemplate(slugTemplateText, slugData, metadata) {
         let slugSourceText = slugTemplateText;
 
+        // Detect template support for OutputParameters (rendering intent + output profile on separate line)
+        const templateSupportsOutputParameters = slugSourceText.includes('OutputParameters');
+
         // Replace slug metadata
         slugSourceText = /^(?<indent>[ \t]*)%\|[ \t]+\{\{Slugs\}\}.*?$/m[Symbol.replace](
             slugSourceText,
@@ -88,24 +91,28 @@ export class GhostscriptService {
                             colorSpace,
                             resolution: { values, value = values?.join('/'), unit } = /** @type {Partial<{ values: number[], value: number, unit: string }>} */({}),
                         },
-                    }) =>
-                        [
+                    }) => {
+                        const inputParameters = [colorSpace, `${value || ""}${unit || ""}`].filter(Boolean);
+                        const outputParameters = [metadata?.renderingIntent, metadata?.outputProfileName].filter(Boolean);
+
+                        return [
                             "$<indent><<",
                             title && `$<indent>  /Title (${title})`,
                             variant && `$<indent>  /Variant (${variant})`,
-                            (colorSpace || value || metadata?.renderingIntent || metadata?.outputProfileName) &&
-                            `$<indent>  /Parameters (${[
-                                colorSpace,
-                                `${value || ""}${unit || ""}`,
-                                metadata?.renderingIntent,
-                                metadata?.outputProfileName,
-                            ]
-                                .filter(Boolean)
-                                .join(" - ")})`,
+                            ...(templateSupportsOutputParameters
+                                ? [
+                                    inputParameters.length > 0 && `$<indent>  /Parameters (${inputParameters.join(" - ")})`,
+                                    outputParameters.length > 0 && `$<indent>  /OutputParameters (${outputParameters.join(" - ")})`,
+                                ]
+                                : [
+                                    (inputParameters.length > 0 || outputParameters.length > 0) &&
+                                    `$<indent>  /Parameters (${[...inputParameters, ...outputParameters].join(" - ")})`,
+                                ]),
                             "$<indent>>>",
                         ]
                             .filter(Boolean)
-                            .join("\n")
+                            .join("\n");
+                    }
                 )
                 .join("\n")
         );
