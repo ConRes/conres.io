@@ -13,7 +13,7 @@
  * @ai Claude Opus 4.6 (code generation)
  */
 
-import { PDFDocument } from '../../packages/pdf-lib/pdf-lib.esm.js';
+import { PDFDocument, StandardFonts } from '../../packages/pdf-lib/pdf-lib.esm.js';
 
 import {
     uint8ArrayToBase64,
@@ -113,12 +113,14 @@ export const ASSET_VERSIONS = {
  * @property {(stage: string, percent: number, message: string) => void | Promise<void>} [onProgress]
  * @property {(state: FetchState) => void} [onDownloadProgress]
  * @property {(label: string, pdfBuffer: ArrayBuffer, metadataJSON: string) => Promise<void>} [onChainOutput]
+ * @property {(docketPDFBuffer: ArrayBuffer, metadataJSON: string) => Promise<void>} [onDocketReady]
  */
 
 /**
  * @typedef {object} GenerationResult
  * @property {ArrayBuffer | null} pdfBuffer
  * @property {string} metadataJSON
+ * @property {ArrayBuffer | null} [docketPDFBuffer]
  */
 
 /**
@@ -313,6 +315,52 @@ export class TestFormPDFDocumentGenerator {
         });
 
         // ----------------------------------------------------------------
+        // 3c. Resolve manifest URL and color space profiles
+        // ----------------------------------------------------------------
+        const manifestURL = this.#resources
+            ? this.#resources.manifest
+            : resolveAssetURL(/** @type {string} */ (this.#assetBase), 'manifest.json');
+
+        /**
+         * Resolves a manifest-relative profile path to a fetchable URL.
+         * @param {string} profilePath
+         * @returns {string}
+         */
+        const resolveProfileURL = (profilePath) => new URL(profilePath, manifestURL).href;
+
+        const colorSpaceResolver = new ManifestColorSpaceResolver(
+            manifest.colorSpaces,
+            manifestURL,
+            this.#cache,
+            resolveProfileURL,
+        );
+
+        // ----------------------------------------------------------------
+        // 3d. Generate docket PDF (litmus test — must succeed before main job)
+        // ----------------------------------------------------------------
+        /** @type {ArrayBuffer | null} */
+        let docketPDFBuffer = null;
+
+        if (manifest.docket) {
+            await onProgress('preparing', 32, 'Generating docket PDF\u2026');
+
+            const metadataJSON = this.#buildMetadataJSON(manifest, iccProfileHeader, iccProfileBuffer, userMetadata, assemblyPlan);
+
+            docketPDFBuffer = await this.#generateDocketPDF(
+                manifest, metadataJSON, iccProfileBuffer, iccProfileHeader,
+                colorSpaceResolver, userMetadata,
+                assemblyPlan.generationPasses.map(p => p.intentPass),
+            );
+
+            console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Docket PDF generated: ${docketPDFBuffer ? (docketPDFBuffer.byteLength / 1024).toFixed(1) + ' KB' : 'null'}`);
+
+            // Deliver docket immediately — UI downloads it before main job starts
+            if (docketPDFBuffer && callbacks.onDocketReady) {
+                await callbacks.onDocketReady(docketPDFBuffer, metadataJSON);
+            }
+        }
+
+        // ----------------------------------------------------------------
         // 4. Load asset PDF
         // ----------------------------------------------------------------
         await onProgress('assembling', 32, `Loading asset PDF (${manifest.assets.length} assets)\u2026`);
@@ -328,39 +376,13 @@ export class TestFormPDFDocumentGenerator {
         }
 
         // ----------------------------------------------------------------
-        // 5. Resolve color space profiles and create pre-converter
-        // ----------------------------------------------------------------
-        await onProgress('converting', 34, `Resolving ${Object.keys(manifest.colorSpaces).length} color space profiles\u2026`);
-
-        const manifestURL = this.#resources
-            ? this.#resources.manifest
-            : resolveAssetURL(/** @type {string} */ (this.#assetBase), 'manifest.json');
-
-        /**
-         * Resolves a manifest-relative profile path to a fetchable URL.
-         *
-         * @param {string} profilePath - Manifest-relative profile path (e.g., `"../profiles/sRGB.icc"`)
-         * @returns {string} Absolute URL for fetching the profile
-         */
-        const resolveProfileURL = (profilePath) => {
-            return new URL(profilePath, manifestURL).href;
-        };
-
-        const colorSpaceResolver = new ManifestColorSpaceResolver(
-            manifest.colorSpaces,
-            manifestURL,
-            this.#cache,
-            resolveProfileURL,
-        );
-
-        // ----------------------------------------------------------------
         // Branch: separate-chains or recombined-chains
         // ----------------------------------------------------------------
         if (this.#processingStrategy === 'separate-chains' || this.#processingStrategy === 'recombined-chains') {
             return this.#generateSeparateChains(
                 assetPDFBuffer, manifest, manifestBuffer,
                 iccProfileBuffer, iccProfileHeader, colorSpaceResolver,
-                userMetadata, callbacks,
+                userMetadata, callbacks, docketPDFBuffer,
             );
         }
 
@@ -371,7 +393,7 @@ export class TestFormPDFDocumentGenerator {
             return this.#generateMultiIntentPasses(
                 assetPDFBuffer, manifestBuffer,
                 iccProfileBuffer, iccProfileHeader, colorSpaceResolver,
-                assemblyPlan, userMetadata, callbacks,
+                assemblyPlan, userMetadata, callbacks, docketPDFBuffer,
             );
         }
 
@@ -471,7 +493,7 @@ export class TestFormPDFDocumentGenerator {
 
             await onProgress('done', 100, 'Generation complete');
 
-            return { pdfBuffer, metadataJSON };
+            return { pdfBuffer, metadataJSON, docketPDFBuffer };
         } finally {
             preConverter.dispose();
         }
@@ -648,7 +670,7 @@ export class TestFormPDFDocumentGenerator {
      * @param {GenerationCallbacks} callbacks
      * @returns {Promise<GenerationResult>}
      */
-    async #generateMultiIntentPasses(assetPDFBuffer, manifestBuffer, iccProfileBuffer, iccProfileHeader, colorSpaceResolver, assemblyPlan, userMetadata, callbacks) {
+    async #generateMultiIntentPasses(assetPDFBuffer, manifestBuffer, iccProfileBuffer, iccProfileHeader, colorSpaceResolver, assemblyPlan, userMetadata, callbacks, docketPDFBuffer = null) {
         const { onProgress = () => {}, onChainOutput } = callbacks;
 
         const metadataJSON = this.#buildMetadataJSON(
@@ -757,7 +779,7 @@ export class TestFormPDFDocumentGenerator {
 
         await onProgress('done', 100, 'Generation complete');
 
-        return { pdfBuffer: null, metadataJSON };
+        return { pdfBuffer: null, metadataJSON, docketPDFBuffer };
     }
 
     /**
@@ -774,7 +796,7 @@ export class TestFormPDFDocumentGenerator {
      * @param {GenerationCallbacks} callbacks
      * @returns {Promise<GenerationResult>}
      */
-    async #generateSeparateChains(assetPDFBuffer, manifest, manifestBuffer, iccProfileBuffer, iccProfileHeader, colorSpaceResolver, userMetadata, callbacks) {
+    async #generateSeparateChains(assetPDFBuffer, manifest, manifestBuffer, iccProfileBuffer, iccProfileHeader, colorSpaceResolver, userMetadata, callbacks, docketPDFBuffer = null) {
         const { onProgress = () => {}, onChainOutput } = callbacks;
         const recombine = this.#processingStrategy === 'recombined-chains';
 
@@ -1016,12 +1038,12 @@ export class TestFormPDFDocumentGenerator {
 
             await onProgress('done', 100, 'Generation complete');
 
-            return { pdfBuffer, metadataJSON };
+            return { pdfBuffer, metadataJSON, docketPDFBuffer };
         }
 
         await onProgress('done', 100, 'Generation complete');
 
-        return { pdfBuffer: null, metadataJSON };
+        return { pdfBuffer: null, metadataJSON, docketPDFBuffer };
     }
 
     /**
@@ -1153,6 +1175,429 @@ export class TestFormPDFDocumentGenerator {
             document,
             manifestBuffer,
             'test-form.manifest.json',
+        );
+    }
+
+    /**
+     * Generates a docket PDF that replaces the metadata.json download.
+     *
+     * Creates one page per rendering intent pass, each using the asset(s)
+     * defined in `manifest.docket` as a background with metadata text drawn
+     * within `docket.bounds`. The metadata JSON (excluding the ICC profile
+     * base64) is embedded as a PDF attachment.
+     *
+     * @param {TestFormManifest} manifest - Full manifest (must have `docket` property)
+     * @param {string} metadataJSON - Complete metadata JSON string
+     * @param {ArrayBuffer} iccProfileBuffer - Destination ICC profile bytes
+     * @param {{ colorSpace: string, description: string }} iccProfileHeader
+     * @param {import('./manifest-color-space-resolver.js').ManifestColorSpaceResolver} colorSpaceResolver
+     * @param {UserMetadata | null} userMetadata
+     * @param {Array<{ renderingIntent: string, blackPointCompensation: boolean, label: string }>} [intentPasses]
+     * @returns {Promise<ArrayBuffer | null>}
+     */
+    async #generateDocketPDF(manifest, metadataJSON, iccProfileBuffer, iccProfileHeader, colorSpaceResolver, userMetadata, intentPasses) {
+        const docketConfig = manifest.docket;
+
+        // Resolve docket asset page indices in the asset PDF
+        const docketPageIndices = docketConfig.assets
+            .map(docketAsset => manifest.assets.findIndex(
+                a => a.asset === docketAsset.asset && a.colorSpace === docketAsset.colorSpace,
+            ))
+            .filter(i => i >= 0);
+
+        if (docketPageIndices.length === 0) {
+            console.warn(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Docket assets not found in manifest, skipping docket PDF.`);
+            return null;
+        }
+
+        // Default to a single pass with Relative Colorimetric + BPC
+        const passes = intentPasses?.length
+            ? intentPasses
+            : [{ renderingIntent: 'relative-colorimetric', blackPointCompensation: true, label: 'Relative Colorimetric' }];
+
+        const { AssetPagePreConverter } = await import('./asset-page-pre-converter.js');
+
+        // Build a minimal manifest with just the docket assets and a single-page layout
+        const docketManifest = /** @type {TestFormManifest} */ ({
+            ...manifest,
+            layouts: [{
+                layout: '__docket__',
+                colorSpace: docketConfig.colorSpace,
+                assets: docketConfig.assets,
+            }],
+            pages: [{
+                layout: '__docket__',
+                colorSpace: docketConfig.colorSpace,
+                metadata: { title: 'Docket', colorSpace: docketConfig.colorSpace },
+            }],
+        });
+
+        // Create the output docket document — one page per intent pass
+        const docketDocument = await PDFDocument.create();
+
+        // Parse metadata once for text rendering
+        const parsedMetadata = JSON.parse(metadataJSON);
+
+        for (const pass of passes) {
+            // Load a fresh copy of the asset PDF for each pass
+            const assetPDFBuffer = await this.#loadAsset(null);
+            const passAssetDocument = await PDFDocument.load(assetPDFBuffer, { updateMetadata: false });
+
+            const preConverter = new AssetPagePreConverter({
+                outputProfile: iccProfileBuffer,
+                outputColorSpace: iccProfileHeader.colorSpace,
+                outputBitsPerComponent: this.#outputBitsPerComponent,
+                colorSpaceResolver,
+                renderingIntent: pass.renderingIntent,
+                blackPointCompensation: pass.blackPointCompensation,
+                debugging: this.#debugging,
+                useWorkers: false,
+                interConversionDelay: 0,
+            });
+
+            try {
+                // Run conversion and assembly for this pass
+                const passDocument = await this.#assemblePages(
+                    preConverter, passAssetDocument, docketManifest,
+                );
+
+                // Copy the converted page into the docket document
+                const [copiedPage] = await docketDocument.copyPages(passDocument, [0]);
+                docketDocument.addPage(copiedPage);
+            } finally {
+                preConverter.dispose();
+            }
+        }
+
+        // Generate and embed slugs BEFORE text overlay (so clipping doesn't hide them)
+        console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Docket slugs: userMetadata=${!!userMetadata}, pages=${docketDocument.getPageCount()}`);
+        if (userMetadata) {
+            const docketPages = passes.map((pass) => ({
+                layout: 'Docket',
+                colorSpace: docketConfig.colorSpace,
+                metadata: {
+                    title: 'Docket',
+                    variant: pass.label,
+                    colorSpace: docketConfig.colorSpace,
+                },
+            }));
+
+            const slugsDocument = await this.#generateSlugsPDF(
+                docketPages, iccProfileBuffer, iccProfileHeader, userMetadata,
+                passes.map(p => p.label).join(', '),
+                parsedMetadata.assembly?.profileCategoryLabel,
+            );
+            await PDFService.embedSlugsIntoPDFDocument(docketDocument, slugsDocument);
+        }
+
+        // Embed fonts for text rendering (small sizes to fit all content)
+        const font = await docketDocument.embedFont(StandardFonts.Helvetica);
+        const boldFont = await docketDocument.embedFont(StandardFonts.HelveticaBold);
+        const fontSize = 6;
+        const labelFontSize = 6;
+        const lineHeight = fontSize * 1.25;
+        const sectionGap = lineHeight * 0.4;
+        const labelColumnWidth = 50;
+
+        // Draw metadata on each page (one per intent pass)
+        for (let pageIndex = 0; pageIndex < passes.length; pageIndex++) {
+            const page = docketDocument.getPage(pageIndex);
+            const pageWidth = page.getWidth();
+            const pageHeight = page.getHeight();
+
+            // Determine text bounds (default: full page with 1 inch margins)
+            const bounds = docketConfig.bounds ?? {
+                x: 72, y: 72,
+                width: pageWidth - 144,
+                height: pageHeight - 144,
+            };
+
+            // Build fields for this pass
+            // Field types: { label, value } for text, { checkbox, checked, value } for checkboxes, null for section breaks
+            /** @type {Array<{ label: string, value: string } | { checkbox: true, checked: boolean, value: string } | { radio: true, selected: boolean, value: string } | null>} */
+            const fields = [];
+
+            // --- Specifications ---
+            if (userMetadata) {
+                fields.push({ label: 'Device', value: userMetadata.device });
+                fields.push({ label: 'Colorants', value: userMetadata.colorants });
+                fields.push({ label: 'Substrate', value: userMetadata.substrate });
+                fields.push({ label: 'Settings', value: userMetadata.settings });
+                fields.push({ label: 'Email', value: userMetadata.email });
+            }
+
+            fields.push(null); // Section break
+
+            // --- Generation ---
+            fields.push({ label: 'Test Form', value: parsedMetadata.testFormVersion ?? '' });
+            fields.push({ label: 'Generated', value: parsedMetadata.generatedAt ?? '' });
+
+            fields.push(null); // Section break
+
+            // --- Output Profile (full ICC header) ---
+            if (parsedMetadata.color?.profile) {
+                const p = parsedMetadata.color.profile;
+                fields.push({ label: 'Profile', value: p.description ?? '' });
+                fields.push({ label: 'Color Space', value: p.colorSpace ?? '' });
+                if (p.version) fields.push({ label: 'ICC Version', value: p.version });
+                if (p.deviceClass) fields.push({ label: 'Device Class', value: p.deviceClass });
+                if (p.connectionSpace) fields.push({ label: 'PCS', value: p.connectionSpace });
+                if (p.manufacturer) fields.push({ label: 'Manufacturer', value: p.manufacturer });
+                if (p.copyright) fields.push({ label: 'Copyright', value: p.copyright });
+            }
+
+            // --- Output Settings ---
+            const settings = parsedMetadata.settings;
+            if (settings) {
+                fields.push({ label: 'Bit Depth', value: settings.outputBitsPerComponent === 'auto' ? 'Same as Source' : `${settings.outputBitsPerComponent}-bit` });
+            }
+
+            if (parsedMetadata.assembly) {
+                fields.push({ label: 'Category', value: parsedMetadata.assembly.profileCategoryLabel ?? '' });
+            }
+
+            fields.push(null); // Section break
+
+            // --- Rendering Intents ---
+            for (let i = 0; i < passes.length; i++) {
+                fields.push({ label: `Intent ${i + 1}`, value: passes[i].label });
+            }
+
+            fields.push(null); // Section break
+
+            // --- Assembly Filters (auto/custom + checkboxes) ---
+            const overrides = settings?.assemblyOverrides;
+
+            // Layouts
+            const layoutMode = overrides?.enabledLayoutNames ? 'Custom' : 'Auto';
+            fields.push({ label: 'Layouts', value: '' });
+            fields.push({ radio: true, selected: layoutMode === 'Auto', value: 'Auto' });
+            fields.push({ radio: true, selected: layoutMode === 'Custom', value: 'Custom' });
+            if (parsedMetadata.manifest?.layouts) {
+                const uniqueLayouts = [...new Set(parsedMetadata.manifest.layouts.map(
+                    (/** @type {{ layout: string }} */ l) => l.layout,
+                ))];
+                const enabledSet = overrides?.enabledLayoutNames
+                    ? new Set(overrides.enabledLayoutNames)
+                    : null;
+                for (const name of uniqueLayouts) {
+                    const checked = enabledSet ? enabledSet.has(name) : true;
+                    fields.push({ checkbox: true, checked, value: name });
+                }
+            }
+
+            // Color Spaces
+            const colorSpaceMode = overrides?.enabledColorSpaceNames ? 'Custom' : 'Auto';
+            fields.push({ label: 'Color Spaces', value: '' });
+            fields.push({ radio: true, selected: colorSpaceMode === 'Auto', value: 'Auto' });
+            fields.push({ radio: true, selected: colorSpaceMode === 'Custom', value: 'Custom' });
+            if (parsedMetadata.manifest?.colorSpaces) {
+                const enabledSet = overrides?.enabledColorSpaceNames
+                    ? new Set(overrides.enabledColorSpaceNames)
+                    : null;
+                for (const name of Object.keys(parsedMetadata.manifest.colorSpaces)) {
+                    const checked = enabledSet ? enabledSet.has(name) : true;
+                    fields.push({ checkbox: true, checked, value: name });
+                }
+            }
+
+            // Rendering Intent mode
+            const intentMode = overrides?.renderingIntentOverrides ? 'Custom' : 'Auto';
+            fields.push({ label: 'Intents', value: '' });
+            fields.push({ radio: true, selected: intentMode === 'Auto', value: 'Auto' });
+            fields.push({ radio: true, selected: intentMode === 'Custom', value: 'Custom' });
+
+            fields.push(null); // Section break
+
+            // --- Debugging ---
+            if (settings) {
+                fields.push({ label: 'Debugging', value: settings.debugging ? 'Enabled' : 'Disabled' });
+                fields.push({ label: 'Workers', value: settings.useWorkers ? 'Enabled' : 'Disabled' });
+                fields.push({ label: 'Strategy', value: settings.processingStrategy ?? 'in-place' });
+            }
+
+            const { cmyk } = await import('../../packages/pdf-lib/pdf-lib.esm.js');
+            const kBlack = cmyk(0, 0, 0, 1);
+            const controlSize = fontSize * 0.7;
+            const valueColumnX = bounds.x + labelColumnWidth;
+            const maxValueWidth = bounds.width - labelColumnWidth;
+
+            /**
+             * Draws text with line wrapping within a max width.
+             * Returns the number of lines drawn.
+             * @param {string} text
+             * @param {number} x
+             * @param {number} textY
+             * @param {import('pdf-lib').PDFFont} textFont
+             * @param {number} textSize
+             * @param {number} maxWidth
+             * @returns {number}
+             */
+            const drawWrappedText = (text, x, textY, textFont, textSize, maxWidth) => {
+                if (!text) return 0;
+                const words = text.split(' ');
+                let line = '';
+                let linesDrawn = 0;
+                let currentY = textY;
+
+                for (const word of words) {
+                    const testLine = line ? `${line} ${word}` : word;
+                    const testWidth = textFont.widthOfTextAtSize(testLine, textSize);
+                    if (testWidth > maxWidth && line) {
+                        page.drawText(line, { x, y: currentY, size: textSize, font: textFont, color: kBlack });
+                        linesDrawn++;
+                        currentY -= lineHeight;
+                        line = word;
+                    } else {
+                        line = testLine;
+                    }
+                }
+                if (line) {
+                    page.drawText(line, { x, y: currentY, size: textSize, font: textFont, color: kBlack });
+                    linesDrawn++;
+                }
+                return linesDrawn;
+            };
+
+            // Draw fields within bounds (PDF y-axis is bottom-up, start from top)
+            let y = bounds.y + bounds.height - lineHeight;
+
+            for (const field of fields) {
+                if (y < bounds.y) break;
+
+                if (field === null) {
+                    y -= sectionGap;
+                    continue;
+                }
+
+                if ('radio' in field) {
+                    const rX = valueColumnX;
+                    const rCenterY = y + controlSize * 0.45;
+                    const radius = controlSize * 0.4;
+
+                    // Outer circle
+                    page.drawCircle({
+                        x: rX + radius,
+                        y: rCenterY,
+                        size: radius,
+                        borderWidth: 0.4,
+                        borderColor: kBlack,
+                    });
+
+                    // Filled dot if selected
+                    if (field.selected) {
+                        page.drawCircle({
+                            x: rX + radius,
+                            y: rCenterY,
+                            size: radius * 0.5,
+                            color: kBlack,
+                        });
+                    }
+
+                    page.drawText(field.value, {
+                        x: rX + radius * 2 + 2,
+                        y,
+                        size: fontSize,
+                        font,
+                        color: kBlack,
+                    });
+                } else if ('checkbox' in field) {
+                    const cbX = valueColumnX;
+                    const cbY = y + 0.5;
+
+                    // Outer box (hairline stroke)
+                    page.drawRectangle({
+                        x: cbX,
+                        y: cbY,
+                        width: controlSize,
+                        height: controlSize,
+                        borderWidth: 0.3,
+                        borderColor: kBlack,
+                    });
+
+                    // Checkmark as single SVG path (joined strokes)
+                    // SVG Y-axis is top-down: 0=top, controlSize=bottom
+                    if (field.checked) {
+                        const s = controlSize;
+                        page.drawSvgPath(
+                            `M ${s * 0.15} ${s * 0.55} L ${s * 0.4} ${s * 0.85} L ${s * 0.85} ${s * 0.2}`,
+                            {
+                                x: cbX,
+                                y: cbY + controlSize,
+                                borderWidth: 0.6,
+                                borderColor: kBlack,
+                            },
+                        );
+                    }
+
+                    page.drawText(field.value, {
+                        x: cbX + controlSize + 2,
+                        y,
+                        size: fontSize,
+                        font,
+                        color: kBlack,
+                    });
+                } else {
+                    // Standard label: value field
+                    if (field.label) {
+                        page.drawText(`${field.label}:`, {
+                            x: bounds.x,
+                            y,
+                            size: labelFontSize,
+                            font: boldFont,
+                            color: kBlack,
+                        });
+                    }
+
+                    const linesUsed = drawWrappedText(
+                        field.value, valueColumnX, y, font, fontSize, maxValueWidth,
+                    );
+                    if (linesUsed > 1) {
+                        y -= (linesUsed - 1) * lineHeight;
+                    }
+                }
+
+                y -= lineHeight;
+            }
+
+            // Footer: indicate which intent this page was converted with
+            const footerText = `Converted with: ${passes[pageIndex].label}`;
+            const footerY = bounds.y;
+            page.drawText(footerText, {
+                x: bounds.x,
+                y: footerY,
+                size: labelFontSize,
+                font: boldFont,
+                color: kBlack,
+            });
+        }
+
+        // Post-process: decalibrate and set output intent
+        await this.#postProcessPages(docketDocument, iccProfileHeader);
+
+        // Build stripped metadata (exclude profile base64 contents)
+        const strippedMetadata = JSON.parse(metadataJSON);
+        if (strippedMetadata.color?.profile?.contents) {
+            delete strippedMetadata.color.profile.contents;
+        }
+        const strippedMetadataBuffer = new TextEncoder().encode(
+            JSON.stringify(strippedMetadata, null, 2),
+        ).buffer;
+
+        PDFService.setOutputIntentForPDFDocument(docketDocument, {
+            iccProfile: new Uint8Array(iccProfileBuffer),
+            identifier: iccProfileHeader.description || `ICCBased_${iccProfileHeader.colorSpace}`,
+            subType: 'GTS_PDFX',
+        });
+        await PDFService.attachManifestToPDFDocument(
+            docketDocument, strippedMetadataBuffer, 'metadata.json',
+        );
+
+        return /** @type {ArrayBuffer} */ (
+            (await docketDocument.save({
+                addDefaultPage: false,
+                updateFieldAppearances: false,
+            })).buffer
         );
     }
 

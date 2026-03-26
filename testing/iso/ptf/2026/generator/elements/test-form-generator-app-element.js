@@ -689,22 +689,20 @@ export class TestFormGeneratorAppElement extends HTMLElement {
 
         // ----------------------------------------------------------------
         // Read worker checkboxes and processing strategy selection
+        // When debugging details is closed, use defaults (worker enabled, in-place)
         // ----------------------------------------------------------------
-        const bootstrapWorkerCheckbox = /** @type {HTMLInputElement | null} */ (
-            this.querySelector('#bootstrap-worker-checkbox')
-        );
-        const useBootstrapWorker = bootstrapWorkerCheckbox?.checked ?? false;
+        const useBootstrapWorker = isDebugging
+            ? (/** @type {HTMLInputElement | null} */ (this.querySelector('#bootstrap-worker-checkbox'))?.checked ?? true)
+            : true;
 
-        const parallelWorkersCheckbox = /** @type {HTMLInputElement | null} */ (
-            this.querySelector('#parallel-workers-checkbox')
-        );
-        const useParallelWorkers = parallelWorkersCheckbox?.checked ?? false;
+        const useParallelWorkers = isDebugging
+            ? (/** @type {HTMLInputElement | null} */ (this.querySelector('#parallel-workers-checkbox'))?.checked ?? true)
+            : true;
 
-        const processingStrategyRadio = /** @type {HTMLInputElement | null} */ (
-            this.querySelector('input[name="processing-strategy"]:checked')
-        );
         /** @type {'in-place' | 'separate-chains' | 'recombined-chains'} */
-        const processingStrategy = /** @type {any} */ (processingStrategyRadio?.value ?? 'in-place');
+        const processingStrategy = isDebugging
+            ? /** @type {any} */ (/** @type {HTMLInputElement | null} */ (this.querySelector('input[name="processing-strategy"]:checked'))?.value ?? 'in-place')
+            : 'in-place';
 
         const includeOutputProfile = false;
 
@@ -723,24 +721,27 @@ export class TestFormGeneratorAppElement extends HTMLElement {
 
         // ----------------------------------------------------------------
         // Collect assembly overrides from filter controls
-        // Only sections in "custom" mode produce overrides; "auto" sections
-        // are handled by the assembly policy resolver at generation time.
+        // When customization details is closed, treat all sections as auto.
+        // Field values persist in the DOM for when the user reopens.
         // ----------------------------------------------------------------
+        const isCustomizationOpen = /** @type {HTMLDetailsElement | null} */ (
+            this.querySelector('#customization-details')
+        )?.open ?? false;
 
         /** @type {import('../classes/assembly-policy-resolver.js').AssemblyUserOverrides | undefined} */
         let assemblyOverrides;
 
-        const layoutMode = /** @type {HTMLInputElement | null} */ (
-            this.querySelector('input[name="layout-mode"]:checked')
-        )?.value ?? 'auto';
+        const layoutMode = isCustomizationOpen
+            ? (/** @type {HTMLInputElement | null} */ (this.querySelector('input[name="layout-mode"]:checked'))?.value ?? 'auto')
+            : 'auto';
 
-        const colorSpaceMode = /** @type {HTMLInputElement | null} */ (
-            this.querySelector('input[name="color-space-mode"]:checked')
-        )?.value ?? 'auto';
+        const colorSpaceMode = isCustomizationOpen
+            ? (/** @type {HTMLInputElement | null} */ (this.querySelector('input[name="color-space-mode"]:checked'))?.value ?? 'auto')
+            : 'auto';
 
-        const renderingIntentMode = /** @type {HTMLInputElement | null} */ (
-            this.querySelector('input[name="rendering-intent-mode"]:checked')
-        )?.value ?? 'auto';
+        const renderingIntentMode = isCustomizationOpen
+            ? (/** @type {HTMLInputElement | null} */ (this.querySelector('input[name="rendering-intent-mode"]:checked'))?.value ?? 'auto')
+            : 'auto';
 
         const isLayoutCustom = layoutMode === 'custom';
         const isColorSpaceCustom = colorSpaceMode === 'custom';
@@ -1161,6 +1162,62 @@ export class TestFormGeneratorAppElement extends HTMLElement {
     }
 
     /**
+     * Downloads the generation result files (shared by main-thread and worker paths).
+     *
+     * Handles single-PDF and multi-PDF (onChainOutput) results. Downloads
+     * docket PDF instead of metadata.json when available.
+     *
+     * @param {import('../classes/test-form-pdf-document-generator.js').GenerationResult} result
+     * @param {object} options
+     * @param {string} options.testFormName
+     * @param {string} options.outputProfileBasename
+     * @param {ArrayBuffer} options.iccProfileBuffer
+     * @param {boolean} options.debugging
+     * @param {boolean} options.includeOutputProfile
+     */
+    async #downloadGenerationResult(result, { testFormName, outputProfileBasename, iccProfileBuffer, debugging, includeOutputProfile }) {
+        const { pdfBuffer, metadataJSON, docketPDFBuffer } = result;
+        console.log(`${CONTEXT_PREFIX} [downloadGenerationResult] pdfBuffer=${!!pdfBuffer}, docketPDFBuffer=${!!docketPDFBuffer}, debugging=${debugging}`);
+
+        // Docket is already downloaded via onDocketReady callback (before main job).
+        // Only download metadata.json as fallback when no docket was generated.
+
+        if (pdfBuffer) {
+            const parsedMetadata = JSON.parse(metadataJSON);
+            const intentLabel = parsedMetadata?.assembly?.renderingIntents?.[0]?.label ?? '';
+            const downloadSuffix = `${outputProfileBasename}${intentLabel ? ` - ${intentLabel}` : ''}`;
+
+            if (debugging && includeOutputProfile) {
+                await downloadArrayBufferAs(iccProfileBuffer, 'Output.icc', 'application/vnd.iccprofile');
+            }
+
+            if (!docketPDFBuffer) {
+                await downloadArrayBufferAs(
+                    new TextEncoder().encode(metadataJSON).buffer,
+                    `${testFormName} - ${downloadSuffix} - metadata.json`,
+                    'application/json',
+                );
+            }
+
+            await downloadArrayBufferAs(
+                pdfBuffer,
+                `${testFormName} - ${downloadSuffix}.pdf`,
+                'application/pdf',
+            );
+        }
+
+        if (!pdfBuffer) {
+            if (!docketPDFBuffer) {
+                await downloadArrayBufferAs(
+                    new TextEncoder().encode(metadataJSON).buffer,
+                    `${testFormName} - ${outputProfileBasename} - metadata.json`,
+                    'application/json',
+                );
+            }
+        }
+    }
+
+    /**
      * Runs the generation pipeline on the main thread (blocking).
      *
      * @param {object} options
@@ -1209,13 +1266,18 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                         await new Promise((resolve) => requestAnimationFrame(resolve));
                     },
                     onDownloadProgress,
+                    onDocketReady: async (docketPDFBuffer, metadataJSON) => {
+                        await downloadArrayBufferAs(
+                            docketPDFBuffer,
+                            `${testFormName} - ${outputProfileBasename} - Docket.pdf`,
+                            'application/pdf',
+                        );
+                    },
                     onChainOutput: async (label, pdfBuffer, metadataJSON) => {
                         if (!preChainDownloadsCompleted) {
                             if (debugging && includeOutputProfile) {
                                 await downloadArrayBufferAs(iccProfileBuffer, 'Output.icc', 'application/vnd.iccprofile');
                             }
-                            // Metadata/docket download is deferred to after generation
-                            // completes (docket PDF replaces metadata.json when available)
                             preChainDownloadsCompleted = true;
                         }
                         await downloadArrayBufferAs(
@@ -1230,57 +1292,9 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             generator.abort?.();
         }
 
-        const { pdfBuffer, metadataJSON, docketPDFBuffer } = generateResult;
-
-        // Download generated files
-        // When pdfBuffer is null, PDFs were delivered via onChainOutput
-        // (separate-chains or multi-intent passes)
-        if (pdfBuffer) {
-            // Extract the rendering intent label from metadata for the filename
-            const parsedMetadata = JSON.parse(metadataJSON);
-            const intentLabel = parsedMetadata?.assembly?.renderingIntents?.[0]?.label ?? '';
-            const downloadSuffix = `${outputProfileBasename}${intentLabel ? ` - ${intentLabel}` : ''}`;
-
-            if (debugging && includeOutputProfile) {
-                await downloadArrayBufferAs(iccProfileBuffer, 'Output.icc', 'application/vnd.iccprofile');
-            }
-            // Download docket PDF if available, otherwise metadata.json
-            if (docketPDFBuffer) {
-                await downloadArrayBufferAs(
-                    docketPDFBuffer,
-                    `${testFormName} - ${downloadSuffix} - Docket.pdf`,
-                    'application/pdf',
-                );
-            } else {
-                await downloadArrayBufferAs(
-                    new TextEncoder().encode(metadataJSON).buffer,
-                    `${testFormName} - ${downloadSuffix} - metadata.json`,
-                    'application/json',
-                );
-            }
-            await downloadArrayBufferAs(
-                pdfBuffer,
-                `${testFormName} - ${downloadSuffix}.pdf`,
-                'application/pdf',
-            );
-        }
-
-        // For multi-PDF results delivered via onChainOutput, download docket or metadata afterwards
-        if (!pdfBuffer) {
-            if (docketPDFBuffer) {
-                await downloadArrayBufferAs(
-                    docketPDFBuffer,
-                    `${testFormName} - ${outputProfileBasename} - Docket.pdf`,
-                    'application/pdf',
-                );
-            } else {
-                await downloadArrayBufferAs(
-                    new TextEncoder().encode(metadataJSON).buffer,
-                    `${testFormName} - ${outputProfileBasename} - metadata.json`,
-                    'application/json',
-                );
-            }
-        }
+        await this.#downloadGenerationResult(generateResult, {
+            testFormName, outputProfileBasename, iccProfileBuffer, debugging, includeOutputProfile,
+        });
     }
 
     /**
@@ -1347,6 +1361,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             /** @type {{ pdfBuffer: ArrayBuffer | null, metadataJSON: string }} */
             const result = await new Promise((resolve, reject) => {
                 let preChainDownloadsCompleted = false;
+                let docketDelivered = false;
 
                 worker.onerror = (event) => {
                     reject(new Error(
@@ -1367,17 +1382,27 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                             onDownloadProgress(data.state);
                             break;
 
+                        case 'docket-ready':
+                            docketDelivered = true;
+                            await downloadArrayBufferAs(
+                                data.docketPDFBuffer,
+                                `${testFormName} - ${outputProfileBasename} - Docket.pdf`,
+                                'application/pdf',
+                            );
+                            break;
+
                         case 'chain-output':
-                            // Handle separate-chains / multi-intent downloads on the main thread
                             if (!preChainDownloadsCompleted) {
                                 if (debugging && includeOutputProfile) {
                                     await downloadArrayBufferAs(iccProfileBuffer, 'Output.icc', 'application/vnd.iccprofile');
                                 }
-                                await downloadArrayBufferAs(
-                                    new TextEncoder().encode(data.metadataJSON).buffer,
-                                    `${testFormName} - ${outputProfileBasename} - metadata.json`,
-                                    'application/json',
-                                );
+                                if (!docketDelivered) {
+                                    await downloadArrayBufferAs(
+                                        new TextEncoder().encode(data.metadataJSON).buffer,
+                                        `${testFormName} - ${outputProfileBasename} - metadata.json`,
+                                        'application/json',
+                                    );
+                                }
                                 preChainDownloadsCompleted = true;
                             }
                             await downloadArrayBufferAs(
@@ -1391,6 +1416,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                             resolve({
                                 pdfBuffer: data.pdfBuffer,
                                 metadataJSON: data.metadataJSON,
+                                docketPDFBuffer: data.docketPDFBuffer ?? null,
                             });
                             break;
 
@@ -1419,28 +1445,9 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                 );
             });
 
-            // Download generated files
-            // When pdfBuffer is present, it's a single-PDF result;
-            // when null, PDFs were delivered via chain-output messages
-            if (result.pdfBuffer) {
-                const parsedMetadata = JSON.parse(result.metadataJSON);
-                const intentLabel = parsedMetadata?.assembly?.renderingIntents?.[0]?.label ?? '';
-                const downloadSuffix = `${outputProfileBasename}${intentLabel ? ` - ${intentLabel}` : ''}`;
-
-                if (debugging && includeOutputProfile) {
-                    await downloadArrayBufferAs(iccProfileBuffer, 'Output.icc', 'application/vnd.iccprofile');
-                }
-                await downloadArrayBufferAs(
-                    new TextEncoder().encode(result.metadataJSON).buffer,
-                    `${testFormName} - ${downloadSuffix} - metadata.json`,
-                    'application/json',
-                );
-                await downloadArrayBufferAs(
-                    result.pdfBuffer,
-                    `${testFormName} - ${downloadSuffix}.pdf`,
-                    'application/pdf',
-                );
-            }
+            await this.#downloadGenerationResult(result, {
+                testFormName, outputProfileBasename, iccProfileBuffer, debugging, includeOutputProfile,
+            });
         } finally {
             worker.terminate();
             console.log(`${CONTEXT_PREFIX} [TestFormGeneratorAppElement] Bootstrap Worker: terminated`);
