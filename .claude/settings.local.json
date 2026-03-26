@@ -68,7 +68,11 @@
       "WebFetch(domain:developer.chrome.com)",
       "Bash(/bin/cp:*)",
       "Bash(npm show:*)",
-      "Bash(for f in buffer-registry.js color-conversion-policy.js color-converter.js composite-color-converter.js image-color-converter.js pdf-content-stream-color-converter.js pdf-document-color-converter.js pdf-image-color-converter.js pdf-image-color-sampler.js pdf-page-color-converter.js typedoc.jsonc worker-pool-entrypoint.js worker-pool.js)"
+      "Bash(for f in buffer-registry.js color-conversion-policy.js color-converter.js composite-color-converter.js image-color-converter.js pdf-content-stream-color-converter.js pdf-document-color-converter.js pdf-image-color-converter.js pdf-image-color-sampler.js pdf-page-color-converter.js typedoc.jsonc worker-pool-entrypoint.js worker-pool.js)",
+      "Bash(INPUT=\"/Volumes/Pro-Blade/ConRes/Perceptual Test Forms/Revisions/2025-05-30 - ISO PTF 2x-4x \\(D\\)/2026-02-14 - ConRes - ISO PTF - CR1 \\(F9f\\) Assets OP2.pdf\")",
+      "Bash(OUTPUT=\"/Volumes/Pro-Blade/ConRes/Perceptual Test Forms/Revisions/2025-05-30 - ISO PTF 2x-4x \\(D\\)/2026-02-14 - ConRes - ISO PTF - CR1 \\(F9f\\) Assets OP2 - sGray Tagged.pdf\")",
+      "Bash(PROFILE=\"testing/iso/ptf/2025/tests/fixtures/profiles/sGray.icc\")",
+      "Bash(__NEW_LINE_1f75027f2c639ce7__ node:*)"
     ],
     "deny": [],
     "ask (disabled)": [
