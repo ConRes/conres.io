@@ -103,15 +103,6 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         // ----------------------------------------------------------------
         this.#restorePersistedState();
 
-        // Enable debugging checkbox from URL query parameter (overrides persisted state)
-        const debugging = new URLSearchParams(globalThis.location?.search).has('debugging');
-        const debuggingCheckbox = /** @type {HTMLInputElement | null} */ (
-            this.querySelector('#debugging-checkbox')
-        );
-        if (debuggingCheckbox && debugging) {
-            debuggingCheckbox.checked = true;
-        }
-
         // Bind Clear Cache button
         const clearCacheButton = this.querySelector('#test-form-clear-cache-button');
         if (clearCacheButton) {
@@ -130,16 +121,26 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             });
         }
 
-        // Populate assembly filter toggles on first <details> open
-        const filterDetails = this.querySelector('#assembly-filters-details');
-        if (filterDetails) {
-            filterDetails.addEventListener('toggle', () => {
-                if (/** @type {HTMLDetailsElement} */ (filterDetails).open) {
+        // Populate customization filter toggles on first <details> open
+        const customizationDetails = this.querySelector('#customization-details');
+        if (customizationDetails) {
+            customizationDetails.addEventListener('toggle', () => {
+                if (/** @type {HTMLDetailsElement} */ (customizationDetails).open) {
                     this.#ensureFiltersPopulated();
                 }
                 this.#persistState();
             });
         }
+
+        // Toggle debugging mode when debugging details opens/closes
+        const debuggingDetails = this.querySelector('#debugging-details');
+        if (debuggingDetails) {
+            debuggingDetails.addEventListener('toggle', () => {
+                this.#updateRequiredState();
+                this.#persistState();
+            });
+        }
+        this.#updateRequiredState();
 
         // Re-populate filters when test form version changes
         const testFormVersionSelect = this.querySelector('#test-form-version-select');
@@ -149,7 +150,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                 this.#cachedManifest = null;
                 this.#filtersPopulated = false;
                 const details = /** @type {HTMLDetailsElement | null} */ (
-                    this.querySelector('#assembly-filters-details')
+                    this.querySelector('#customization-details')
                 );
                 if (details?.open) this.#ensureFiltersPopulated();
                 this.#persistState();
@@ -209,7 +210,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             const target = /** @type {HTMLElement} */ (event.target);
             // Persist on changes to selects, radios, checkboxes, text inputs
             // but ignore file inputs (ICC profile can't be restored)
-            if (target.matches('select, input[type="radio"], input[type="checkbox"], input[type="text"]')) {
+            if (target.matches('select, input[type="radio"], input[type="checkbox"], input[type="text"], input[type="email"]')) {
                 this.#persistState();
             }
         });
@@ -256,16 +257,19 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             state[`checkbox:${checkbox.id}`] = checkbox.checked;
         }
 
-        // Text inputs
-        for (const input of /** @type {NodeListOf<HTMLInputElement>} */ (this.querySelectorAll('input[type="text"][id]'))) {
+        // Text and email inputs
+        for (const input of /** @type {NodeListOf<HTMLInputElement>} */ (this.querySelectorAll('input[type="text"][id], input[type="email"][id]'))) {
             if (input.value) state[`text:${input.id}`] = input.value;
         }
 
         // Details open state
-        const filterDetails = /** @type {HTMLDetailsElement | null} */ (
-            this.querySelector('#assembly-filters-details')
-        );
-        if (filterDetails) state['details:assembly-filters'] = filterDetails.open;
+        for (const [selector, stateKey] of [
+            ['#customization-details', 'details:customization'],
+            ['#debugging-details', 'details:debugging'],
+        ]) {
+            const details = /** @type {HTMLDetailsElement | null} */ (this.querySelector(selector));
+            if (details) state[stateKey] = details.open;
+        }
 
         // Dynamic filter checkboxes (layouts, color spaces, intents — keyed by value).
         // Only overwrite a dynamic key when the checkboxes actually exist in the DOM.
@@ -345,12 +349,13 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         }
 
         // Details open state
-        if ('details:assembly-filters' in state) {
-            const filterDetails = /** @type {HTMLDetailsElement | null} */ (
-                this.querySelector('#assembly-filters-details')
-            );
-            if (filterDetails && state['details:assembly-filters']) {
-                filterDetails.open = true;
+        for (const [selector, stateKey] of [
+            ['#customization-details', 'details:customization'],
+            ['#debugging-details', 'details:debugging'],
+        ]) {
+            if (stateKey in state) {
+                const details = /** @type {HTMLDetailsElement | null} */ (this.querySelector(selector));
+                if (details && state[stateKey]) details.open = true;
             }
         }
 
@@ -612,6 +617,27 @@ export class TestFormGeneratorAppElement extends HTMLElement {
     }
 
     /**
+     * Toggles the `required` attribute on specification inputs based on
+     * whether the debugging details is open.
+     *
+     * When debugging is open, `required` is removed so inputs can be empty.
+     * When debugging is closed, `required` is restored.
+     * Pattern validation still applies to non-empty values regardless.
+     */
+    #updateRequiredState() {
+        const debuggingDetails = /** @type {HTMLDetailsElement | null} */ (
+            this.querySelector('#debugging-details')
+        );
+        const isDebugging = debuggingDetails?.open ?? false;
+
+        for (const input of /** @type {NodeListOf<HTMLInputElement>} */ (
+            this.querySelectorAll('#specifications input[data-required]')
+        )) {
+            input.required = !isDebugging;
+        }
+    }
+
+    /**
      * Deletes the `conres-testforms` cache so all assets are re-fetched on the next generation.
      */
     async #handleClearCache() {
@@ -632,9 +658,6 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         );
         const iccProfileInput = /** @type {HTMLInputElement | null} */ (
             this.querySelector('#icc-profile-input')
-        );
-        const debuggingCheckbox = /** @type {HTMLInputElement | null} */ (
-            this.querySelector('#debugging-checkbox')
         );
         const generateButton = /** @type {HTMLButtonElement | null} */ (
             this.querySelector('#test-form-generation-button')
@@ -660,7 +683,9 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             this.querySelector('#test-form-generation-subtask-results-output')
         );
 
-        const isDebugging = debuggingCheckbox?.checked ?? false;
+        const isDebugging = /** @type {HTMLDetailsElement | null} */ (
+            this.querySelector('#debugging-details')
+        )?.open ?? false;
 
         // ----------------------------------------------------------------
         // Read worker checkboxes and processing strategy selection
@@ -681,10 +706,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         /** @type {'in-place' | 'separate-chains' | 'recombined-chains'} */
         const processingStrategy = /** @type {any} */ (processingStrategyRadio?.value ?? 'in-place');
 
-        const includeOutputProfileCheckbox = /** @type {HTMLInputElement | null} */ (
-            this.querySelector('#debugging-include-output-profile-checkbox')
-        );
-        const includeOutputProfile = includeOutputProfileCheckbox?.checked ?? false;
+        const includeOutputProfile = false;
 
         // ----------------------------------------------------------------
         // Read bit depth selection
@@ -1192,11 +1214,8 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                             if (debugging && includeOutputProfile) {
                                 await downloadArrayBufferAs(iccProfileBuffer, 'Output.icc', 'application/vnd.iccprofile');
                             }
-                            await downloadArrayBufferAs(
-                                new TextEncoder().encode(metadataJSON).buffer,
-                                `${testFormName} - ${outputProfileBasename} - metadata.json`,
-                                'application/json',
-                            );
+                            // Metadata/docket download is deferred to after generation
+                            // completes (docket PDF replaces metadata.json when available)
                             preChainDownloadsCompleted = true;
                         }
                         await downloadArrayBufferAs(
@@ -1211,7 +1230,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             generator.abort?.();
         }
 
-        const { pdfBuffer, metadataJSON } = generateResult;
+        const { pdfBuffer, metadataJSON, docketPDFBuffer } = generateResult;
 
         // Download generated files
         // When pdfBuffer is null, PDFs were delivered via onChainOutput
@@ -1225,16 +1244,42 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             if (debugging && includeOutputProfile) {
                 await downloadArrayBufferAs(iccProfileBuffer, 'Output.icc', 'application/vnd.iccprofile');
             }
-            await downloadArrayBufferAs(
-                new TextEncoder().encode(metadataJSON).buffer,
-                `${testFormName} - ${downloadSuffix} - metadata.json`,
-                'application/json',
-            );
+            // Download docket PDF if available, otherwise metadata.json
+            if (docketPDFBuffer) {
+                await downloadArrayBufferAs(
+                    docketPDFBuffer,
+                    `${testFormName} - ${downloadSuffix} - Docket.pdf`,
+                    'application/pdf',
+                );
+            } else {
+                await downloadArrayBufferAs(
+                    new TextEncoder().encode(metadataJSON).buffer,
+                    `${testFormName} - ${downloadSuffix} - metadata.json`,
+                    'application/json',
+                );
+            }
             await downloadArrayBufferAs(
                 pdfBuffer,
                 `${testFormName} - ${downloadSuffix}.pdf`,
                 'application/pdf',
             );
+        }
+
+        // For multi-PDF results delivered via onChainOutput, download docket or metadata afterwards
+        if (!pdfBuffer) {
+            if (docketPDFBuffer) {
+                await downloadArrayBufferAs(
+                    docketPDFBuffer,
+                    `${testFormName} - ${outputProfileBasename} - Docket.pdf`,
+                    'application/pdf',
+                );
+            } else {
+                await downloadArrayBufferAs(
+                    new TextEncoder().encode(metadataJSON).buffer,
+                    `${testFormName} - ${outputProfileBasename} - metadata.json`,
+                    'application/json',
+                );
+            }
         }
     }
 

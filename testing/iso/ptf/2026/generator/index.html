@@ -184,9 +184,6 @@
                         <li>Latest version of Adobe Acrobat.</li>
                     </ul>
                 </article>
-                <fieldset name="overview-fieldset" slot="article" hidden>
-                    <button id="test-form-overview-continue-button">Continue</button>
-                </fieldset>
             </section>
             <section id="configuration" slot="article">
                 <template shadowrootmode="closed">
@@ -203,107 +200,71 @@
                 <h2 slot="header">Configuration</h2>
                 <fieldset name="assets-fieldset" slot="article" style="display: grid; place-content: center;">
                     <h3 id="assets" class="full-row">Assets</h3>
-                    <label for="test-form-version-select">Test form:
-                        <select id="test-form-version-select" name="test-form-version">
-                            <option value="2026-03-20 - ConRes - ISO PTF - CR1 (F9f) Assets" selected>2026-03-20 -
-                                ConRes - ISO PTF -
-                                CR1 (F9f) Assets</option>
-                            <option value="2026-03-20 - ConRes - ISO PTF - CR1 (F9f) Assets (8-bit)">2026-03-20
-                                - ConRes
-                                - ISO PTF -
-                                CR1 (F9f) Assets (8-bit)</option>
-                            <option value="2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets">2026-02-14 -
-                                ConRes - ISO PTF -
-                                CR1 (F9e) Assets</option>
-                            <option value="2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets (8-bit)">2026-02-14
-                                - ConRes
-                                - ISO PTF -
-                                CR1 (F9e) Assets (8-bit)</option>
-                            <option value="2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets - Maps">2026-02-14 - ConRes
-                                - ISO PTF -
-                                CR1 (F9e) Assets - Maps</option>
-                        </select>
-                    </label>
-                    <div class="full-row">
+                    <div class="full-row" style="padding: 0.25em 0">
+                        <label for="test-form-version-select">Test form:
+                            <select id="test-form-version-select" name="test-form-version"
+                                style="width: auto; display:inline-block">
+                                <optgroup label="Current Version (CR1 F10a)">
+                                    <option value="2026-03-30 - ConRes - ISO PTF - CR1 (F10a) Assets" selected>
+                                        2026-03-30 - ConRes - ISO PTF - CR1 (F10a) Assets</option>
+                                    <option value="2026-03-30 - ConRes - ISO PTF - CR1 (F10a) Assets (8-bit)">
+                                        2026-03-30 - ConRes - ISO PTF - CR1 (F10a) Assets (8-bit)</option>
+                                </optgroup>
+                                <optgroup label="Previous version (CR1 F9f)">
+                                    <option value="2026-03-20 - ConRes - ISO PTF - CR1 (F9f) Assets">
+                                        2026-03-20 - ConRes - ISO PTF - CR1 (F9f) Assets</option>
+                                    <option value="2026-03-20 - ConRes - ISO PTF - CR1 (F9f) Assets (8-bit)">
+                                        2026-03-20 - ConRes - ISO PTF - CR1 (F9f) Assets (8-bit)</option>
+                                </optgroup>
+                                <optgroup label="Previous version (CR1 F9e)">
+                                    <option value="2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets">
+                                        2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets</option>
+                                    <option value="2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets (8-bit)">
+                                        2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets (8-bit)</option>
+                                    <option value="2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets - Maps">
+                                        2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets - Maps</option>
+                                </optgroup>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="full-row" style="padding: 0.25em 0">
+                        <div class="full-row">
+                            <button id="test-form-clear-cache-button">Clear Cache</button>
+                        </div>
+                        <small class="full-row" style="padding: 0">
+                            <p><b>Note</b>: Cached assets will be used if available.</p>
+                        </small>
+                    </div>
+                </fieldset>
+                <fieldset name="output-fieldset" slot="article" style="display: grid; place-content: center;">
+                    <h3 id="output" class="full-row">Output</h3>
+                    <div class="full-row" style="padding: 0.25em 0">
+                        <label for="icc-profile-input" class="full-row">Output profile:
+                            <input type="file" id="icc-profile-input" name="icc-profile-input" accept=".icc,.icm" />
+                        </label>
+                    </div>
+                    <div class="full-row" style="padding: 0.25em 0">
+                        <label>Output bit-depth:</label>
                         <label for="bit-depth-8-bit-mode"><input type="radio" name="bit-depth-mode"
                                 id="bit-depth-8-bit-mode" value="8-bit" checked />8-bit</label>
                         <label for="bit-depth-16-bit-mode"><input type="radio" name="bit-depth-mode"
                                 id="bit-depth-16-bit-mode" value="16-bit" />16-bit</label>
                         <label for="bit-depth-auto-mode"><input type="radio" name="bit-depth-mode"
-                                id="bit-depth-auto-mode" value="auto" />Auto</label>
+                                id="bit-depth-auto-mode" value="auto" />Same as Source</label>
                     </div>
-                    <div class="full-row">
-                        <button id="test-form-clear-cache-button">Clear Cache</button>
-                    </div>
-                    <small class="full-row">
-                        <p><b>Note</b>: Cached assets will be used if available.</p>
-                    </small>
-                    <label for="icc-profile-input" class="full-row">Calibrated ICC profile:
-                        <input type="file" id="icc-profile-input" name="icc-profile-input" accept=".icc,.icm" />
-                    </label>
                 </fieldset>
                 <fieldset name="specifications-fieldset" slot="article" style="display: grid; place-content: center;">
                     <h3 id="specifications" class="full-row">Specifications</h3>
                     <label for="device-input">Device:</label>
-                    <input type="text" id="device-input" name="device" placeholder="Print system make and model" />
+                    <input type="text" id="device-input" name="device" placeholder="Print system make and model" data-required required />
                     <label for="colorants-input">Colorants:</label>
-                    <input type="text" id="colorants-input" name="colorants" placeholder="List of colorants" />
+                    <input type="text" id="colorants-input" name="colorants" placeholder="List of colorants" data-required required />
                     <label for="substrate-input">Substrate:</label>
-                    <input type="text" id="substrate-input" name="substrate" placeholder="Type of substrate" />
+                    <input type="text" id="substrate-input" name="substrate" placeholder="Type of substrate" data-required required />
                     <label for="settings-input">Settings:</label>
-                    <input type="text" id="settings-input" name="settings" placeholder="Print settings" />
+                    <input type="text" id="settings-input" name="settings" placeholder="Print settings" data-required required />
                     <label for="email-input">Email:</label>
-                    <input type="text" id="email-input" name="email" placeholder="Email of participant" />
-                </fieldset>
-                <fieldset name="assembly-filters-fieldset" slot="article">
-                    <details class="full-row" id="assembly-filters-details">
-                        <summary><b>Assembly Filters</b> — Customize page selection and rendering
-                            intents</summary>
-                        <small class="full-row" style="margin-bottom:0.5em;">
-                            <p>Each section starts in <b>Auto</b> mode, determined by the output
-                                profile and test form. Changing any checkbox switches that section
-                                to <b>Custom</b>.</p>
-                        </small>
-                        <fieldset name="layout-toggles-fieldset" class="full-row"
-                            style="display: block; padding: 0.5em;">
-                            <legend>Layouts</legend>
-                            <div>
-                                <label><input type="radio" name="layout-mode" value="auto"
-                                        checked />Auto</label>
-                                <label><input type="radio" name="layout-mode"
-                                        value="custom" />Custom</label>
-                            </div>
-                            <div id="layout-toggles-container" style="padding-left: 1.5em;">
-                                <!-- Populated dynamically from manifest -->
-                            </div>
-                        </fieldset>
-                        <fieldset name="color-space-toggles-fieldset" class="full-row"
-                            style="display: block; padding: 0.5em;">
-                            <legend>Color Spaces</legend>
-                            <div>
-                                <label><input type="radio" name="color-space-mode" value="auto"
-                                        checked />Auto</label>
-                                <label><input type="radio" name="color-space-mode"
-                                        value="custom" />Custom</label>
-                            </div>
-                            <div id="color-space-toggles-container" style="padding-left: 1.5em;">
-                                <!-- Populated dynamically from manifest -->
-                            </div>
-                        </fieldset>
-                        <fieldset name="rendering-intent-fieldset" class="full-row"
-                            style="display: block; padding: 0.5em;">
-                            <legend>Rendering Intent</legend>
-                            <div>
-                                <label><input type="radio" name="rendering-intent-mode" value="auto"
-                                        checked />Auto</label>
-                                <label><input type="radio" name="rendering-intent-mode"
-                                        value="custom" />Custom</label>
-                            </div>
-                            <div id="rendering-intent-checkboxes" style="padding-left: 1.5em;">
-                                <!-- Populated dynamically from assembly policy -->
-                            </div>
-                        </fieldset>
-                    </details>
+                    <input type="email" id="email-input" name="email" placeholder="Email of participant" data-required required />
                 </fieldset>
             </section>
             <section id="generation" slot="article">
@@ -314,46 +275,6 @@
                         <p>Once generated, you should see two new files in your downloads, the labelled test
                             form as a PDF and metadata in a JSON file. Make sure you keep them together.</p>
                     </div>
-                    <fieldset name="debugging-fieldset" class="full-row">
-                        <div class="full-row">
-                            <p>Debugging is enabled when <code>debugging</code> is included in the address query.</p>
-                        </div>
-                        <label class="full-row" for="debugging-checkbox"><input type="checkbox"
-                                id="debugging-checkbox" />Debugging</label>
-                        <small class="full-row">
-                            <p><b>Note</b>: Logs and generated files will be available in the console.</p>
-                        </small>
-                        <small class="full-row">
-                            <label class="full-row" for="debugging-include-output-profile-checkbox"><input
-                                    type="checkbox" id="debugging-include-output-profile-checkbox" />Include Output
-                                Profile</label>
-                        </small>
-                        <small class="full-row">
-                            <label class="full-row" for="bootstrap-worker-checkbox"><input type="checkbox"
-                                    id="bootstrap-worker-checkbox" checked />Bootstrap Worker</label>
-                        </small>
-                        <small class="full-row">
-                            <label class="full-row" for="parallel-workers-checkbox"><input type="checkbox"
-                                    id="parallel-workers-checkbox" checked />Parallel Workers</label>
-                        </small>
-                        <small class="full-row">
-                            <label for="in-place-strategy"><input type="radio" name="processing-strategy"
-                                    id="in-place-strategy" value="in-place" checked />In-Place</label>
-                            <label for="recombined-chains-strategy"><input type="radio" name="processing-strategy"
-                                    id="recombined-chains-strategy" value="recombined-chains" />Recombined
-                                Chains</label>
-                            <label for="separate-chains-strategy"><input type="radio" name="processing-strategy"
-                                    id="separate-chains-strategy" value="separate-chains" />Separate Chains (multiple
-                                PDFs)</label>
-                        </small>
-                        <small class="full-row" hidden>
-                            <label for="page-filter-strategy"><input type="radio" name="conversion-strategy"
-                                    id="page-filter-strategy" value="page-filter" checked />Page Filter</label>
-                            <label for="per-page-configuration-strategy"><input type="radio" name="conversion-strategy"
-                                    id="per-page-configuration-strategy" value="per-page-configuration" />Per-Page
-                                Configuration</label>
-                        </small>
-                    </fieldset>
                     <div class="full-row">
                         <button id="test-form-generation-button">Generate</button>
                     </div>
@@ -361,23 +282,92 @@
                         <p><b>Note</b>: If you will be submitting those prints, the metadata file must be submitted
                             along with your prints.</p>
                     </small>
+                    <fieldset name="generation-progess-fieldset" style="opacity:0;" class="full-row">
+                        <progress id="test-form-generation-overall-progress"
+                            name="test-form-generation-overall-progress" max="100" style="width:20em;"></progress>
+                        <output id="test-form-generation-overall-progress-output"></output>
+                        <progress id="test-form-generation-subtask-progress" name="test-form-generation-progress"
+                            max="100" style="scale:0.75;width:10em;"></progress>
+                        <output class="full-row" id="test-form-generation-subtask-progress-output"
+                            style="scale:0.85;"></output>
+                        <output class="full-row" id="test-form-generation-subtask-results-output"
+                            style="scale:0.65;"></output>
+                    </fieldset>
                 </fieldset>
-                <!-- <fieldset name="download-progress-fieldset" slot="article" style="opacity:0;" class="full-row">
-                    <progress id="test-form-download-progress" name="test-form-download-progress" value="0"
-                        max="100"></progress>
-                    <output id="test-form-download-progress-output"></output>
-                </fieldset> -->
-                <fieldset name="generation-progess-fieldset" style="opacity:0;" class="full-row">
-                    <progress id="test-form-generation-overall-progress" name="test-form-generation-overall-progress"
-                        max="100" style="width:20em;"></progress>
-                    <output id="test-form-generation-overall-progress-output"></output>
-                    <progress id="test-form-generation-subtask-progress" name="test-form-generation-progress" max="100"
-                        style="scale:0.75;width:10em;"></progress>
-                    <output class="full-row" id="test-form-generation-subtask-progress-output"
-                        style="scale:0.85;"></output>
-                    <output class="full-row" id="test-form-generation-subtask-results-output"
-                        style="scale:0.65;"></output>
-                </fieldset>
+                <details class="full-row" id="customization-details" style="width: 100%;">
+                    <summary><b>Customizations</b> — Customize page selection and rendering intents</summary>
+                    <small class="full-row" style="margin-bottom:0.5em;">
+                        <p>Each section starts in <b>Auto</b> mode, determined by the output
+                            profile and test form. Changing any checkbox switches that section
+                            to <b>Custom</b>.</p>
+                    </small>
+                    <fieldset name="layout-toggles-fieldset" class="full-row"
+                        style="display: block; padding: 0.5em; width: 100%;">
+                        <legend style="display: flex; gap: 0.5em; width: 100%; align-items: center;">
+                            <div style="flex: auto;"><b>Layouts</b></div>
+                            <label><input type="radio" name="layout-mode" value="auto" checked />Auto</label>
+                            <label><input type="radio" name="layout-mode" value="custom" />Custom</label>
+                        </legend>
+                        <div id="layout-toggles-container" style="padding-left: 1.5em;">
+                            <!-- Populated dynamically from manifest -->
+                        </div>
+                    </fieldset>
+                    <fieldset name="color-space-toggles-fieldset" class="full-row"
+                        style="display: block; padding: 0.5em; width: 100%;">
+                        <legend style="display: flex; gap: 0.5em; width: 100%; align-items: center;">
+                            <div style="flex: auto;"><b>Color Spaces</b></div>
+                            <label><input type="radio" name="color-space-mode" value="auto" checked />Auto</label>
+                            <label><input type="radio" name="color-space-mode" value="custom" />Custom</label>
+                        </legend>
+                        <div id="color-space-toggles-container" style="padding-left: 1.5em;">
+                            <!-- Populated dynamically from manifest -->
+                        </div>
+                    </fieldset>
+                    <fieldset name="rendering-intent-fieldset" class="full-row"
+                        style="display: block; padding: 0.5em; width: 100%;">
+                        <legend style="display: flex; gap: 0.5em; width: 100%; align-items: center;">
+                            <div style="flex: auto;"><b>Rendering Intent</b></div>
+                            <label><input type="radio" name="rendering-intent-mode" value="auto" checked />Auto</label>
+                            <label><input type="radio" name="rendering-intent-mode" value="custom" />Custom</label>
+                        </legend>
+                        <div id="rendering-intent-checkboxes" style="padding-left: 1.5em;">
+                            <!-- Populated dynamically from assembly policy -->
+                        </div>
+                    </fieldset>
+                </details>
+                <details class="full-row" id="debugging-details" style="width: 100%;">
+                    <summary><b>Debugging</b> — Enable or disable debugging features</summary>
+                    <fieldset name="workers-fieldset" class="full-row"
+                        style="display: block; padding: 0.5em; width: 100%;">
+                        <legend style="display: flex; gap: 0.5em; width: 100%; align-items: center;">
+                            <div style="flex: auto;"><b>Workers</b></div>
+                        </legend>
+                        <small class="full-row">
+                            <label class="full-row" for="bootstrap-worker-checkbox"><input type="checkbox"
+                                    id="bootstrap-worker-checkbox" name="bootstrap-worker" checked />Bootstrap Worker</label>
+                            <label class="full-row" for="parallel-workers-checkbox"><input type="checkbox"
+                                    id="parallel-workers-checkbox" name="parallel-workers" checked />Parallel Workers</label>
+                        </small>
+                    </fieldset>
+                    <fieldset name="assembler-strategy-fieldset" class="full-row"
+                        style="display: block; padding: 0.5em; width: 100%;">
+                        <legend style="display: flex; gap: 0.5em; width: 100%; align-items: center;">
+                            <div style="flex: auto;"><b>Assembler Strategy</b></div>
+                        </legend>
+                        <small class="full-row">
+                            <label for="in-place-strategy"><input type="radio" name="processing-strategy"
+                                    id="in-place-strategy" value="in-place" checked />In-Place</label>
+                            <label for="recombined-chains-strategy"><input type="radio" name="processing-strategy"
+                                    id="recombined-chains-strategy" value="recombined-chains" />Recombined
+                                Chains</label>
+                            <label for="separate-chains-strategy"><input type="radio" name="processing-strategy"
+                                    id="separate-chains-strategy" value="separate-chains" />Separate Chains
+                                (multiple
+                                PDFs)</label>
+                        </small>
+                    </fieldset>
+                </details>
+
             </section>
         </test-form-generator-app>
     </main>
