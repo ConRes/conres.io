@@ -63,14 +63,18 @@ Add a new `Gray` profile category to the assembly policy system.
 
 **Requirements:**
 
-- [ ] Add `Gray` profile category to `assembly-policy.json`
-  - Included color space types: `Gray`, `Lab`
-  - Excluded: `RGB`, `DeviceN`
-  - Same default rendering intents as RGB (Relative Colorimetric + BPC)
-- [ ] Update `OutputProfileAnalyzer` to recognize Gray profiles (`header.colorSpace === 'GRAY'`)
-- [ ] Update `AssemblyPolicyResolver` if needed for new category
-- [ ] Update `ManifestColorSpaceResolver` to handle Gray output
-- [ ] Update UI auto-state preview in `test-form-generator-app-element.js` to handle Gray
+- [x] Add `Gray` profile category to `assembly-policy.json` (user)
+  - `profileColorSpace: "Gray"`, included: `Gray`, `Lab`, excluded: `DeviceN`
+  - Same rendering intent as RGB (Relative Colorimetric + BPC)
+  - Added `profileColorSpace` field to all existing categories
+  - Added `"Gray": "Gray"` to `profileCategoryLabels`
+- [x] Make `OutputProfileAnalyzer` policy-driven (replaces hardcoded RGB/CMYK checks)
+  - Matches ICC `colorSpace` against `profileColorSpace` fields (case-insensitive)
+  - Single match → return immediately; multiple matches → Max GCR test
+  - No match → throws with supported list from policy
+- [x] Update `ProfileCategoryDefinition` typedef in `AssemblyPolicyResolver`
+- [x] Remove hardcoded color space validation in `test-form-pdf-document-generator.js`
+- [x] Update UI auto-state preview to use policy-driven analyzer
 - [ ] Test with sGray.icc profile
 
 ### 4. Specification Input Validation (shared with Interface Progress)
