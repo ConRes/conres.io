@@ -249,16 +249,23 @@ export class PDFImageColorConverter extends ImageColorConverter {
 
         // Coerce Lab absolute-zero pixels (0/-128/-128) before transform
         // These encode as all-zero bytes in both 8-bit and 16-bit big-endian Lab
+        //
+        // Prior to color-engine-2026-03-27, this block also computed a separate
+        // Relative Colorimetric black for K-Only GCR and wrote it back at these
+        // positions after the main transform. That workaround was removed because:
+        //   - For old engines: the "relative-colorimetric-lab-fallback" policy rule
+        //     overrides K-Only GCR → Relative Colorimetric for the entire transform,
+        //     making the per-pixel write-back redundant.
+        //   - For color-engine-2026-03-27+: the CE pipeline concatenation fix handles
+        //     neutral Lab → K-Only CMYK correctly, so overwriting with a Relative
+        //     Colorimetric black would produce wrong results.
+        // See: packages/color-engine-2026-03-27/documentation/Lab-K-Only-Neutrals.md
         /** @type {number[] | null} */
         let labAbsoluteZeroPositions = null;
-        /** @type {Uint8Array | null} Precomputed replacement pixel for CMYK K-Only GCR (8-bit) */
-        let labAbsoluteZeroReplacementPixel = null;
         if (COERCE_LAB_ABSOLUTE_ZERO_PIXELS && colorSpace === 'Lab') {
             const bytesPerPixel = bitsPerComponent === 16 ? 6 : 3;
+            // Track positions only for Lab→Lab (need to restore 0/-128/-128 encoding after transform)
             const isLabOutput = config.destinationColorSpace === 'Lab';
-            const isCMYKKOnlyGCR = config.destinationColorSpace === 'CMYK'
-                && config.renderingIntent === 'preserve-k-only-relative-colorimetric-gcr';
-            const needsWriteBack = isLabOutput || isCMYKKOnlyGCR;
 
             // Lab 0/0/0 (proper black with neutral a/b) encoded as raw bytes:
             // 8-bit:  L=0→0x00, a=0→0x80 (128), b=0→0x80 (128)
@@ -279,7 +286,7 @@ export class PDFImageColorConverter extends ImageColorConverter {
                 }
 
                 if (isAbsoluteZero) {
-                    if (needsWriteBack) {
+                    if (isLabOutput) {
                         // Track pixel index for write-back after transform
                         if (!labAbsoluteZeroPositions) labAbsoluteZeroPositions = [];
                         labAbsoluteZeroPositions.push(offset / bytesPerPixel);
@@ -292,35 +299,8 @@ export class PDFImageColorConverter extends ImageColorConverter {
                 }
             }
 
-            if (coercedCount > 0) {
-                if (config.verbose) {
-                    console.log(`${CONTEXT_PREFIX}   [COERCE] Replaced ${coercedCount} Lab absolute-zero pixels (0/-128/-128 → 0/0/0)`);
-                }
-
-                // For CMYK K-Only GCR: compute the profile's Relative Colorimetric black
-                // This is the correct black value for the destination profile, determined by
-                // an explicit extra transform rather than relying on the main transform's
-                // intent fallback logic.
-                if (isCMYKKOnlyGCR && labAbsoluteZeroPositions) {
-                    const labBlackPixel = new Uint8Array([0, 128, 128]); // Lab 0/0/0 at 8-bit
-                    const blackResult = await this.convertColorsBuffer(labBlackPixel, {
-                        inputColorSpace: 'Lab',
-                        outputColorSpace: 'CMYK',
-                        sourceProfile: 'Lab',
-                        destinationProfile: config.destinationProfile,
-                        renderingIntent: 'relative-colorimetric',
-                        blackPointCompensation: config.blackPointCompensation,
-                        bitsPerComponent: /** @type {import('./color-conversion-policy.js').BitDepth} */ (8),
-                    });
-                    labAbsoluteZeroReplacementPixel = blackResult.outputPixels instanceof Uint8Array
-                        ? blackResult.outputPixels
-                        : new Uint8Array(blackResult.outputPixels.buffer, blackResult.outputPixels.byteOffset, blackResult.outputPixels.byteLength);
-
-                    if (config.verbose) {
-                        const [c, m, y, k] = labAbsoluteZeroReplacementPixel;
-                        console.log(`${CONTEXT_PREFIX}   [COERCE] Relative Colorimetric black: CMYK(${c}, ${m}, ${y}, ${k}) [8-bit]`);
-                    }
-                }
+            if (coercedCount > 0 && config.verbose) {
+                console.log(`${CONTEXT_PREFIX}   [COERCE] Replaced ${coercedCount} Lab absolute-zero pixels (0/-128/-128 → 0/0/0)`);
             }
         }
 
@@ -390,6 +370,18 @@ export class PDFImageColorConverter extends ImageColorConverter {
         // - 16-bit: Uint16Array view of pixelData bytes
         //   Values appear "swapped" due to native endian interpretation,
         //   which is correct for TYPE_*_SE format
+        //
+        // Lab 16-bit pixel data: PDF 2.0 (ISO 32000-2) and Adobe (since PDF 1.5)
+        // use ICC V4 Lab encoding — the same encoding LittleCMS TYPE_Lab_16 expects.
+        // No rescaling or re-encoding is needed here. The raw PDF bytes are passed
+        // through unchanged to the color engine.
+        //
+        // For K-Only GCR with Lab 16-bit input, color-engine-2026-03-27 applies
+        // Lab16 float promotion internally (cmsFLAGS_LAB16_FLOAT_PROMOTION) to
+        // evaluate the pipeline in float precision, avoiding the 16-bit chromaticity
+        // errors that caused CMY residuals in earlier engine versions. Earlier engines
+        // do not have this fix; their K-Only GCR Lab output will have residual CMY.
+        // See: packages/color-engine-2026-03-27/documentation/Lab-K-Only-Neutrals.md
         /** @type {Uint8Array | Uint16Array} */
         let inputBuffer;
         if (bitsPerComponent === 16) {
@@ -468,49 +460,19 @@ export class PDFImageColorConverter extends ImageColorConverter {
         if (effectiveOutputEndianness === 'big' && imageResult.bitsPerComponent === 32) {
             outputData = this.#byteSwap32(outputData);
         }
-        // Write back coerced Lab absolute-zero pixels in output
+        // Write back coerced Lab absolute-zero pixels in output (Lab→Lab only)
+        // Restores original 0/-128/-128 encoding for round-trip fidelity
         if (labAbsoluteZeroPositions && labAbsoluteZeroPositions.length > 0) {
             const outputBPC = imageResult.bitsPerComponent;
-
-            if (labAbsoluteZeroReplacementPixel) {
-                // CMYK K-Only GCR: write the precomputed Relative Colorimetric black
-                // Output is in PDF format (big-endian for >8-bit) at this point
-                const outputBytesPerPixel = outputBPC === 16 ? 8 : 4;
-                /** @type {number[]} */
-                let replacementBytes;
-                if (outputBPC === 16) {
-                    // Scale 8-bit CMYK to 16-bit big-endian: value * 257 → [high, low]
-                    replacementBytes = [];
-                    for (let ch = 0; ch < 4; ch++) {
-                        const v16 = labAbsoluteZeroReplacementPixel[ch] * 257;
-                        replacementBytes.push((v16 >> 8) & 0xFF, v16 & 0xFF);
-                    }
-                } else {
-                    // 8-bit: use directly
-                    replacementBytes = [...labAbsoluteZeroReplacementPixel];
+            const outputBytesPerPixel = outputBPC === 32 ? 12 : (outputBPC === 16 ? 6 : 3);
+            for (const pixelIndex of labAbsoluteZeroPositions) {
+                const outputOffset = pixelIndex * outputBytesPerPixel;
+                for (let j = 0; j < outputBytesPerPixel; j++) {
+                    outputData[outputOffset + j] = 0;
                 }
-
-                for (const pixelIndex of labAbsoluteZeroPositions) {
-                    const outputOffset = pixelIndex * outputBytesPerPixel;
-                    for (let j = 0; j < outputBytesPerPixel; j++) {
-                        outputData[outputOffset + j] = replacementBytes[j];
-                    }
-                }
-                if (config.verbose) {
-                    console.log(`${CONTEXT_PREFIX}   [COERCE] Wrote Relative Colorimetric black at ${labAbsoluteZeroPositions.length} pixel positions`);
-                }
-            } else {
-                // Lab output: write back all zeros (Lab 0/-128/-128)
-                const outputBytesPerPixel = outputBPC === 32 ? 12 : (outputBPC === 16 ? 6 : 3);
-                for (const pixelIndex of labAbsoluteZeroPositions) {
-                    const outputOffset = pixelIndex * outputBytesPerPixel;
-                    for (let j = 0; j < outputBytesPerPixel; j++) {
-                        outputData[outputOffset + j] = 0;
-                    }
-                }
-                if (config.verbose) {
-                    console.log(`${CONTEXT_PREFIX}   [COERCE] Restored ${labAbsoluteZeroPositions.length} Lab absolute-zero pixels in output`);
-                }
+            }
+            if (config.verbose) {
+                console.log(`${CONTEXT_PREFIX}   [COERCE] Restored ${labAbsoluteZeroPositions.length} Lab absolute-zero pixels in output`);
             }
         }
 

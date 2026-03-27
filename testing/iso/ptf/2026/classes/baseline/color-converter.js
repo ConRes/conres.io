@@ -406,6 +406,24 @@ export class ColorConverter {
     }
 
     // ========================================
+    // Policy Evaluation
+    // ========================================
+
+    /**
+     * Evaluates the conversion policy for the given descriptor.
+     *
+     * Exposes policy evaluation to subclasses so they can check whether the
+     * policy would override rendering intent or other conversion parameters
+     * before the main conversion path runs.
+     *
+     * @param {import('./color-conversion-policy.js').ConversionDescriptor} descriptor
+     * @returns {import('./color-conversion-policy.js').EvaluationResult}
+     */
+    evaluateConversionPolicy(descriptor) {
+        return this.#policy.evaluateConversion(descriptor);
+    }
+
+    // ========================================
     // Core Conversion Method
     // ========================================
 
