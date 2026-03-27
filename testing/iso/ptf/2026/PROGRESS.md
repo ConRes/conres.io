@@ -14,7 +14,7 @@
 4. [Roadmap](#4-roadmap)
 5. [Current Status](#5-current-status)
 6. [Resolved Questions](#6-resolved-questions)
-7. [Open Questions](#7-open-questions)
+7. ~~Open Questions~~
 8. [Activity Log](#8-activity-log)
 
 ---
