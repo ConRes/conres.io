@@ -76,6 +76,15 @@ export class TestFormGeneratorAppElement extends HTMLElement {
     /** @type {ResolvedAssetEntry[] | null} */
     #assets = null;
 
+    /** @type {boolean} */
+    #generating = false;
+
+    /** @type {(() => void) | null} */
+    #cancelGeneration = null;
+
+    /** @type {boolean} */
+    #cancelled = false;
+
     /**
      * Configures the app element with resolved asset entries from assets.json.
      *
@@ -112,12 +121,19 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             });
         }
 
-        // Bind Generate button
+        // Bind Generate/Cancel button
         const generateButton = this.querySelector('#test-form-generation-button');
         if (generateButton) {
             generateButton.addEventListener('click', (event) => {
                 event.preventDefault();
-                this.#handleGenerate();
+                if (this.#generating) {
+                    if (confirm('Cancel the current generation?')) {
+                        this.#cancelled = true;
+                        this.#cancelGeneration?.();
+                    }
+                } else {
+                    this.#handleGenerate();
+                }
             });
         }
 
@@ -639,8 +655,12 @@ export class TestFormGeneratorAppElement extends HTMLElement {
 
     /**
      * Deletes the `conres-testforms` cache so all assets are re-fetched on the next generation.
+     * Prompts for confirmation only when cache exists.
      */
     async #handleClearCache() {
+        const hasCache = await globalThis.caches?.has?.('conres-testforms');
+        if (!hasCache) return;
+        if (!confirm('Clear the cached assets? They will be re-downloaded on the next generation.')) return;
         const deleted = await globalThis.caches?.delete?.('conres-testforms');
         console.log(`${CONTEXT_PREFIX} [TestFormGeneratorAppElement] Cache "conres-testforms" ${deleted ? 'cleared' : 'was already empty'}`);
     }
@@ -843,9 +863,56 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         };
 
         // ----------------------------------------------------------------
-        // Disable button, show progress
+        // Lock UI: swap Generate→Cancel, disable fields, lock details
         // ----------------------------------------------------------------
-        if (generateButton) generateButton.disabled = true;
+        const allFieldsets = /** @type {NodeListOf<HTMLFieldSetElement>} */ (
+            this.querySelectorAll('fieldset[name="assets-fieldset"], fieldset[name="output-fieldset"], fieldset[name="specifications-fieldset"], #customization-details fieldset, #debugging-details fieldset')
+        );
+        const allDetails = /** @type {NodeListOf<HTMLDetailsElement>} */ (
+            this.querySelectorAll('#customization-details, #debugging-details')
+        );
+
+        /** @type {Map<HTMLDetailsElement, boolean>} */
+        const detailsOpenState = new Map();
+
+        for (const fieldset of allFieldsets) fieldset.disabled = true;
+
+        /** @param {Event} e */
+        const preventToggle = (e) => { e.preventDefault(); };
+        for (const details of allDetails) {
+            detailsOpenState.set(details, details.open);
+            const summary = details.querySelector('summary');
+            if (summary) {
+                summary.addEventListener('click', preventToggle);
+                summary.style.pointerEvents = 'none';
+            }
+            // Disable radios inside details legends (auto/custom)
+            for (const radio of /** @type {NodeListOf<HTMLInputElement>} */ (
+                details.querySelectorAll('legend input[type="radio"]')
+            )) {
+                radio.disabled = true;
+            }
+        }
+
+        this.#generating = true;
+
+        // Prevent accidental page close during generation
+        /** @param {BeforeUnloadEvent} e */
+        const beforeUnloadHandler = (e) => { e.preventDefault(); };
+        globalThis.addEventListener('beforeunload', beforeUnloadHandler);
+
+        // Acquire Screen Wake Lock to prevent sleep (if available)
+        /** @type {WakeLockSentinel | null} */
+        let wakeLock = null;
+        try {
+            wakeLock = await globalThis.navigator?.wakeLock?.request?.('screen');
+        } catch {
+            // Wake Lock not available or denied — continue without it
+        }
+
+        if (generateButton) {
+            generateButton.textContent = 'Cancel';
+        }
         if (generationProgressFieldset) generationProgressFieldset.style.opacity = '';
 
         if (overallProgress) {
@@ -1113,6 +1180,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                     testFormName,
                     outputProfileBasename,
                     handleProgress,
+                    setCancelHandler: (handler) => { this.#cancelGeneration = handler; },
                     onDownloadProgress: (state) => {
                         if (state.totalBytes > 0) {
                             const downloadPercent = Math.floor(state.receivedBytes / state.totalBytes * 100);
@@ -1141,6 +1209,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                     testFormName,
                     outputProfileBasename,
                     handleProgress,
+                    setCancelHandler: (handler) => { this.#cancelGeneration = handler; },
                     onDownloadProgress: (state) => {
                         if (state.totalBytes > 0) {
                             const downloadPercent = Math.floor(state.receivedBytes / state.totalBytes * 100);
@@ -1157,7 +1226,39 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             }
         } finally {
             clearInterval(timerInterval);
-            if (generateButton) generateButton.disabled = false;
+
+            // Release beforeunload and wake lock
+            globalThis.removeEventListener('beforeunload', beforeUnloadHandler);
+            try { await wakeLock?.release?.(); } catch { /* already released */ }
+
+            // Update progress if cancelled
+            if (this.#cancelled) {
+                if (overallProgressOutput) overallProgressOutput.textContent = 'Cancelled';
+                if (subtaskProgressOutput) subtaskProgressOutput.textContent = '';
+            }
+
+            // Restore UI: swap Cancel→Generate, re-enable fields, unlock details
+            this.#generating = false;
+            this.#cancelGeneration = null;
+            this.#cancelled = false;
+
+            if (generateButton) {
+                generateButton.textContent = 'Generate';
+            }
+            for (const fieldset of allFieldsets) fieldset.disabled = false;
+            for (const [details, wasOpen] of detailsOpenState) {
+                const summary = details.querySelector('summary');
+                if (summary) {
+                    summary.removeEventListener('click', preventToggle);
+                    summary.style.pointerEvents = '';
+                }
+                for (const radio of /** @type {NodeListOf<HTMLInputElement>} */ (
+                    details.querySelectorAll('legend input[type="radio"]')
+                )) {
+                    radio.disabled = false;
+                }
+                details.open = wasOpen;
+            }
         }
     }
 
@@ -1239,7 +1340,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
     async #runOnMainThread({
         testFormVersion, resources, iccProfileBuffer, userMetadata,
         debugging, outputBitsPerComponent, useWorkers, processingStrategy,
-        assemblyOverrides, includeOutputProfile, testFormName, outputProfileBasename, handleProgress, onDownloadProgress,
+        assemblyOverrides, includeOutputProfile, testFormName, outputProfileBasename, handleProgress, setCancelHandler, onDownloadProgress,
     }) {
         const generator = new TestFormPDFDocumentGenerator({
             testFormVersion,
@@ -1251,6 +1352,8 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             assemblyOverrides,
             outputProfileName: outputProfileBasename,
         });
+
+        setCancelHandler?.(() => generator.abort?.());
 
         let preChainDownloadsCompleted = false;
 
@@ -1323,16 +1426,24 @@ export class TestFormGeneratorAppElement extends HTMLElement {
     async #runInBootstrapWorker({
         testFormVersion, resources, iccProfileBuffer, userMetadata,
         debugging, outputBitsPerComponent, useWorkers, processingStrategy,
-        assemblyOverrides, includeOutputProfile, testFormName, outputProfileBasename, handleProgress, onDownloadProgress,
+        assemblyOverrides, includeOutputProfile, testFormName, outputProfileBasename, handleProgress, setCancelHandler, onDownloadProgress,
     }) {
         const workerURL = new URL('../bootstrap-worker-entrypoint.js', import.meta.url).href;
 
         console.log(`${CONTEXT_PREFIX} [TestFormGeneratorAppElement] Bootstrap Worker: creating module worker\u2026`);
         const worker = new Worker(workerURL, { type: 'module' });
 
+        /** @type {(reason: Error) => void} */
+        let rejectCurrent = () => {};
+        setCancelHandler?.(() => {
+            worker.terminate();
+            rejectCurrent(new Error('Generation cancelled'));
+        });
+
         try {
             // Wait for the worker to signal readiness
             await new Promise((resolve, reject) => {
+                rejectCurrent = reject;
                 const timeout = setTimeout(() => {
                     reject(new Error('Bootstrap Worker: timeout waiting for ready signal (15s)'));
                 }, 15000);
@@ -1360,6 +1471,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
 
             /** @type {{ pdfBuffer: ArrayBuffer | null, metadataJSON: string }} */
             const result = await new Promise((resolve, reject) => {
+                rejectCurrent = reject;
                 let preChainDownloadsCompleted = false;
                 let docketDelivered = false;
 
