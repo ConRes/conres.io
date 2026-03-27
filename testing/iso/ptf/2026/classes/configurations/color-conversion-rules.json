@@ -33,6 +33,7 @@
     ]
   },
   {
+    "disabled": true,
     "policyId": "relative-colorimetric-lab-fallback",
     "engines": [
       "color-engine-2025-12-15",

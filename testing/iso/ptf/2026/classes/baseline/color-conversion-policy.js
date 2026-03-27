@@ -612,14 +612,15 @@ export class ColorConversionPolicy {
         const applicableRules = [];
 
         for (const policy of COLOR_ENGINE_POLICIES) {
-            if (policy.engines?.includes(engineVersion)) {
-                for (let i = 0; i < policy.rules.length; i++) {
-                    applicableRules.push({
-                        policyId: policy.policyId,
-                        ruleIndex: i,
-                        rule: policy.rules[i],
-                    });
-                }
+            if (policy.disabled || !policy.engines?.includes(engineVersion)) continue;
+            for (let i = 0; i < policy.rules.length; i++) {
+                const rule = policy.rules[i];
+                if (rule.disabled) continue;
+                applicableRules.push({
+                    policyId: policy.policyId,
+                    ruleIndex: i,
+                    rule,
+                });
             }
         }
 
