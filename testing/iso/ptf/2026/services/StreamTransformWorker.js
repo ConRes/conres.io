@@ -70,6 +70,9 @@ let LittleCMS = null;
 /** @type {typeof import('./ColorConversionUtils.js') | null} */
 let ColorConversionUtils = null;
 
+/** @type {import('../classes/baseline/color-conversion-policy.js').ColorConversionPolicy | null} */
+let conversionPolicy = null;
+
 /** @type {Map<string, any>} */
 const profileHandleCache = new Map();
 
@@ -158,6 +161,16 @@ async function initColorEngine() {
     }
 
     colorEngine = await LittleCMS.createEngine();
+
+    // Initialize conversion policy with the loaded engine version
+    // Reuses the same policy rules as main-thread converters
+    if (!conversionPolicy && LittleCMS.VERSION) {
+        const { ColorConversionPolicy } = await import('../classes/baseline/color-conversion-policy.js');
+        conversionPolicy = new ColorConversionPolicy({
+            engineVersion: `color-engine-${LittleCMS.VERSION}`,
+            domain: 'PDF',
+        });
+    }
 }
 
 /**
@@ -471,13 +484,26 @@ async function processImage(task) {
 
         // 2. Transform pixels
 
-        // For Lab images, use Relative Colorimetric instead of K-Only GCR
-        // K-Only GCR is designed for neutral RGB grays and produces black for Lab colors
+        // Evaluate conversion policy for rendering intent overrides
+        // (e.g., Lab + K-Only GCR → Relative Colorimetric on old engines)
         let renderingIntent = task.renderingIntent;
         let flags = task.flags;
-        if (isLabImage && renderingIntent === K_ONLY_GCR) {
-            renderingIntent = RELATIVE_COLORIMETRIC;
-            flags |= BPC_FLAG;
+        if (conversionPolicy && isLabImage && renderingIntent === K_ONLY_GCR) {
+            const { INTENT_MAP } = ColorConversionUtils;
+            // Reverse-lookup the string intent name for policy evaluation
+            const intentName = Object.entries(INTENT_MAP).find(([, v]) => v === K_ONLY_GCR)?.[0];
+            if (intentName) {
+                const evaluation = conversionPolicy.evaluateConversion({
+                    sourceColorSpace: 'Lab',
+                    destinationColorSpace: task.destinationColorSpace ?? 'CMYK',
+                    renderingIntent: /** @type {import('../classes/baseline/color-conversion-policy.js').RenderingIntent} */ (intentName),
+                    blackPointCompensation: (flags & BPC_FLAG) !== 0,
+                });
+                if (evaluation.overrides.renderingIntent) {
+                    renderingIntent = INTENT_MAP[evaluation.overrides.renderingIntent] ?? RELATIVE_COLORIMETRIC;
+                    flags |= BPC_FLAG;
+                }
+            }
         }
 
         // Check if Gray + K-Only GCR + old engine (no createMultiprofileTransform)
