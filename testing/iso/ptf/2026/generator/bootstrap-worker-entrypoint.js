@@ -98,6 +98,17 @@ async function handleGenerate(data) {
                         state,
                     });
                 },
+                onDocketReady: async (docketPDFBuffer, metadataJSON) => {
+                    self.postMessage(
+                        {
+                            type: 'docket-ready',
+                            taskId,
+                            docketPDFBuffer,
+                            metadataJSON,
+                        },
+                        [docketPDFBuffer],
+                    );
+                },
                 onChainOutput: async (label, pdfBuffer, metadataJSON) => {
                     self.postMessage(
                         {
@@ -124,6 +135,8 @@ async function handleGenerate(data) {
                 taskId,
                 pdfBuffer: result.pdfBuffer,
                 metadataJSON: result.metadataJSON,
+                // docketPDFBuffer already delivered via 'docket-ready' message
+                docketPDFBuffer: result.docketPDFBuffer ? true : null,
             },
             transferables,
         );

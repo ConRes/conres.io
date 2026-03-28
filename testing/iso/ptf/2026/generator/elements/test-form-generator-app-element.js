@@ -76,6 +76,15 @@ export class TestFormGeneratorAppElement extends HTMLElement {
     /** @type {ResolvedAssetEntry[] | null} */
     #assets = null;
 
+    /** @type {boolean} */
+    #generating = false;
+
+    /** @type {(() => void) | null} */
+    #cancelGeneration = null;
+
+    /** @type {boolean} */
+    #cancelled = false;
+
     /**
      * Configures the app element with resolved asset entries from assets.json.
      *
@@ -103,15 +112,6 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         // ----------------------------------------------------------------
         this.#restorePersistedState();
 
-        // Enable debugging checkbox from URL query parameter (overrides persisted state)
-        const debugging = new URLSearchParams(globalThis.location?.search).has('debugging');
-        const debuggingCheckbox = /** @type {HTMLInputElement | null} */ (
-            this.querySelector('#debugging-checkbox')
-        );
-        if (debuggingCheckbox && debugging) {
-            debuggingCheckbox.checked = true;
-        }
-
         // Bind Clear Cache button
         const clearCacheButton = this.querySelector('#test-form-clear-cache-button');
         if (clearCacheButton) {
@@ -121,25 +121,42 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             });
         }
 
-        // Bind Generate button
+        // Bind Generate/Cancel button
         const generateButton = this.querySelector('#test-form-generation-button');
         if (generateButton) {
             generateButton.addEventListener('click', (event) => {
                 event.preventDefault();
-                this.#handleGenerate();
+                if (this.#generating) {
+                    if (confirm('Cancel the current generation?')) {
+                        this.#cancelled = true;
+                        this.#cancelGeneration?.();
+                    }
+                } else {
+                    this.#handleGenerate();
+                }
             });
         }
 
-        // Populate assembly filter toggles on first <details> open
-        const filterDetails = this.querySelector('#assembly-filters-details');
-        if (filterDetails) {
-            filterDetails.addEventListener('toggle', () => {
-                if (/** @type {HTMLDetailsElement} */ (filterDetails).open) {
+        // Populate customization filter toggles on first <details> open
+        const customizationDetails = this.querySelector('#customization-details');
+        if (customizationDetails) {
+            customizationDetails.addEventListener('toggle', () => {
+                if (/** @type {HTMLDetailsElement} */ (customizationDetails).open) {
                     this.#ensureFiltersPopulated();
                 }
                 this.#persistState();
             });
         }
+
+        // Toggle debugging mode when debugging details opens/closes
+        const debuggingDetails = this.querySelector('#debugging-details');
+        if (debuggingDetails) {
+            debuggingDetails.addEventListener('toggle', () => {
+                this.#updateRequiredState();
+                this.#persistState();
+            });
+        }
+        this.#updateRequiredState();
 
         // Re-populate filters when test form version changes
         const testFormVersionSelect = this.querySelector('#test-form-version-select');
@@ -149,7 +166,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                 this.#cachedManifest = null;
                 this.#filtersPopulated = false;
                 const details = /** @type {HTMLDetailsElement | null} */ (
-                    this.querySelector('#assembly-filters-details')
+                    this.querySelector('#customization-details')
                 );
                 if (details?.open) this.#ensureFiltersPopulated();
                 this.#persistState();
@@ -209,7 +226,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             const target = /** @type {HTMLElement} */ (event.target);
             // Persist on changes to selects, radios, checkboxes, text inputs
             // but ignore file inputs (ICC profile can't be restored)
-            if (target.matches('select, input[type="radio"], input[type="checkbox"], input[type="text"]')) {
+            if (target.matches('select, input[type="radio"], input[type="checkbox"], input[type="text"], input[type="email"]')) {
                 this.#persistState();
             }
         });
@@ -256,16 +273,19 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             state[`checkbox:${checkbox.id}`] = checkbox.checked;
         }
 
-        // Text inputs
-        for (const input of /** @type {NodeListOf<HTMLInputElement>} */ (this.querySelectorAll('input[type="text"][id]'))) {
+        // Text and email inputs
+        for (const input of /** @type {NodeListOf<HTMLInputElement>} */ (this.querySelectorAll('input[type="text"][id], input[type="email"][id]'))) {
             if (input.value) state[`text:${input.id}`] = input.value;
         }
 
         // Details open state
-        const filterDetails = /** @type {HTMLDetailsElement | null} */ (
-            this.querySelector('#assembly-filters-details')
-        );
-        if (filterDetails) state['details:assembly-filters'] = filterDetails.open;
+        for (const [selector, stateKey] of [
+            ['#customization-details', 'details:customization'],
+            ['#debugging-details', 'details:debugging'],
+        ]) {
+            const details = /** @type {HTMLDetailsElement | null} */ (this.querySelector(selector));
+            if (details) state[stateKey] = details.open;
+        }
 
         // Dynamic filter checkboxes (layouts, color spaces, intents — keyed by value).
         // Only overwrite a dynamic key when the checkboxes actually exist in the DOM.
@@ -345,12 +365,13 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         }
 
         // Details open state
-        if ('details:assembly-filters' in state) {
-            const filterDetails = /** @type {HTMLDetailsElement | null} */ (
-                this.querySelector('#assembly-filters-details')
-            );
-            if (filterDetails && state['details:assembly-filters']) {
-                filterDetails.open = true;
+        for (const [selector, stateKey] of [
+            ['#customization-details', 'details:customization'],
+            ['#debugging-details', 'details:debugging'],
+        ]) {
+            if (stateKey in state) {
+                const details = /** @type {HTMLDetailsElement | null} */ (this.querySelector(selector));
+                if (details && state[stateKey]) details.open = true;
             }
         }
 
@@ -612,9 +633,34 @@ export class TestFormGeneratorAppElement extends HTMLElement {
     }
 
     /**
+     * Toggles the `required` attribute on specification inputs based on
+     * whether the debugging details is open.
+     *
+     * When debugging is open, `required` is removed so inputs can be empty.
+     * When debugging is closed, `required` is restored.
+     * Pattern validation still applies to non-empty values regardless.
+     */
+    #updateRequiredState() {
+        const debuggingDetails = /** @type {HTMLDetailsElement | null} */ (
+            this.querySelector('#debugging-details')
+        );
+        const isDebugging = debuggingDetails?.open ?? false;
+
+        for (const input of /** @type {NodeListOf<HTMLInputElement>} */ (
+            this.querySelectorAll('#specifications input[data-required]')
+        )) {
+            input.required = !isDebugging;
+        }
+    }
+
+    /**
      * Deletes the `conres-testforms` cache so all assets are re-fetched on the next generation.
+     * Prompts for confirmation only when cache exists.
      */
     async #handleClearCache() {
+        const hasCache = await globalThis.caches?.has?.('conres-testforms');
+        if (!hasCache) return;
+        if (!confirm('Clear the cached assets? They will be re-downloaded on the next generation.')) return;
         const deleted = await globalThis.caches?.delete?.('conres-testforms');
         console.log(`${CONTEXT_PREFIX} [TestFormGeneratorAppElement] Cache "conres-testforms" ${deleted ? 'cleared' : 'was already empty'}`);
     }
@@ -632,9 +678,6 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         );
         const iccProfileInput = /** @type {HTMLInputElement | null} */ (
             this.querySelector('#icc-profile-input')
-        );
-        const debuggingCheckbox = /** @type {HTMLInputElement | null} */ (
-            this.querySelector('#debugging-checkbox')
         );
         const generateButton = /** @type {HTMLButtonElement | null} */ (
             this.querySelector('#test-form-generation-button')
@@ -660,31 +703,28 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             this.querySelector('#test-form-generation-subtask-results-output')
         );
 
-        const isDebugging = debuggingCheckbox?.checked ?? false;
+        const isDebugging = /** @type {HTMLDetailsElement | null} */ (
+            this.querySelector('#debugging-details')
+        )?.open ?? false;
 
         // ----------------------------------------------------------------
         // Read worker checkboxes and processing strategy selection
+        // When debugging details is closed, use defaults (worker enabled, in-place)
         // ----------------------------------------------------------------
-        const bootstrapWorkerCheckbox = /** @type {HTMLInputElement | null} */ (
-            this.querySelector('#bootstrap-worker-checkbox')
-        );
-        const useBootstrapWorker = bootstrapWorkerCheckbox?.checked ?? false;
+        const useBootstrapWorker = isDebugging
+            ? (/** @type {HTMLInputElement | null} */ (this.querySelector('#bootstrap-worker-checkbox'))?.checked ?? true)
+            : true;
 
-        const parallelWorkersCheckbox = /** @type {HTMLInputElement | null} */ (
-            this.querySelector('#parallel-workers-checkbox')
-        );
-        const useParallelWorkers = parallelWorkersCheckbox?.checked ?? false;
+        const useParallelWorkers = isDebugging
+            ? (/** @type {HTMLInputElement | null} */ (this.querySelector('#parallel-workers-checkbox'))?.checked ?? true)
+            : true;
 
-        const processingStrategyRadio = /** @type {HTMLInputElement | null} */ (
-            this.querySelector('input[name="processing-strategy"]:checked')
-        );
         /** @type {'in-place' | 'separate-chains' | 'recombined-chains'} */
-        const processingStrategy = /** @type {any} */ (processingStrategyRadio?.value ?? 'in-place');
+        const processingStrategy = isDebugging
+            ? /** @type {any} */ (/** @type {HTMLInputElement | null} */ (this.querySelector('input[name="processing-strategy"]:checked'))?.value ?? 'in-place')
+            : 'in-place';
 
-        const includeOutputProfileCheckbox = /** @type {HTMLInputElement | null} */ (
-            this.querySelector('#debugging-include-output-profile-checkbox')
-        );
-        const includeOutputProfile = includeOutputProfileCheckbox?.checked ?? false;
+        const includeOutputProfile = false;
 
         // ----------------------------------------------------------------
         // Read bit depth selection
@@ -701,24 +741,27 @@ export class TestFormGeneratorAppElement extends HTMLElement {
 
         // ----------------------------------------------------------------
         // Collect assembly overrides from filter controls
-        // Only sections in "custom" mode produce overrides; "auto" sections
-        // are handled by the assembly policy resolver at generation time.
+        // When customization details is closed, treat all sections as auto.
+        // Field values persist in the DOM for when the user reopens.
         // ----------------------------------------------------------------
+        const isCustomizationOpen = /** @type {HTMLDetailsElement | null} */ (
+            this.querySelector('#customization-details')
+        )?.open ?? false;
 
         /** @type {import('../classes/assembly-policy-resolver.js').AssemblyUserOverrides | undefined} */
         let assemblyOverrides;
 
-        const layoutMode = /** @type {HTMLInputElement | null} */ (
-            this.querySelector('input[name="layout-mode"]:checked')
-        )?.value ?? 'auto';
+        const layoutMode = isCustomizationOpen
+            ? (/** @type {HTMLInputElement | null} */ (this.querySelector('input[name="layout-mode"]:checked'))?.value ?? 'auto')
+            : 'auto';
 
-        const colorSpaceMode = /** @type {HTMLInputElement | null} */ (
-            this.querySelector('input[name="color-space-mode"]:checked')
-        )?.value ?? 'auto';
+        const colorSpaceMode = isCustomizationOpen
+            ? (/** @type {HTMLInputElement | null} */ (this.querySelector('input[name="color-space-mode"]:checked'))?.value ?? 'auto')
+            : 'auto';
 
-        const renderingIntentMode = /** @type {HTMLInputElement | null} */ (
-            this.querySelector('input[name="rendering-intent-mode"]:checked')
-        )?.value ?? 'auto';
+        const renderingIntentMode = isCustomizationOpen
+            ? (/** @type {HTMLInputElement | null} */ (this.querySelector('input[name="rendering-intent-mode"]:checked'))?.value ?? 'auto')
+            : 'auto';
 
         const isLayoutCustom = layoutMode === 'custom';
         const isColorSpaceCustom = colorSpaceMode === 'custom';
@@ -820,9 +863,56 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         };
 
         // ----------------------------------------------------------------
-        // Disable button, show progress
+        // Lock UI: swap Generate→Cancel, disable fields, lock details
         // ----------------------------------------------------------------
-        if (generateButton) generateButton.disabled = true;
+        const allFieldsets = /** @type {NodeListOf<HTMLFieldSetElement>} */ (
+            this.querySelectorAll('fieldset[name="assets-fieldset"], fieldset[name="output-fieldset"], fieldset[name="specifications-fieldset"], #customization-details fieldset, #debugging-details fieldset')
+        );
+        const allDetails = /** @type {NodeListOf<HTMLDetailsElement>} */ (
+            this.querySelectorAll('#customization-details, #debugging-details')
+        );
+
+        /** @type {Map<HTMLDetailsElement, boolean>} */
+        const detailsOpenState = new Map();
+
+        for (const fieldset of allFieldsets) fieldset.disabled = true;
+
+        /** @param {Event} e */
+        const preventToggle = (e) => { e.preventDefault(); };
+        for (const details of allDetails) {
+            detailsOpenState.set(details, details.open);
+            const summary = details.querySelector('summary');
+            if (summary) {
+                summary.addEventListener('click', preventToggle);
+                summary.style.pointerEvents = 'none';
+            }
+            // Disable radios inside details legends (auto/custom)
+            for (const radio of /** @type {NodeListOf<HTMLInputElement>} */ (
+                details.querySelectorAll('legend input[type="radio"]')
+            )) {
+                radio.disabled = true;
+            }
+        }
+
+        this.#generating = true;
+
+        // Prevent accidental page close during generation
+        /** @param {BeforeUnloadEvent} e */
+        const beforeUnloadHandler = (e) => { e.preventDefault(); };
+        globalThis.addEventListener('beforeunload', beforeUnloadHandler);
+
+        // Acquire Screen Wake Lock to prevent sleep (if available)
+        /** @type {WakeLockSentinel | null} */
+        let wakeLock = null;
+        try {
+            wakeLock = await globalThis.navigator?.wakeLock?.request?.('screen');
+        } catch {
+            // Wake Lock not available or denied — continue without it
+        }
+
+        if (generateButton) {
+            generateButton.textContent = 'Cancel';
+        }
         if (generationProgressFieldset) generationProgressFieldset.style.opacity = '';
 
         if (overallProgress) {
@@ -1090,6 +1180,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                     testFormName,
                     outputProfileBasename,
                     handleProgress,
+                    setCancelHandler: (handler) => { this.#cancelGeneration = handler; },
                     onDownloadProgress: (state) => {
                         if (state.totalBytes > 0) {
                             const downloadPercent = Math.floor(state.receivedBytes / state.totalBytes * 100);
@@ -1118,6 +1209,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                     testFormName,
                     outputProfileBasename,
                     handleProgress,
+                    setCancelHandler: (handler) => { this.#cancelGeneration = handler; },
                     onDownloadProgress: (state) => {
                         if (state.totalBytes > 0) {
                             const downloadPercent = Math.floor(state.receivedBytes / state.totalBytes * 100);
@@ -1134,7 +1226,95 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             }
         } finally {
             clearInterval(timerInterval);
-            if (generateButton) generateButton.disabled = false;
+
+            // Release beforeunload and wake lock
+            globalThis.removeEventListener('beforeunload', beforeUnloadHandler);
+            try { await wakeLock?.release?.(); } catch { /* already released */ }
+
+            // Update progress if cancelled
+            if (this.#cancelled) {
+                if (overallProgressOutput) overallProgressOutput.textContent = 'Cancelled';
+                if (subtaskProgressOutput) subtaskProgressOutput.textContent = '';
+            }
+
+            // Restore UI: swap Cancel→Generate, re-enable fields, unlock details
+            this.#generating = false;
+            this.#cancelGeneration = null;
+            this.#cancelled = false;
+
+            if (generateButton) {
+                generateButton.textContent = 'Generate';
+            }
+            for (const fieldset of allFieldsets) fieldset.disabled = false;
+            for (const [details, wasOpen] of detailsOpenState) {
+                const summary = details.querySelector('summary');
+                if (summary) {
+                    summary.removeEventListener('click', preventToggle);
+                    summary.style.pointerEvents = '';
+                }
+                for (const radio of /** @type {NodeListOf<HTMLInputElement>} */ (
+                    details.querySelectorAll('legend input[type="radio"]')
+                )) {
+                    radio.disabled = false;
+                }
+                details.open = wasOpen;
+            }
+        }
+    }
+
+    /**
+     * Downloads the generation result files (shared by main-thread and worker paths).
+     *
+     * Handles single-PDF and multi-PDF (onChainOutput) results. Downloads
+     * docket PDF instead of metadata.json when available.
+     *
+     * @param {import('../classes/test-form-pdf-document-generator.js').GenerationResult} result
+     * @param {object} options
+     * @param {string} options.testFormName
+     * @param {string} options.outputProfileBasename
+     * @param {ArrayBuffer} options.iccProfileBuffer
+     * @param {boolean} options.debugging
+     * @param {boolean} options.includeOutputProfile
+     */
+    async #downloadGenerationResult(result, { testFormName, outputProfileBasename, iccProfileBuffer, debugging, includeOutputProfile }) {
+        const { pdfBuffer, metadataJSON, docketPDFBuffer } = result;
+        console.log(`${CONTEXT_PREFIX} [downloadGenerationResult] pdfBuffer=${!!pdfBuffer}, docketPDFBuffer=${!!docketPDFBuffer}, debugging=${debugging}`);
+
+        // Docket is already downloaded via onDocketReady callback (before main job).
+        // Only download metadata.json as fallback when no docket was generated.
+
+        if (pdfBuffer) {
+            const parsedMetadata = JSON.parse(metadataJSON);
+            const intentLabel = parsedMetadata?.assembly?.renderingIntents?.[0]?.label ?? '';
+            const downloadSuffix = `${outputProfileBasename}${intentLabel ? ` - ${intentLabel}` : ''}`;
+
+            if (debugging && includeOutputProfile) {
+                await downloadArrayBufferAs(iccProfileBuffer, 'Output.icc', 'application/vnd.iccprofile');
+            }
+
+            if (!docketPDFBuffer) {
+                await downloadArrayBufferAs(
+                    new TextEncoder().encode(metadataJSON).buffer,
+                    `${testFormName} - ${downloadSuffix} - metadata.json`,
+                    'application/json',
+                );
+            }
+
+            await downloadArrayBufferAs(
+                pdfBuffer,
+                `${testFormName} - ${downloadSuffix}.pdf`,
+                'application/pdf',
+            );
+        }
+
+        if (!pdfBuffer) {
+            if (!docketPDFBuffer) {
+                await downloadArrayBufferAs(
+                    new TextEncoder().encode(metadataJSON).buffer,
+                    `${testFormName} - ${outputProfileBasename} - metadata.json`,
+                    'application/json',
+                );
+            }
         }
     }
 
@@ -1160,7 +1340,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
     async #runOnMainThread({
         testFormVersion, resources, iccProfileBuffer, userMetadata,
         debugging, outputBitsPerComponent, useWorkers, processingStrategy,
-        assemblyOverrides, includeOutputProfile, testFormName, outputProfileBasename, handleProgress, onDownloadProgress,
+        assemblyOverrides, includeOutputProfile, testFormName, outputProfileBasename, handleProgress, setCancelHandler, onDownloadProgress,
     }) {
         const generator = new TestFormPDFDocumentGenerator({
             testFormVersion,
@@ -1172,6 +1352,8 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             assemblyOverrides,
             outputProfileName: outputProfileBasename,
         });
+
+        setCancelHandler?.(() => generator.abort?.());
 
         let preChainDownloadsCompleted = false;
 
@@ -1187,16 +1369,18 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                         await new Promise((resolve) => requestAnimationFrame(resolve));
                     },
                     onDownloadProgress,
+                    onDocketReady: async (docketPDFBuffer, metadataJSON) => {
+                        await downloadArrayBufferAs(
+                            docketPDFBuffer,
+                            `${testFormName} - ${outputProfileBasename} - Docket.pdf`,
+                            'application/pdf',
+                        );
+                    },
                     onChainOutput: async (label, pdfBuffer, metadataJSON) => {
                         if (!preChainDownloadsCompleted) {
                             if (debugging && includeOutputProfile) {
                                 await downloadArrayBufferAs(iccProfileBuffer, 'Output.icc', 'application/vnd.iccprofile');
                             }
-                            await downloadArrayBufferAs(
-                                new TextEncoder().encode(metadataJSON).buffer,
-                                `${testFormName} - ${outputProfileBasename} - metadata.json`,
-                                'application/json',
-                            );
                             preChainDownloadsCompleted = true;
                         }
                         await downloadArrayBufferAs(
@@ -1211,31 +1395,9 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             generator.abort?.();
         }
 
-        const { pdfBuffer, metadataJSON } = generateResult;
-
-        // Download generated files
-        // When pdfBuffer is null, PDFs were delivered via onChainOutput
-        // (separate-chains or multi-intent passes)
-        if (pdfBuffer) {
-            // Extract the rendering intent label from metadata for the filename
-            const parsedMetadata = JSON.parse(metadataJSON);
-            const intentLabel = parsedMetadata?.assembly?.renderingIntents?.[0]?.label ?? '';
-            const downloadSuffix = `${outputProfileBasename}${intentLabel ? ` - ${intentLabel}` : ''}`;
-
-            if (debugging && includeOutputProfile) {
-                await downloadArrayBufferAs(iccProfileBuffer, 'Output.icc', 'application/vnd.iccprofile');
-            }
-            await downloadArrayBufferAs(
-                new TextEncoder().encode(metadataJSON).buffer,
-                `${testFormName} - ${downloadSuffix} - metadata.json`,
-                'application/json',
-            );
-            await downloadArrayBufferAs(
-                pdfBuffer,
-                `${testFormName} - ${downloadSuffix}.pdf`,
-                'application/pdf',
-            );
-        }
+        await this.#downloadGenerationResult(generateResult, {
+            testFormName, outputProfileBasename, iccProfileBuffer, debugging, includeOutputProfile,
+        });
     }
 
     /**
@@ -1264,16 +1426,24 @@ export class TestFormGeneratorAppElement extends HTMLElement {
     async #runInBootstrapWorker({
         testFormVersion, resources, iccProfileBuffer, userMetadata,
         debugging, outputBitsPerComponent, useWorkers, processingStrategy,
-        assemblyOverrides, includeOutputProfile, testFormName, outputProfileBasename, handleProgress, onDownloadProgress,
+        assemblyOverrides, includeOutputProfile, testFormName, outputProfileBasename, handleProgress, setCancelHandler, onDownloadProgress,
     }) {
         const workerURL = new URL('../bootstrap-worker-entrypoint.js', import.meta.url).href;
 
         console.log(`${CONTEXT_PREFIX} [TestFormGeneratorAppElement] Bootstrap Worker: creating module worker\u2026`);
         const worker = new Worker(workerURL, { type: 'module' });
 
+        /** @type {(reason: Error) => void} */
+        let rejectCurrent = () => {};
+        setCancelHandler?.(() => {
+            worker.terminate();
+            rejectCurrent(new Error('Generation cancelled'));
+        });
+
         try {
             // Wait for the worker to signal readiness
             await new Promise((resolve, reject) => {
+                rejectCurrent = reject;
                 const timeout = setTimeout(() => {
                     reject(new Error('Bootstrap Worker: timeout waiting for ready signal (15s)'));
                 }, 15000);
@@ -1301,7 +1471,9 @@ export class TestFormGeneratorAppElement extends HTMLElement {
 
             /** @type {{ pdfBuffer: ArrayBuffer | null, metadataJSON: string }} */
             const result = await new Promise((resolve, reject) => {
+                rejectCurrent = reject;
                 let preChainDownloadsCompleted = false;
+                let docketDelivered = false;
 
                 worker.onerror = (event) => {
                     reject(new Error(
@@ -1322,17 +1494,27 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                             onDownloadProgress(data.state);
                             break;
 
+                        case 'docket-ready':
+                            docketDelivered = true;
+                            await downloadArrayBufferAs(
+                                data.docketPDFBuffer,
+                                `${testFormName} - ${outputProfileBasename} - Docket.pdf`,
+                                'application/pdf',
+                            );
+                            break;
+
                         case 'chain-output':
-                            // Handle separate-chains / multi-intent downloads on the main thread
                             if (!preChainDownloadsCompleted) {
                                 if (debugging && includeOutputProfile) {
                                     await downloadArrayBufferAs(iccProfileBuffer, 'Output.icc', 'application/vnd.iccprofile');
                                 }
-                                await downloadArrayBufferAs(
-                                    new TextEncoder().encode(data.metadataJSON).buffer,
-                                    `${testFormName} - ${outputProfileBasename} - metadata.json`,
-                                    'application/json',
-                                );
+                                if (!docketDelivered) {
+                                    await downloadArrayBufferAs(
+                                        new TextEncoder().encode(data.metadataJSON).buffer,
+                                        `${testFormName} - ${outputProfileBasename} - metadata.json`,
+                                        'application/json',
+                                    );
+                                }
                                 preChainDownloadsCompleted = true;
                             }
                             await downloadArrayBufferAs(
@@ -1346,6 +1528,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                             resolve({
                                 pdfBuffer: data.pdfBuffer,
                                 metadataJSON: data.metadataJSON,
+                                docketPDFBuffer: data.docketPDFBuffer ?? null,
                             });
                             break;
 
@@ -1374,28 +1557,9 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                 );
             });
 
-            // Download generated files
-            // When pdfBuffer is present, it's a single-PDF result;
-            // when null, PDFs were delivered via chain-output messages
-            if (result.pdfBuffer) {
-                const parsedMetadata = JSON.parse(result.metadataJSON);
-                const intentLabel = parsedMetadata?.assembly?.renderingIntents?.[0]?.label ?? '';
-                const downloadSuffix = `${outputProfileBasename}${intentLabel ? ` - ${intentLabel}` : ''}`;
-
-                if (debugging && includeOutputProfile) {
-                    await downloadArrayBufferAs(iccProfileBuffer, 'Output.icc', 'application/vnd.iccprofile');
-                }
-                await downloadArrayBufferAs(
-                    new TextEncoder().encode(result.metadataJSON).buffer,
-                    `${testFormName} - ${downloadSuffix} - metadata.json`,
-                    'application/json',
-                );
-                await downloadArrayBufferAs(
-                    result.pdfBuffer,
-                    `${testFormName} - ${downloadSuffix}.pdf`,
-                    'application/pdf',
-                );
-            }
+            await this.#downloadGenerationResult(result, {
+                testFormName, outputProfileBasename, iccProfileBuffer, debugging, includeOutputProfile,
+            });
         } finally {
             worker.terminate();
             console.log(`${CONTEXT_PREFIX} [TestFormGeneratorAppElement] Bootstrap Worker: terminated`);
