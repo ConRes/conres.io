@@ -66,6 +66,19 @@ self.onmessage = async (event) => {
 async function handleGenerate(data) {
     const { taskId } = data;
 
+    const uncaughtErrorHandler = (event) => {
+        self.postMessage({
+            type: 'error',
+            taskId,
+            message: event.reason instanceof Error ? event.reason.message : String(event.reason),
+            stack: event.reason instanceof Error ? event.reason.stack : undefined,
+        });
+    };
+
+    // Listen for uncaught errors to report them back to the main thread
+    self.addEventListener('unhandledrejection', uncaughtErrorHandler);
+    self.addEventListener('error', uncaughtErrorHandler);
+
     try {
         const generator = new TestFormPDFDocumentGenerator({
             testFormVersion: data.testFormVersion,
@@ -140,13 +153,10 @@ async function handleGenerate(data) {
             },
             transferables,
         );
-    } catch (error) {
-        self.postMessage({
-            type: 'error',
-            taskId,
-            message: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined,
-        });
+    } finally {
+        // Clean up error listeners after task completion
+        self.removeEventListener('unhandledrejection', uncaughtErrorHandler);
+        self.removeEventListener('error', uncaughtErrorHandler);
     }
 }
 
