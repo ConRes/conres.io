@@ -675,6 +675,14 @@ export class WorkerPool {
     }
 
     /**
+     * Number of workers in the pool.
+     * @returns {number}
+     */
+    get workerCount() {
+        return this.#workerCount;
+    }
+
+    /**
      * Get worker pool statistics.
      * @returns {WorkerPoolStats}
      */
