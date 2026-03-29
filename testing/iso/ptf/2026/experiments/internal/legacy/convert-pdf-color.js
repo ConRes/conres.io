@@ -2996,7 +2996,7 @@ async function main() {
 
                 // Set output intent with the destination profile
                 const profileName = destHeader.description || basename(profilePath, extname(profilePath));
-                PDFService.setOutputIntentForPDFDocument(pdfDocument, {
+                await PDFService.setOutputIntentForPDFDocument(pdfDocument, {
                     subType: 'GTS_PDFX',
                     iccProfile: profileBuffer,
                     identifier: profileName,

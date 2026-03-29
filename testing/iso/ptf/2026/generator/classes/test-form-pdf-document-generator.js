@@ -1165,7 +1165,7 @@ export class TestFormPDFDocumentGenerator {
     async #postProcessDocument(document, iccProfileHeader, iccProfileBuffer, manifestBuffer) {
         // Always use the user's destination ICC profile for the output intent
         // (not a source profile extracted from the document)
-        PDFService.setOutputIntentForPDFDocument(document, {
+        await PDFService.setOutputIntentForPDFDocument(document, {
             iccProfile: new Uint8Array(iccProfileBuffer),
             identifier: iccProfileHeader.description || `ICCBased_${iccProfileHeader.colorSpace}`,
             subType: 'GTS_PDFX',
@@ -1592,7 +1592,7 @@ export class TestFormPDFDocumentGenerator {
             JSON.stringify(strippedMetadata, null, 2),
         ).buffer;
 
-        PDFService.setOutputIntentForPDFDocument(docketDocument, {
+        await PDFService.setOutputIntentForPDFDocument(docketDocument, {
             iccProfile: new Uint8Array(iccProfileBuffer),
             identifier: iccProfileHeader.description || `ICCBased_${iccProfileHeader.colorSpace}`,
             subType: 'GTS_PDFX',

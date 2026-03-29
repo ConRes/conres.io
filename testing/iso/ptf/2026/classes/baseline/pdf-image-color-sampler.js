@@ -128,11 +128,11 @@ export class PDFImageColorSampler extends PDFImageColorConverter {
     // Private Fields
     // ========================================
 
-    /** @type {typeof import('pako') | null} */
-    #pako = null;
+    /** @type {typeof import('../../helpers/compression.js') | null} */
+    #compression = null;
 
     /** @type {Promise<void>} */
-    #pakoReady;
+    #compressionReady;
 
     // ========================================
     // Constructor
@@ -170,7 +170,7 @@ export class PDFImageColorSampler extends PDFImageColorConverter {
         };
 
         super(adjustedConfig, { ...options, domain: options.domain ?? 'Analysis' });
-        this.#pakoReady = this.#loadPako();
+        this.#compressionReady = this.#loadCompression();
     }
 
     // ========================================
@@ -178,15 +178,11 @@ export class PDFImageColorSampler extends PDFImageColorConverter {
     // ========================================
 
     /**
-     * Loads pako library for decompression.
+     * Loads the compression provider.
      * @returns {Promise<void>}
      */
-    async #loadPako() {
-        try {
-            this.#pako = await import(new URL('../../packages/pako/dist/pako.mjs', import.meta.url).href);
-        } catch {
-            console.warn(`${CONTEXT_PREFIX} [PDFImageColorSampler] pako not available - compressed images will fail`);
-        }
+    async #loadCompression() {
+        this.#compression = await import('../../helpers/compression.js');
     }
 
     // ========================================
@@ -207,7 +203,7 @@ export class PDFImageColorSampler extends PDFImageColorConverter {
      * @returns {Promise<PDFImageColorSamplerResult>} Lab values for sampled pixels
      */
     async samplePixels(input) {
-        await this.#pakoReady;
+        await this.#compressionReady;
         await this.ensureReady();
 
         const {
@@ -238,7 +234,7 @@ export class PDFImageColorSampler extends PDFImageColorConverter {
         // Decompress if needed
         let pixelData = streamData;
         if (isCompressed) {
-            pixelData = this.#decompress(streamData);
+            pixelData = await this.#decompress(streamData);
         }
 
         // Get channel count for the color space
@@ -358,19 +354,12 @@ export class PDFImageColorSampler extends PDFImageColorConverter {
 
     /**
      * Decompresses FlateDecode data.
-     *
-     * @param {Uint8Array} data - Compressed data
-     * @returns {Uint8Array} Decompressed data
+     * @param {Uint8Array} data
+     * @returns {Promise<Uint8Array>}
      */
-    #decompress(data) {
-        if (!this.#pako) {
-            throw new Error('pako not available for decompression');
-        }
-        try {
-            return this.#pako.inflate(data);
-        } catch (error) {
-            throw new Error(`Failed to decompress image data: ${/** @type {Error} */ (error).message}`);
-        }
+    async #decompress(data) {
+        if (!this.#compression) throw new Error('compression provider not loaded');
+        return this.#compression.inflateToBuffer(data);
     }
 
     /**

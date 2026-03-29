@@ -1943,7 +1943,7 @@ export class PDFService {
      * @param {Uint8Array | PDFRawStream | PDFRef} options.iccProfile icc profile buffer content
      * @param icc icc profile buffer content
      */
-    static setOutputIntentForPDFDocument(pdfDocument, { subType, iccProfile, info, identifier }) {
+    static async setOutputIntentForPDFDocument(pdfDocument, { subType, iccProfile, info, identifier }) {
         if (!(pdfDocument instanceof PDFDocument))
             throw new Error('Unexpected pdfDocument argument type.');
 
@@ -1963,8 +1963,9 @@ export class PDFService {
                 case 'GRAY': n = 1; alternate = 'DeviceGray'; break;
                 default:     n = 4; alternate = 'DeviceCMYK'; break; // fallback
             }
+            const compressedProfile = await compressWithFlateDecode(profileBytes);
             iccStreamRef = pdfDocument.context.register(
-                pdfDocument.context.flateStream(profileBytes, { N: n, Alternate: alternate })
+                pdfDocument.context.stream(compressedProfile.compressed, { N: n, Alternate: alternate, Filter: 'FlateDecode' })
             );
         }
 

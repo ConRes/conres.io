@@ -363,8 +363,8 @@ async function assignProfileToDocument(pdfDocument, profileBytes, options) {
     });
 
     // Compress the profile bytes
-    const pako = await import('pako');
-    const compressedProfileBytes = pako.deflate(profileBytes);
+    const { deflateToBuffer } = await import('../helpers/compression.js');
+    const compressedProfileBytes = await deflateToBuffer(profileBytes);
 
     // Create the stream and register it
     const iccStream = PDFRawStream.of(iccStreamDict, compressedProfileBytes);
@@ -825,7 +825,7 @@ async function main() {
         // Set output intent with the destination profile (skip for special profiles like 'Lab')
         if (!isSpecialProfile && profileHeader && profileBytes) {
             const profileName = profileHeader.description || basename(profilePath).replace(/\.icc$/i, '');
-            PDFService.setOutputIntentForPDFDocument(pdfDocument, {
+            await PDFService.setOutputIntentForPDFDocument(pdfDocument, {
                 subType: 'GTS_PDFX',
                 iccProfile: profileBytes,
                 identifier: profileName,

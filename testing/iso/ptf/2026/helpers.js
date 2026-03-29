@@ -363,12 +363,12 @@ export const downloadArrayBufferAs = async (arrayBuffer, filename, type, timeout
 
     if (isFirefox && downloadBytes.length > MAX_BLOB_DOWNLOAD) {
         try {
-            const pako = await import('./packages/pako/dist/pako.mjs');
+            const { gzipToBuffer } = await import('./helpers/compression.js');
             console.warn(
                 `[downloadArrayBufferAs] Buffer is ${(downloadBytes.length / (1024 * 1024 * 1024)).toFixed(2)} GB — ` +
                 `exceeds Firefox 2 GB blob URL download limit. Compressing with gzip…`
             );
-            const compressed = pako.gzip(downloadBytes);
+            const compressed = await gzipToBuffer(downloadBytes);
             if (compressed.length <= MAX_BLOB_DOWNLOAD) {
                 downloadBytes = compressed;
                 downloadFilename = filename + '.gz';
@@ -384,7 +384,7 @@ export const downloadArrayBufferAs = async (arrayBuffer, filename, type, timeout
                 );
             }
         } catch (error) {
-            console.warn('[downloadArrayBufferAs] pako not available for gzip compression, falling back to uncompressed.', error);
+            console.warn('[downloadArrayBufferAs] gzip compression failed, falling back to uncompressed.', error);
         }
     }
 

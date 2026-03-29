@@ -74,61 +74,38 @@ export const lookupMaybe = (target, key, ...types) => {
 };
 
 /**
- * Compresses data using FlateDecode (zlib deflate).
- * PDF FlateDecode uses zlib format (RFC 1950) with header, not raw deflate.
- * Uses pako in both browser and Node.js for consistent output.
- * @param {Uint8Array} data - The data to compress
+ * Compresses data using FlateDecode (zlib deflate, RFC 1950).
+ * @param {Uint8Array} data
  * @returns {Promise<{compressed: Uint8Array, wasCompressed: boolean}>}
  */
 export async function compressWithFlateDecode(data) {
-    // Try pako via importmap first (browser environment)
-    try {
-        const pako = await import('pako');
-        // pako.deflate produces zlib format by default (with header)
-        const compressed = pako.deflate(data);
-        return { compressed: new Uint8Array(compressed), wasCompressed: true };
-    } catch {
-        // Bare import failed, try local pako path (Node.js)
-        try {
-            const pako = await import('../../packages/pako/dist/pako.mjs');
-            const compressed = pako.deflate(data);
-            return { compressed: new Uint8Array(compressed), wasCompressed: true };
-        } catch {
-            // pako not available, fall back to Node.js zlib
-            try {
-                const zlib = await import('zlib');
-                const compressed = zlib.deflateSync(data);
-                return { compressed: new Uint8Array(compressed), wasCompressed: true };
-            } catch {
-                // Neither available, return uncompressed
-                return { compressed: data, wasCompressed: false };
-            }
-        }
-    }
+    const { deflateToBuffer } = await import('../../helpers/compression.js');
+    const compressed = await deflateToBuffer(data);
+    return { compressed, wasCompressed: true };
 }
 
 /**
  * Compresses string segments to FlateDecode format using streaming deflation.
  *
  * Each segment is encoded to Latin-1 bytes in chunks and fed incrementally
- * into the deflater. This avoids materializing the entire uncompressed content
- * as a single string or Uint8Array, which is critical for content streams
- * exceeding ~100 MB where Firefox would otherwise OOM.
+ * into the compressor. This avoids materializing the entire uncompressed
+ * content as a single buffer, which is critical for content streams exceeding
+ * ~100 MB where browsers would otherwise OOM.
  *
  * @param {Iterable<string>} segments - String segments to encode and compress
  * @returns {Promise<{compressed: Uint8Array, wasCompressed: boolean}>}
  */
 export async function compressSegmentsWithFlateDecode(segments) {
     const ENCODE_CHUNK = 5 * 1024 * 1024;
+    const { collectUint8ArrayChunks } = await import('../../helpers/buffers.js');
+    const { readableStreamAsyncIterable } = await import('../../helpers/streams.js');
 
-    /** @type {any} */
-    let pako = null;
-    try { pako = await import('pako'); } catch {}
-    if (!pako) try { pako = await import('../../packages/pako/dist/pako.mjs'); } catch {}
+    const cs = new CompressionStream('deflate');
+    const writer = cs.writable.getWriter();
 
-    if (pako) {
-        const deflater = new pako.Deflate();
-
+    // Write and read concurrently — writing without a concurrent reader
+    // deadlocks once the stream's internal buffer fills (backpressure).
+    const writeAll = (async () => {
         for (const segment of segments) {
             let offset = 0;
             while (offset < segment.length) {
@@ -137,61 +114,26 @@ export async function compressSegmentsWithFlateDecode(segments) {
                 for (let i = 0; i < bytes.length; i++) {
                     bytes[i] = segment.charCodeAt(offset + i);
                 }
-                deflater.push(bytes, false);
+                await writer.write(bytes);
                 offset = end;
             }
         }
+        await writer.close();
+    })();
 
-        deflater.push(new Uint8Array(0), true);
-
-        if (deflater.err) {
-            throw new Error(`pako deflate error: ${deflater.msg}`);
-        }
-
-        return { compressed: new Uint8Array(deflater.result), wasCompressed: true };
-    }
-
-    // Node.js zlib fallback — Buffer.concat is fine here since V8
-    // handles large allocations without the Firefox GC pressure issue.
-    try {
-        const zlib = await import('zlib');
-        const buffers = [];
-        for (const segment of segments) {
-            buffers.push(Buffer.from(segment, 'latin1'));
-        }
-        const compressed = zlib.deflateSync(Buffer.concat(buffers));
-        return { compressed: new Uint8Array(compressed), wasCompressed: true };
-    } catch {
-        throw new Error('No compression library available (pako or zlib)');
-    }
+    const compressed = await collectUint8ArrayChunks(readableStreamAsyncIterable(cs.readable));
+    await writeAll; // Ensure writer errors propagate
+    return { compressed, wasCompressed: true };
 }
 
 /**
- * Decompresses FlateDecode data (zlib inflate).
- * Uses pako in both browser and Node.js for consistent behavior.
- * @param {Uint8Array} data - The compressed data
+ * Decompresses FlateDecode data (zlib inflate, RFC 1950).
+ * @param {Uint8Array} data
  * @returns {Promise<Uint8Array>}
  */
 export async function decompressWithFlateDecode(data) {
-    // Try pako via importmap first (browser environment)
-    try {
-        const pako = await import('pako');
-        return new Uint8Array(pako.inflate(data));
-    } catch {
-        // Bare import failed, try local pako path (Node.js)
-        try {
-            const pako = await import('../../packages/pako/dist/pako.mjs');
-            return new Uint8Array(pako.inflate(data));
-        } catch {
-            // pako not available, fall back to Node.js zlib
-            try {
-                const zlib = await import('zlib');
-                return new Uint8Array(zlib.inflateSync(data));
-            } catch {
-                throw new Error('No decompression library available (pako or zlib)');
-            }
-        }
-    }
+    const { inflateToBuffer } = await import('../../helpers/compression.js');
+    return inflateToBuffer(data);
 }
 
 /**

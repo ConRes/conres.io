@@ -347,7 +347,7 @@ describe('Workflow Integration', () => {
                     doc.addPage([612, 792]);
 
                     // Set output intent
-                    PDFService.setOutputIntentForPDFDocument(doc, {
+                    await PDFService.setOutputIntentForPDFDocument(doc, {
                         subType: 'GTS_PDFX',
                         identifier: 'eciCMYK v2',
                         info: 'ISO Coated v2 300% (ECI)',
