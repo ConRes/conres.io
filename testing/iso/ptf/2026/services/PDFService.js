@@ -1947,10 +1947,26 @@ export class PDFService {
         if (!(pdfDocument instanceof PDFDocument))
             throw new Error('Unexpected pdfDocument argument type.');
 
-        const iccStreamRef =
-            iccProfile instanceof PDFRef ? iccProfile
-                : iccProfile instanceof PDFRawStream ? pdfDocument.context.register(iccProfile)
-                    : pdfDocument.context.register(pdfDocument.context.stream(iccProfile, { Length: iccProfile.length }));
+        let iccStreamRef;
+        if (iccProfile instanceof PDFRef) {
+            iccStreamRef = iccProfile;
+        } else if (iccProfile instanceof PDFRawStream) {
+            iccStreamRef = pdfDocument.context.register(iccProfile);
+        } else {
+            // Determine /N and /Alternate from ICC profile header (bytes 16-19 = color space signature)
+            const profileBytes = iccProfile instanceof Uint8Array ? iccProfile : new Uint8Array(iccProfile);
+            const colorSpaceSig = String.fromCharCode(profileBytes[16], profileBytes[17], profileBytes[18], profileBytes[19]);
+            let n, alternate;
+            switch (colorSpaceSig.trim()) {
+                case 'CMYK': n = 4; alternate = 'DeviceCMYK'; break;
+                case 'RGB':  n = 3; alternate = 'DeviceRGB'; break;
+                case 'GRAY': n = 1; alternate = 'DeviceGray'; break;
+                default:     n = 4; alternate = 'DeviceCMYK'; break; // fallback
+            }
+            iccStreamRef = pdfDocument.context.register(
+                pdfDocument.context.flateStream(profileBytes, { N: n, Alternate: alternate })
+            );
+        }
 
         console.log({ iccProfile, iccStreamRef });
 
