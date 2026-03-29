@@ -80,7 +80,7 @@ import {
     existsSync, readFileSync, statSync, readdirSync, readlinkSync,
     cpSync, mkdirSync, symlinkSync, unlinkSync,
 } from 'node:fs';
-import { resolve, join, dirname } from 'node:path';
+import { resolve, join, dirname, matchesGlob } from 'node:path';
 import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
@@ -120,6 +120,16 @@ const EXCLUDE_SUFFIXES = ['PROGRESS.md', '-backup', '-backup.zip'];
 const args = process.argv.slice(2).filter(arg => arg !== '');
 const dryRun = args.includes('--dry-run');
 const verbose = args.includes('--verbose');
+const trackedOnly = args.includes('--tracked-only');
+
+/** @type {string[]} */
+const excludePatterns = [];
+for (const arg of args) {
+    if (arg.startsWith('--exclude=')) {
+        excludePatterns.push(arg.slice('--exclude='.length));
+    }
+}
+
 const positionalArgs = args.filter(arg => !arg.startsWith('--'));
 
 if (positionalArgs.length < 2) {
@@ -130,8 +140,11 @@ if (positionalArgs.length < 2) {
     console.error('  <staging-path>    Path to staging repository (e.g., ../conres.io-staging)');
     console.error('');
     console.error('Options:');
-    console.error('  --dry-run         Preview without writing files');
-    console.error('  --verbose         Show all files including unchanged');
+    console.error('  --dry-run              Preview without writing files');
+    console.error('  --verbose              Show all files including unchanged');
+    console.error('  --tracked-only         Only sync files tracked by git in the source repo');
+    console.error('  --exclude=<glob>       Exclude files matching glob (repeatable)');
+    console.error('                         Matched against group-relative path (e.g., "*.1.json", "[Trash]/**")');
     console.error('');
     const validNames = ALL_SYNC_GROUPS.map(g => g.name).join(', ');
     console.error(`Groups: ${validNames}`);
@@ -169,6 +182,44 @@ if (!existsSync(PROJECT_ROOT)) {
 if (!existsSync(stagingRoot)) {
     console.error(`Staging repository not found: ${stagingRoot}`);
     process.exit(1);
+}
+
+// ---------------------------------------------------------------------------
+// Tracked files enumeration (for --tracked-only)
+// ---------------------------------------------------------------------------
+
+/** @type {Set<string> | null} — All tracked file paths in the source repo (relative to repo root) */
+let trackedFiles = null;
+if (trackedOnly) {
+    try {
+        const output = execSync('git ls-files', {
+            cwd: PROJECT_ROOT,
+            encoding: 'utf-8',
+            maxBuffer: 50 * 1024 * 1024,
+        });
+        trackedFiles = new Set(output.trim().split('\n').filter(Boolean));
+    } catch {
+        console.error('Failed to enumerate tracked files. Is this a git repository?');
+        process.exit(1);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Exclude glob matching
+// ---------------------------------------------------------------------------
+
+/**
+ * Whether a group-relative path matches any --exclude pattern.
+ * Uses Node's built-in `path.matchesGlob()` for standard glob semantics.
+ *
+ * @param {string} relPath — Path relative to the sync group root
+ * @returns {boolean}
+ */
+function isExcluded(relPath) {
+    for (const pattern of excludePatterns) {
+        if (matchesGlob(relPath, pattern)) return true;
+    }
+    return false;
 }
 
 // ---------------------------------------------------------------------------
@@ -211,11 +262,16 @@ function shouldExclude(name) {
  * Symlinks are recorded as entries (not followed into), so a symlink to a
  * directory appears as a single symlink entry rather than being recursed.
  *
+ * When `groupPath` is provided:
+ * - `--tracked-only` filters to files tracked by git (using `trackedFiles` set)
+ * - `--exclude` patterns are matched against group-relative paths
+ *
  * @param {string} rootPath — Absolute path to the directory to walk
  * @param {string} [prefix=''] — Relative path prefix for recursion
+ * @param {string} [groupPath] — Group path prefix for tracked/exclude checks (e.g., 'testing/iso/ptf/2026/generator')
  * @returns {{ files: string[], symlinks: Map<string, string> }}
  */
-function walkDirectory(rootPath, prefix = '') {
+function walkDirectory(rootPath, prefix = '', groupPath) {
     /** @type {string[]} */
     const files = [];
     /** @type {Map<string, string>} relativePath -> symlink target */
@@ -229,12 +285,26 @@ function walkDirectory(rootPath, prefix = '') {
         const relPath = prefix ? join(prefix, entry.name) : entry.name;
         const fullPath = join(rootPath, entry.name);
 
+        // Apply --exclude patterns against group-relative path
+        if (groupPath && isExcluded(relPath)) continue;
+
+        // Apply --tracked-only against repo-relative path
+        if (groupPath && trackedFiles) {
+            const repoRelPath = join(groupPath, relPath);
+            if (entry.isSymbolicLink()) {
+                if (!trackedFiles.has(repoRelPath)) continue;
+            } else if (entry.isFile()) {
+                if (!trackedFiles.has(repoRelPath)) continue;
+            }
+            // Directories are always entered — tracked files inside will pass individually
+        }
+
         if (entry.isSymbolicLink()) {
             symlinks.set(relPath, readlinkSync(fullPath));
         } else if (entry.isFile()) {
             files.push(relPath);
         } else if (entry.isDirectory()) {
-            const sub = walkDirectory(fullPath, relPath);
+            const sub = walkDirectory(fullPath, relPath, groupPath);
             files.push(...sub.files);
             for (const [k, v] of sub.symlinks) symlinks.set(k, v);
         }
@@ -296,7 +366,7 @@ for (const group of requestedGroups) {
     const sourceDir = join(PROJECT_ROOT, group.path);
     const targetDir = join(stagingRoot, group.path);
 
-    const source = walkDirectory(sourceDir);
+    const source = walkDirectory(sourceDir, '', group.path);
     const target = walkDirectory(targetDir);
 
     const targetFileSet = new Set(target.files);
