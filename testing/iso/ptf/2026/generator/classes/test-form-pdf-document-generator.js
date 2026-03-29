@@ -28,6 +28,7 @@ import { ManifestColorSpaceResolver } from './manifest-color-space-resolver.js';
 import { AssetPagePreConverter } from './asset-page-pre-converter.js';
 import { OutputProfileAnalyzer } from './output-profile-analyzer.js';
 import { AssemblyPolicyResolver } from './assembly-policy-resolver.js';
+import { getEnvironmentDescriptor } from './environment-descriptor.js';
 
 // ============================================================================
 // Constants
@@ -1332,6 +1333,13 @@ export class TestFormPDFDocumentGenerator {
             fields.push({ label: 'Test Form', value: parsedMetadata.testFormVersion ?? '' });
             fields.push({ label: 'Generated', value: parsedMetadata.generatedAt ?? '' });
 
+            // --- Runtime ---
+            if (parsedMetadata.runtime?.navigator) {
+                const nav = parsedMetadata.runtime.navigator;
+                fields.push({ label: 'Browser', value: nav.browser ?? '' });
+                fields.push({ label: 'OS', value: nav.os ?? '' });
+            }
+
             fields.push(null); // Section break
 
             // --- Output Profile (full ICC header) ---
@@ -1623,9 +1631,18 @@ export class TestFormPDFDocumentGenerator {
         /** @satisfies {Parameters<uint8ArrayToBase64>[1]} */
         const base64Options = { 'alphabet': 'base64' };
 
+        const environment = getEnvironmentDescriptor();
+
         return JSON.stringify({
             testFormVersion: this.#testFormVersion,
             generatedAt: new Date().toISOString(),
+            runtime: {
+                navigator: {
+                    browser: `${environment.browser} ${environment.browserVersion}`,
+                    os: environment.os,
+                    userAgent: environment.userAgent,
+                },
+            },
             metadata: userMetadata ? { slugs: userMetadata } : undefined,
             settings: {
                 debugging: this.#debugging,

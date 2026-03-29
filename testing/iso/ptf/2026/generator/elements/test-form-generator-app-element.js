@@ -19,6 +19,7 @@ import { downloadArrayBufferAs } from '../../helpers.js';
 
 import { CONTEXT_PREFIX } from '../../services/helpers/runtime.js';
 import { TestFormPDFDocumentGenerator } from '../classes/test-form-pdf-document-generator.js';
+import { getEnvironmentDescriptor } from '../classes/environment-descriptor.js';
 
 /**
  * @typedef {import('../classes/test-form-pdf-document-generator.js').UserMetadata} UserMetadata
@@ -942,6 +943,9 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         // Extract output profile basename (strip extension) for download filenames
         const outputProfileBasename = iccProfileFile.name.replace(/\.[^.]+$/, '');
 
+        // When debugging, append browser/OS to filenames for parallel test identification
+        const environmentSuffix = isDebugging ? ` - ${getEnvironmentDescriptor().label}` : '';
+
         // ----------------------------------------------------------------
         // Progress rendering (shared by both paths)
         // ----------------------------------------------------------------
@@ -1179,6 +1183,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                     includeOutputProfile,
                     testFormName,
                     outputProfileBasename,
+                    environmentSuffix,
                     handleProgress,
                     setCancelHandler: (handler) => { this.#cancelGeneration = handler; },
                     onDownloadProgress: (state) => {
@@ -1208,6 +1213,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                     includeOutputProfile,
                     testFormName,
                     outputProfileBasename,
+                    environmentSuffix,
                     handleProgress,
                     setCancelHandler: (handler) => { this.#cancelGeneration = handler; },
                     onDownloadProgress: (state) => {
@@ -1276,7 +1282,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
      * @param {boolean} options.debugging
      * @param {boolean} options.includeOutputProfile
      */
-    async #downloadGenerationResult(result, { testFormName, outputProfileBasename, iccProfileBuffer, debugging, includeOutputProfile }) {
+    async #downloadGenerationResult(result, { testFormName, outputProfileBasename, iccProfileBuffer, debugging, includeOutputProfile, environmentSuffix }) {
         const { pdfBuffer, metadataJSON, docketPDFBuffer } = result;
         console.log(`${CONTEXT_PREFIX} [downloadGenerationResult] pdfBuffer=${!!pdfBuffer}, docketPDFBuffer=${!!docketPDFBuffer}, debugging=${debugging}`);
 
@@ -1295,14 +1301,14 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             if (!docketPDFBuffer) {
                 await downloadArrayBufferAs(
                     new TextEncoder().encode(metadataJSON).buffer,
-                    `${testFormName} - ${downloadSuffix} - metadata.json`,
+                    `${testFormName} - ${downloadSuffix} - Metadata${environmentSuffix}.json`,
                     'application/json',
                 );
             }
 
             await downloadArrayBufferAs(
                 pdfBuffer,
-                `${testFormName} - ${downloadSuffix}.pdf`,
+                `${testFormName} - ${downloadSuffix}${environmentSuffix}.pdf`,
                 'application/pdf',
             );
         }
@@ -1311,7 +1317,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             if (!docketPDFBuffer) {
                 await downloadArrayBufferAs(
                     new TextEncoder().encode(metadataJSON).buffer,
-                    `${testFormName} - ${outputProfileBasename} - metadata.json`,
+                    `${testFormName} - ${outputProfileBasename} - Metadata${environmentSuffix}.json`,
                     'application/json',
                 );
             }
@@ -1341,6 +1347,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         testFormVersion, resources, iccProfileBuffer, userMetadata,
         debugging, outputBitsPerComponent, useWorkers, processingStrategy,
         assemblyOverrides, includeOutputProfile, testFormName, outputProfileBasename, handleProgress, setCancelHandler, onDownloadProgress,
+        environmentSuffix,
     }) {
         const generator = new TestFormPDFDocumentGenerator({
             testFormVersion,
@@ -1372,7 +1379,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                     onDocketReady: async (docketPDFBuffer, metadataJSON) => {
                         await downloadArrayBufferAs(
                             docketPDFBuffer,
-                            `${testFormName} - ${outputProfileBasename} - Docket.pdf`,
+                            `${testFormName} - ${outputProfileBasename} - Docket${environmentSuffix}.pdf`,
                             'application/pdf',
                         );
                     },
@@ -1385,7 +1392,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                         }
                         await downloadArrayBufferAs(
                             pdfBuffer,
-                            `${testFormName} - ${outputProfileBasename} - ${label}.pdf`,
+                            `${testFormName} - ${outputProfileBasename} - ${label}${environmentSuffix}.pdf`,
                             'application/pdf',
                         );
                     },
@@ -1396,7 +1403,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         }
 
         await this.#downloadGenerationResult(generateResult, {
-            testFormName, outputProfileBasename, iccProfileBuffer, debugging, includeOutputProfile,
+            testFormName, outputProfileBasename, iccProfileBuffer, debugging, includeOutputProfile, environmentSuffix,
         });
     }
 
@@ -1427,6 +1434,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         testFormVersion, resources, iccProfileBuffer, userMetadata,
         debugging, outputBitsPerComponent, useWorkers, processingStrategy,
         assemblyOverrides, includeOutputProfile, testFormName, outputProfileBasename, handleProgress, setCancelHandler, onDownloadProgress,
+        environmentSuffix,
     }) {
         const workerURL = new URL('../bootstrap-worker-entrypoint.js', import.meta.url).href;
 
@@ -1498,7 +1506,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                             docketDelivered = true;
                             await downloadArrayBufferAs(
                                 data.docketPDFBuffer,
-                                `${testFormName} - ${outputProfileBasename} - Docket.pdf`,
+                                `${testFormName} - ${outputProfileBasename} - Docket${environmentSuffix}.pdf`,
                                 'application/pdf',
                             );
                             break;
@@ -1511,7 +1519,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                                 if (!docketDelivered) {
                                     await downloadArrayBufferAs(
                                         new TextEncoder().encode(data.metadataJSON).buffer,
-                                        `${testFormName} - ${outputProfileBasename} - metadata.json`,
+                                        `${testFormName} - ${outputProfileBasename} - Metadata${environmentSuffix}.json`,
                                         'application/json',
                                     );
                                 }
@@ -1519,7 +1527,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                             }
                             await downloadArrayBufferAs(
                                 data.pdfBuffer,
-                                `${testFormName} - ${outputProfileBasename} - ${data.colorSpace}.pdf`,
+                                `${testFormName} - ${outputProfileBasename} - ${data.colorSpace}${environmentSuffix}.pdf`,
                                 'application/pdf',
                             );
                             break;
@@ -1558,7 +1566,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             });
 
             await this.#downloadGenerationResult(result, {
-                testFormName, outputProfileBasename, iccProfileBuffer, debugging, includeOutputProfile,
+                testFormName, outputProfileBasename, iccProfileBuffer, debugging, includeOutputProfile, environmentSuffix,
             });
         } finally {
             worker.terminate();
