@@ -13,7 +13,7 @@
  */
 
 import { CONTEXT_PREFIX } from '../../services/helpers/runtime.js';
-import { safeDynamicImport } from '../../helpers/import-helpers.js';
+import { safeDynamicImport } from '../../helpers/imports.js';
 
 // ============================================================================
 // Type Definitions
@@ -76,6 +76,7 @@ import { safeDynamicImport } from '../../helpers/import-helpers.js';
  *
  * @typedef {{
  *   description: string,
+ *   profileColorSpace: string,
  *   includedColorSpaceTypes: string[],
  *   excludedColorSpaceTypes: string[],
  *   renderingIntentPasses: IntentPass[],

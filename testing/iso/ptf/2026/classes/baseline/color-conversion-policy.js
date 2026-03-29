@@ -8,7 +8,7 @@
  * @module ColorConversionPolicy
  */
 
-import { safeDynamicImport } from '../../helpers/import-helpers.js';
+import { safeDynamicImport } from '../../helpers/imports.js';
 
 import {
     // Format builder functions

@@ -7,7 +7,7 @@
  * (typically a `TypeError` for unsupported `with` clause), falls back to
  * `fetch` + manual parsing for known types (`json`, `css`).
  *
- * @module helpers/import-helpers
+ * @module helpers/imports
  * @author Saleh Abdel Motaal <dev@smotaal.io>
  * @ai Claude Opus 4.6 (code generation)
  */

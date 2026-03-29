@@ -573,4 +573,4 @@ export const prepareOutputResources = async (FS, resources) => {
     return files;
 };
 
-export * from './helpers/tc39-proposal-arraybuffer-base64-polyfill-core.js';
+export * from './helpers/buffers.js';
