@@ -1,0 +1,171 @@
+{
+    "overview": {
+        "introduction": "Generate individualized PDF test forms for the ISO Contrast-Resolution perceptual round robin. Each page is marked with a unique QR code for traceability.",
+        "requirements": [
+            "A calibrated ICC profile for your specific device, colorants, substrate, and print settings.",
+            "Your print system specifications (device, colorants, substrate, settings).",
+            "A modern web browser (Chrome, Firefox, or Safari)."
+        ]
+    },
+    "fields": {
+        "testFormVersion": {
+            "recommended": {
+                "text": "This is the current recommended version.",
+                "warn": false
+            },
+            "nonRecommended": {
+                "text": "A newer version is available: {{recommended}}. Older versions may produce results that are not comparable with other participants.",
+                "warn": true,
+                "highlight": true
+            },
+            "eightBit": {
+                "text": "The 8-bit variant is for systems that cannot process 16-bit source data. Use the standard version unless you have a specific reason.",
+                "warn": true,
+                "highlight": true
+            },
+            "maps": {
+                "text": "The Maps variant includes only the map assets. Use the standard version for the full test form.",
+                "warn": true,
+                "highlight": true
+            },
+            "newVersionAvailable": {
+                "text": "A new test form version has been published since your last session. Your selection has been updated to the latest version.",
+                "warn": true,
+                "highlight": true
+            }
+        },
+        "outputProfile": {
+            "default": {
+                "text": "Select the ICC profile calibrated for your exact device, colorants, substrate, and print settings.",
+                "warn": true
+            },
+            "cmyk": {
+                "text": "CMYK profile detected: {{description}}. Two rendering passes will be generated (Relative Colorimetric and K-Only GCR).",
+                "warn": false
+            },
+            "cmykMaxGCR": {
+                "text": "CMYK Max GCR profile detected: {{description}}. Single rendering pass — this profile already maximizes black generation.",
+                "warn": false
+            },
+            "rgb": {
+                "text": "RGB profile detected: {{description}}. The test form will be converted to this RGB color space.",
+                "warn": false
+            },
+            "gray": {
+                "text": "Gray profiles are not yet fully supported. Use an sRGB output profile for now — Gray support is in development.",
+                "warn": true
+            }
+        },
+        "outputBitDepth": {
+            "8-bit": {
+                "text": "Standard precision — suitable for most printing systems.",
+                "warn": false
+            },
+            "16-bit": {
+                "text": "Higher precision — use only if your RIP and workflow require 16-bit data.",
+                "warn": true
+            },
+            "auto": {
+                "text": "Each element retains its source bit depth. Mixed bit depths are possible across pages.",
+                "warn": true
+            }
+        },
+        "specifications": {
+            "withDocket": {
+                "text": "Your email and generation timestamp are embedded in the slug QR codes. Device, colorants, substrate, and settings are stored in the docket PDF only — not in the QR codes.",
+                "warn": false
+            },
+            "withoutDocket": {
+                "text": "Your email and generation timestamp are embedded in the slug QR codes. Device, colorants, substrate, and settings are stored in the metadata JSON only — not in the QR codes.",
+                "warn": false
+            }
+        },
+        "generation": {
+            "withDocket": {
+                "text": "The generator produces a docket PDF and test form PDF(s). The docket contains your ICC profile and all generation parameters. Submit the docket PDF digitally alongside your physical prints — do not print it.",
+                "warn": false
+            },
+            "withoutDocket": {
+                "text": "The generator produces test form PDF(s) and a metadata JSON file. Keep the metadata file alongside your test form PDF — it contains the generation parameters.",
+                "warn": false
+            }
+        }
+    },
+    "docket": {
+        "explainer": "This docket contains the ICC profile and all parameters used to generate your test form. Keep this file and submit it digitally alongside your physical prints. Do not print the docket."
+    },
+    "documentation": {
+        "title": "Technical Documentation",
+        "sections": [
+            {
+                "heading": "Slug QR Codes",
+                "content": "Each page in the test form has a slug area containing a QR code that encodes:",
+                "list": [
+                    "Slug header — test form identifier and output profile category",
+                    "Page title and variant (if applicable)",
+                    "Source color space and resolution",
+                    "Rendering intent and output profile name",
+                    "Participant email and generation timestamp"
+                ],
+                "footer": "The slug QR code ties each printed page back to the specific test form digital file, the layout and source color space, the output profile and rendering intent, and the participant and generation session. This is essential for sorting scanned pages from different round-robin participants."
+            },
+            {
+                "heading": "Asset Barcodes",
+                "content": "Assets contain embedded barcodes (QR or PDF417) independent of the slug QR codes. These identify the source asset, variant, and version.",
+                "list": [
+                    "ConRes 21 (CR21) — QR codes with color space, target layout configuration (rows, columns) for automated analysis",
+                    "ConRes 20 (TV25 vs TV75) — QR codes with sRGB, sGray, or Lab distinguisher per PostScript-generated source",
+                    "CR21 vs CR20 — PDF417 with color space distinguisher per PostScript-generated source",
+                    "Interlaken Aerial — PDF417, same code for sRGB and sGray (same source asset, grayscale is a conversion)",
+                    "Interlaken Map (vector) — PDF417 with color/gray distinguisher (different PostScript sources)",
+                    "Vitznau Map (vector contour) — PDF417 with color/gray distinguisher (different PostScript sources)",
+                    "London, Winter Trees, Lake and Cat (pictorial) — PDF417 per element, same code regardless of color space (same source)",
+                    "Type Sizes — PDF417 per element (Palatino, Palatino Italic, Helvetica, Edwardian Script), sGray and SepK variants",
+                    "Lissajou — PDF417 per element (Frames, Shapes), sGray and SepK variants"
+                ]
+            },
+            {
+                "heading": "Barcode Hierarchy and Segmentation",
+                "content": "All asset-level barcodes work in tandem with the slug QR code:",
+                "list": [
+                    "Slug QR — identifies the page, participant, output profile, rendering intent",
+                    "Asset barcode — identifies the specific source asset, variant, version"
+                ],
+                "footer": "Together, these enable the TestFormSegmenter to automate the segmentation process — splitting scanned pages into individual assessment targets for perceptual psychometrics testing."
+            },
+            {
+                "heading": "Color Space Handling",
+                "content": "The test form contains assets in multiple source color spaces:",
+                "list": [
+                    "sRGB — standard RGB pictorial and vector assets",
+                    "sGray — grayscale variants (some converted from sRGB, some separate PostScript sources)",
+                    "Lab — CIE Lab color space (ConRes targets only)",
+                    "SepK — Separation Black (Type Sizes and Lissajou only)"
+                ],
+                "footer": "The generator converts all source color spaces to the output profile's color space using the selected rendering intent. For CMYK profiles without Max GCR, two passes are generated: Relative Colorimetric and K-Only GCR."
+            },
+            {
+                "heading": "Output Profile Requirements",
+                "content": "The ICC profile must be calibrated for the exact combination of:",
+                "list": [
+                    "Print device (make and model)",
+                    "Colorants (ink set)",
+                    "Substrate (paper or media type)",
+                    "Print settings (resolution, screening, quality mode)"
+                ],
+                "footer": "A generic or mismatched profile will produce unreliable test results. The profile is embedded in the docket PDF for verification."
+            },
+            {
+                "heading": "Docket PDF",
+                "content": "The docket is a separate PDF generated alongside the test form. It contains:",
+                "list": [
+                    "The ICC output profile used for generation",
+                    "All generation parameters (device, colorants, substrate, settings, email)",
+                    "Assembly plan details (rendering intents, page count, profile category)",
+                    "Generation timestamp"
+                ],
+                "footer": "The docket must be kept and submitted digitally alongside physical prints. It does not need to be printed. Without the docket, submitted prints cannot be processed."
+            }
+        ]
+    }
+}

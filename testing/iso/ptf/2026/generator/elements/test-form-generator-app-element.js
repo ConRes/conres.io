@@ -93,6 +93,16 @@ export class TestFormGeneratorAppElement extends HTMLElement {
      */
     configure({ assets }) {
         this.#assets = assets;
+        // Re-run guidance now that assets are available
+        // (connectedCallback's fetch may have completed before configure was called)
+        if (this.#details) {
+            this.#populateStaticContent();
+            this.#checkVersionChange();
+            this.#updateTestFormGuidance();
+            this.#updateBitDepthGuidance();
+            this.#updateProfileGuidance();
+            this.#updateDocketAwareGuidance();
+        }
     }
 
     /** @type {boolean} */
@@ -107,11 +117,332 @@ export class TestFormGeneratorAppElement extends HTMLElement {
     /** @type {string | null} */
     #cachedManifestVersion = null;
 
+    /** @type {Record<string, any> | null} */
+    #details = null;
+
+    // ========================================
+    // Recommended Version Detection
+    // ========================================
+
+    /**
+     * Determines the recommended test form version from the assets list.
+     * The recommended version is the first entry without "(8-bit)" or "- Maps" suffix.
+     * @returns {string | null}
+     */
+    get #recommendedVersion() {
+        if (!this.#assets) return null;
+        const entry = this.#assets.find(a => {
+            const name = a.name ?? '';
+            return !name.includes('(8-bit)') && !name.includes('- Maps');
+        });
+        return entry?.name ?? null;
+    }
+
+    // ========================================
+    // Dynamic Field Guidance
+    // ========================================
+
+    /**
+     * Applies a guidance entry from details.json to a guidance element and
+     * optionally a target element (for highlight).
+     *
+     * Each entry is `{ text, warn?, highlight? }` with optional `{{key}}`
+     * interpolation via the replacements parameter.
+     *
+     * @param {HTMLElement | null} guidanceElement - The `<small>` guidance container
+     * @param {{ text: string, warn?: boolean, highlight?: boolean } | null | undefined} entry
+     * @param {HTMLElement | null} [targetElement] - Element to apply highlight class to
+     * @param {Record<string, string>} [replacements] - `{{key}}` interpolation values
+     */
+    #applyGuidance(guidanceElement, entry, targetElement, replacements) {
+        if (!guidanceElement) return;
+        if (!entry) {
+            guidanceElement.textContent = '';
+            guidanceElement.classList.remove('field-guidance-warn');
+            targetElement?.classList.remove('field-highlight');
+            return;
+        }
+
+        let text = entry.text ?? '';
+        if (replacements) {
+            for (const [key, value] of Object.entries(replacements)) {
+                text = text.replaceAll(`{{${key}}}`, value);
+            }
+        }
+
+        guidanceElement.textContent = text;
+        guidanceElement.classList.toggle('field-guidance-warn', !!entry.warn);
+        targetElement?.classList.toggle('field-highlight', !!entry.highlight);
+    }
+
+    /**
+     * Populates static content from details.json (overview, requirements, modal).
+     * Called once when details.json is loaded.
+     */
+    #populateStaticContent() {
+        if (!this.#details) return;
+
+        const intro = /** @type {HTMLElement | null} */ (this.querySelector('#overview-introduction'));
+        if (intro) intro.textContent = this.#details.overview?.introduction ?? '';
+
+        const list = /** @type {HTMLElement | null} */ (this.querySelector('#requirements-list'));
+        if (list) {
+            list.innerHTML = '';
+            for (const item of this.#details.overview?.requirements ?? []) {
+                const li = document.createElement('li');
+                li.textContent = item;
+                list.appendChild(li);
+            }
+        }
+
+        this.#populateDocumentationModal();
+
+        document.querySelector('#read-more-button')?.addEventListener('click', () => {
+            /** @type {HTMLDialogElement | null} */ (
+                document.querySelector('#documentation-modal')
+            )?.showModal();
+        });
+    }
+
+    /**
+     * Populates the documentation modal from details.json.
+     */
+    #populateDocumentationModal() {
+        const docs = this.#details?.documentation;
+        if (!docs) return;
+
+        const title = /** @type {HTMLElement | null} */ (document.querySelector('#documentation-modal-title'));
+        if (title) title.textContent = docs.title ?? '';
+
+        const container = /** @type {HTMLElement | null} */ (document.querySelector('#documentation-modal-content'));
+        if (!container) return;
+        container.innerHTML = '';
+
+        for (const section of docs.sections ?? []) {
+            const h3 = document.createElement('h3');
+            h3.textContent = section.heading ?? '';
+            container.appendChild(h3);
+
+            if (section.content) {
+                const p = document.createElement('p');
+                p.textContent = section.content;
+                container.appendChild(p);
+            }
+
+            if (section.list?.length) {
+                const ul = document.createElement('ul');
+                for (const item of section.list) {
+                    const li = document.createElement('li');
+                    li.textContent = item;
+                    ul.appendChild(li);
+                }
+                container.appendChild(ul);
+            }
+
+            if (section.footer) {
+                const footer = document.createElement('p');
+                footer.className = 'doc-section-footer';
+                footer.textContent = section.footer;
+                container.appendChild(footer);
+            }
+        }
+    }
+
+    /**
+     * Whether the currently selected test form uses a docket (vs legacy metadata.json).
+     * Checks the cached manifest if available; otherwise infers from the recommended
+     * version (current versions use docket, older versions may not).
+     * @returns {boolean}
+     */
+    get #hasDocket() {
+        if (this.#cachedManifest) return !!this.#cachedManifest.docket;
+        // Infer: the recommended version (most recent) uses docket
+        const selected = /** @type {HTMLSelectElement | null} */ (
+            this.querySelector('#test-form-version-select')
+        )?.value ?? '';
+        return selected === this.#recommendedVersion || selected.includes('(F10');
+    }
+
+    /**
+     * Updates guidance for specification fields and generation section
+     * based on whether the selected test form uses docket or metadata.json.
+     */
+    #updateDocketAwareGuidance() {
+        if (!this.#details) return;
+        const key = this.#hasDocket ? 'withDocket' : 'withoutDocket';
+
+        this.#applyGuidance(
+            this.querySelector('#specifications-guidance'),
+            this.#details.fields?.specifications?.[key],
+        );
+        this.#applyGuidance(
+            this.querySelector('#generation-guidance'),
+            this.#details.fields?.generation?.[key],
+        );
+    }
+
+    /**
+     * Updates guidance text and highlight state for the test form version field.
+     */
+    #updateTestFormGuidance() {
+        const guidance = /** @type {HTMLElement | null} */ (this.querySelector('#test-form-version-guidance'));
+        const select = /** @type {HTMLSelectElement | null} */ (this.querySelector('#test-form-version-select'));
+        if (!guidance || !select || !this.#details) return;
+
+        const selected = select.value;
+        const recommended = this.#recommendedVersion;
+        const fields = this.#details.fields?.testFormVersion;
+        if (!fields || !recommended) return;
+
+        const key = selected === recommended ? 'recommended'
+            : selected.includes('(8-bit)') ? 'eightBit'
+            : selected.includes('- Maps') ? 'maps'
+            : 'nonRecommended';
+
+        this.#applyGuidance(guidance, fields[key], select.closest('label'), { recommended });
+    }
+
+    /**
+     * Updates guidance text for the output bit depth field.
+     */
+    #updateBitDepthGuidance() {
+        const guidance = /** @type {HTMLElement | null} */ (this.querySelector('#output-bit-depth-guidance'));
+        if (!guidance || !this.#details) return;
+
+        const selected = /** @type {HTMLInputElement | null} */ (
+            this.querySelector('input[name="bit-depth-mode"]:checked')
+        )?.value;
+        const fields = this.#details.fields?.outputBitDepth;
+        if (!fields || !selected) return;
+
+        this.#applyGuidance(guidance, fields[selected]);
+    }
+
+    /**
+     * Updates guidance text for the output profile field.
+     * @param {{ colorSpace?: string, description?: string, profileCategory?: string }} [profileInfo]
+     */
+    #updateProfileGuidance(profileInfo) {
+        const guidance = /** @type {HTMLElement | null} */ (this.querySelector('#output-profile-guidance'));
+        if (!guidance || !this.#details) return;
+
+        const fields = this.#details.fields?.outputProfile;
+        if (!fields) return;
+
+        if (!profileInfo) {
+            this.#applyGuidance(guidance, fields.default);
+            return;
+        }
+
+        const cs = profileInfo.colorSpace?.toUpperCase();
+        const desc = profileInfo.description ?? 'Unknown';
+        const key = cs === 'GRAY' ? 'gray'
+            : cs === 'CMYK' && profileInfo.profileCategory === 'CMYK-MaxGCR' ? 'cmykMaxGCR'
+            : cs === 'CMYK' ? 'cmyk'
+            : cs === 'RGB' ? 'rgb'
+            : 'default';
+
+        this.#applyGuidance(guidance, fields[key], null, { description: desc });
+    }
+
+    /** @type {boolean} */
+    #versionNoticeActive = false;
+
+    /**
+     * Checks persisted state for version changes and handles reset.
+     * Called during connectedCallback after state restoration.
+     *
+     * The new-version notice persists until the earliest of:
+     * 1. User changes the test form field
+     * 2. A generation completes successfully (not cancelled)
+     * 3. End of the calendar day (UTC) when the notice was first shown
+     */
+    #checkVersionChange() {
+        const state = loadPersistedState();
+        const recommended = this.#recommendedVersion;
+        if (!state || !recommended) return;
+
+        const previousRecommended = state['recommendedAtSave'];
+        const noticeShownAt = state['versionNoticeShownAt'];
+
+        // Check if a prior notice should still be displayed
+        if (noticeShownAt) {
+            const shownDate = new Date(noticeShownAt).toISOString().slice(0, 10);
+            const today = new Date().toISOString().slice(0, 10);
+            if (shownDate === today) {
+                // Same calendar day — re-show the notice
+                this.#showVersionNotice();
+                return;
+            }
+            // Past the calendar day — clear the notice state
+            delete state['versionNoticeShownAt'];
+            savePersistedState(state);
+        }
+
+        if (previousRecommended && previousRecommended !== recommended) {
+            // Recommended version has changed since last save — reset test form selection
+            const select = /** @type {HTMLSelectElement | null} */ (this.querySelector('#test-form-version-select'));
+            if (select && [...select.options].some(opt => opt.value === recommended)) {
+                select.value = recommended;
+                this.#showVersionNotice();
+                // Persist the updated selection with notice timestamp
+                state['versionNoticeShownAt'] = new Date().toISOString();
+                savePersistedState(state);
+                this.#persistState();
+            }
+        }
+    }
+
+    /**
+     * Shows the new-version notice on the test form field.
+     */
+    #showVersionNotice() {
+        this.#versionNoticeActive = true;
+        const select = this.querySelector('#test-form-version-select');
+        this.#applyGuidance(
+            this.querySelector('#test-form-version-guidance'),
+            this.#details?.fields?.testFormVersion?.newVersionAvailable,
+            select?.closest('label'),
+        );
+    }
+
+    /**
+     * Dismisses the new-version notice.
+     * Called when the user changes the test form field or completes generation.
+     */
+    #dismissVersionNotice() {
+        if (!this.#versionNoticeActive) return;
+        this.#versionNoticeActive = false;
+        const state = loadPersistedState();
+        if (state) {
+            delete state['versionNoticeShownAt'];
+            savePersistedState(state);
+        }
+        // Guidance will be updated to the normal state by #updateTestFormGuidance
+    }
+
     connectedCallback() {
         // ----------------------------------------------------------------
         // Restore persisted state from localStorage
         // ----------------------------------------------------------------
         this.#restorePersistedState();
+
+        // ----------------------------------------------------------------
+        // Load field guidance details (after state restoration so guidance
+        // reflects the restored selection, not the HTML default)
+        // ----------------------------------------------------------------
+        fetch(new URL('../details.json', import.meta.url).href)
+            .then(r => r.json())
+            .then(details => {
+                this.#details = details;
+                this.#populateStaticContent();
+                this.#checkVersionChange();
+                this.#updateTestFormGuidance();
+                this.#updateBitDepthGuidance();
+                this.#updateProfileGuidance();
+                this.#updateDocketAwareGuidance();
+            })
+            .catch(() => { /* details.json not available — guidance disabled */ });
 
         // Bind Clear Cache button
         const clearCacheButton = this.querySelector('#test-form-clear-cache-button');
@@ -163,6 +494,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         const testFormVersionSelect = this.querySelector('#test-form-version-select');
         if (testFormVersionSelect) {
             testFormVersionSelect.addEventListener('change', () => {
+                this.#dismissVersionNotice();
                 this.#cachedManifestVersion = null;
                 this.#cachedManifest = null;
                 this.#filtersPopulated = false;
@@ -170,15 +502,26 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                     this.querySelector('#customization-details')
                 );
                 if (details?.open) this.#ensureFiltersPopulated();
+                this.#updateTestFormGuidance();
+                this.#updateBitDepthGuidance();
+                this.#updateDocketAwareGuidance();
                 this.#persistState();
             });
         }
 
-        // Update auto state when ICC profile changes
+        // Update auto state and profile guidance when ICC profile changes
         const iccProfileInput = this.querySelector('#icc-profile-input');
         if (iccProfileInput) {
             iccProfileInput.addEventListener('change', () => {
                 this.#updateAutoState();
+            });
+        }
+
+        // Update bit depth guidance when selection changes
+        for (const radio of this.querySelectorAll('input[name="bit-depth-mode"]')) {
+            radio.addEventListener('change', () => {
+                this.#updateBitDepthGuidance();
+                this.#persistState();
             });
         }
 
@@ -308,6 +651,10 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             // When checkboxes.length === 0, the existing state[`dynamic:${stateKey}`]
             // from loadPersistedState() is preserved — not overwritten.
         }
+
+        // Track the recommended version at save time for version change detection
+        const recommended = this.#recommendedVersion;
+        if (recommended) state['recommendedAtSave'] = recommended;
 
         savePersistedState(state);
     }
@@ -540,20 +887,19 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                 const buffer = await iccProfileFile.arrayBuffer();
                 const header = ICCService.parseICCHeaderFromSource(buffer);
 
-                if (header.colorSpace === 'RGB') {
-                    previewCategory = 'RGB';
-                } else if (header.colorSpace === 'CMYK') {
-                    // Run the full Max GCR test
-                    const analysis = await OutputProfileAnalyzer.analyzeProfile(
-                        buffer, header, policyData.maxGCRTest,
-                    );
-                    previewCategory = analysis.profileCategory;
-                }
+                const analysis = await OutputProfileAnalyzer.analyzeProfile(
+                    buffer, header, policyData.maxGCRTest, policyData.profileCategories,
+                );
+                previewCategory = analysis.profileCategory;
+                this.#updateProfileGuidance({ colorSpace: header.colorSpace, description: header.description, profileCategory: previewCategory });
 
                 console.log(`${CONTEXT_PREFIX} [TestFormGeneratorAppElement] Auto preview: profile category = ${previewCategory}`);
             } catch (error) {
                 console.warn(`${CONTEXT_PREFIX} [TestFormGeneratorAppElement] Failed to analyze ICC profile for auto preview:`, error);
+                this.#updateProfileGuidance();
             }
+        } else {
+            this.#updateProfileGuidance();
         }
 
         const categoryDefinition = policyData.profileCategories[previewCategory];
@@ -738,7 +1084,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         /** @type {8 | 16 | undefined} */
         const outputBitsPerComponent = bitDepthValue === '8-bit' ? 8
             : bitDepthValue === '16-bit' ? 16
-            : undefined;
+                : undefined;
 
         // ----------------------------------------------------------------
         // Collect assembly overrides from filter controls
@@ -824,7 +1170,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                 return !input?.value?.trim();
             });
             if (emptyFields.length > 0) {
-                validationErrors.push('Please fill in all specification fields, or enable Debugging to skip validation.');
+                validationErrors.push('Please fill in all specification fields.');
             }
         }
 
@@ -839,7 +1185,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         }
 
         if (validationErrors.length > 0) {
-            alert(validationErrors.join('\n\n'));
+            alert(validationErrors.join('\n'));
             return;
         }
 
@@ -979,29 +1325,29 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                 done: [100, 100],
             }
             : processingStrategy === 'recombined-chains'
-            ? {
-                loading: [0, 2],
-                downloading: [2, 30],
-                preparing: [30, 32],
-                assembling: [32, 34],
-                converting: [34, 36],
-                slugs: [36, 40],
-                chains: [40, 88],
-                recombining: [88, 95],
-                saving: [95, 100],
-                done: [100, 100],
-            }
-            : {
-                loading: [0, 2],
-                downloading: [2, 30],
-                preparing: [30, 32],
-                assembling: [32, 34],
-                converting: [34, 78],
-                slugs: [78, 90],
-                finalizing: [90, 95],
-                saving: [95, 100],
-                done: [100, 100],
-            };
+                ? {
+                    loading: [0, 2],
+                    downloading: [2, 30],
+                    preparing: [30, 32],
+                    assembling: [32, 34],
+                    converting: [34, 36],
+                    slugs: [36, 40],
+                    chains: [40, 88],
+                    recombining: [88, 95],
+                    saving: [95, 100],
+                    done: [100, 100],
+                }
+                : {
+                    loading: [0, 2],
+                    downloading: [2, 30],
+                    preparing: [30, 32],
+                    assembling: [32, 34],
+                    converting: [34, 78],
+                    slugs: [78, 90],
+                    finalizing: [90, 95],
+                    saving: [95, 100],
+                    done: [100, 100],
+                };
 
         /**
          * Format milliseconds as m:ss (for live progress timers).
@@ -1281,6 +1627,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
      * @param {ArrayBuffer} options.iccProfileBuffer
      * @param {boolean} options.debugging
      * @param {boolean} options.includeOutputProfile
+     * @param {string} options.environmentSuffix
      */
     async #downloadGenerationResult(result, { testFormName, outputProfileBasename, iccProfileBuffer, debugging, includeOutputProfile, environmentSuffix }) {
         const { pdfBuffer, metadataJSON, docketPDFBuffer } = result;
@@ -1322,6 +1669,9 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                 );
             }
         }
+
+        // Generation completed successfully — dismiss the new-version notice
+        this.#dismissVersionNotice();
     }
 
     /**
@@ -1342,6 +1692,8 @@ export class TestFormGeneratorAppElement extends HTMLElement {
      * @param {string} options.outputProfileBasename
      * @param {(stage: string, percent: number, message?: string) => void} options.handleProgress
      * @param {(state: import('../classes/test-form-pdf-document-generator.js').FetchState) => void} options.onDownloadProgress
+     * @param {string} options.environmentSuffix
+     * @param {(cancelHandler: () => void) => void} options.setCancelHandler
      */
     async #runOnMainThread({
         testFormVersion, resources, iccProfileBuffer, userMetadata,
@@ -1429,6 +1781,8 @@ export class TestFormGeneratorAppElement extends HTMLElement {
      * @param {string} options.outputProfileBasename
      * @param {(stage: string, percent: number, message?: string) => void} options.handleProgress
      * @param {(state: any) => void} options.onDownloadProgress
+     * @param {string} options.environmentSuffix
+     * @param {(cancelHandler: () => void) => void} options.setCancelHandler
      */
     async #runInBootstrapWorker({
         testFormVersion, resources, iccProfileBuffer, userMetadata,
@@ -1442,7 +1796,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         const worker = new Worker(workerURL, { type: 'module' });
 
         /** @type {(reason: Error) => void} */
-        let rejectCurrent = () => {};
+        let rejectCurrent = () => { };
         setCancelHandler?.(() => {
             worker.terminate();
             rejectCurrent(new Error('Generation cancelled'));
