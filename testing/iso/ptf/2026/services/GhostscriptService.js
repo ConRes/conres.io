@@ -94,7 +94,7 @@ export class GhostscriptService {
      * Processes PostScript data with Ghostscript
      * @param {string} slugTemplateText - The slug template text
      * @param {{ pages: Array<{ metadata: { title?: string, variant?: string, colorSpace?: string, resolution?: { values?: number[], value?: number, unit?: string } } }> }} slugData - Data to inject into the template
-     * @param {{slugs?: Partial<Record<'device'|'colorants'|'substrate'|'settings'|'email', string>>, renderingIntent?: string, profileCategory?: string, outputProfileName?: string}} metadata - Metadata for the slug
+     * @param {{slugs?: Partial<Record<'device'|'colorants'|'substrate'|'settings'|'email', string>>, renderingIntent?: string, profileCategory?: string, outputProfileName?: string, timestamp?: string}} metadata - Metadata for the slug
      * @returns {string} - The processed PostScript
      */
     static processSlugTemplate(slugTemplateText, slugData, metadata) {
@@ -156,7 +156,7 @@ export class GhostscriptService {
                     metadata?.slugs?.email ?? "user@example.com",
                     /^(?<YYYY>\d{4})-(?<MM>\d{2})-(?<DD>\d{2})T(?<hh>\d{2}):(?<mm>\d{2}):(?<ss>\d{2})\.\d+Z$/[
                         Symbol.replace
-                    ](new Date().toISOString(), "$<YYYY>-$<MM>-$<DD> $<hh>:$<mm>:$<ss>"),
+                    ](metadata?.timestamp ?? new Date().toISOString(), "$<YYYY>-$<MM>-$<DD> $<hh>:$<mm>:$<ss>"),
                 ]
                     .filter(Boolean)
                     .join(" ")}) def`,
