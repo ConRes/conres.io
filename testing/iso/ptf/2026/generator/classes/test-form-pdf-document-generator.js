@@ -194,6 +194,9 @@ export class TestFormPDFDocumentGenerator {
     /** @type {boolean} */
     #useWorkers;
 
+    /** @type {string} ISO timestamp shared across all PDFs in a generation session */
+    #generationTimestamp = '';
+
     /** @type {'in-place' | 'separate-chains' | 'recombined-chains'} */
     #processingStrategy;
 
@@ -252,6 +255,11 @@ export class TestFormPDFDocumentGenerator {
      */
     async generate(iccProfileBuffer, userMetadata, callbacks = {}) {
         const { onProgress = () => { } } = callbacks;
+
+        // Single timestamp for the entire generation session — used in metadata,
+        // slug QR codes, and docket. All PDFs from the same generation share this
+        // timestamp so they can be identified as a set without private details.
+        this.#generationTimestamp = new Date().toISOString();
 
         // ----------------------------------------------------------------
         // 1. Load manifest
@@ -1097,6 +1105,7 @@ export class TestFormPDFDocumentGenerator {
                 renderingIntent: renderingIntentLabel,
                 profileCategory: profileCategoryLabel,
                 outputProfileName: this.#outputProfileName,
+                timestamp: this.#generationTimestamp,
             },
         );
 
@@ -2014,7 +2023,7 @@ export class TestFormPDFDocumentGenerator {
 
         return JSON.stringify({
             testFormVersion: this.#testFormVersion,
-            generatedAt: new Date().toISOString(),
+            generatedAt: this.#generationTimestamp,
             runtime: {
                 navigator: {
                     browser: `${environment.browser} ${environment.browserVersion}`,
