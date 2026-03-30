@@ -138,11 +138,8 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
     /** @type {boolean} */
     #ownsProfilePool = false;
 
-    /** @type {typeof import('pako') | null} */
-    #pako = null;
-
-    /** @type {string | undefined} */
-    #resolvedPakoEntrypoint;
+    /** @type {typeof import('../../helpers/compression.js') | null} */
+    #compression = null;
 
     /** @type {Promise<void>} */
     #ready;
@@ -192,15 +189,8 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
         // BufferRegistry is always owned (pass diagnostics for span tracking)
         this.#bufferRegistry = new BufferRegistry({ diagnostics: this.diagnostics });
 
-        // Resolve pako package entrypoint to an absolute URL.
-        // If the consumer provides an explicit pakoPackageEntrypoint, use it as-is
-        // (consumer is responsible for providing a usable absolute URL).
-        // Otherwise, resolve using a relative path to the vendored pako package.
-        this.#resolvedPakoEntrypoint = config.pakoPackageEntrypoint
-            ?? new URL('../../packages/pako/dist/pako.mjs', import.meta.url).href;
-
-        // Load pako for ICC profile decompression using the resolved entrypoint
-        this.#pako = await import(this.#resolvedPakoEntrypoint);
+        // Load compression provider for ICC profile decompression
+        this.#compression = await import('../../helpers/compression.js');
 
         // WorkerPool handled by CompositeColorConverter parent
 
@@ -220,7 +210,7 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
                 blackPointCompensation: config.blackPointCompensation,
                 useAdaptiveBPCClamping: config.useAdaptiveBPCClamping,
                 destinationColorSpace: config.destinationColorSpace,
-                pakoPackageEntrypoint: this.#resolvedPakoEntrypoint,
+                pakoPackageEntrypoint: undefined, // Deprecated: children use helpers/compression.js
             });
         }
     }
@@ -308,7 +298,7 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
             colorEnginePath: base.colorEnginePath,
 
             // Resolved pako entrypoint (propagate to child converters)
-            pakoPackageEntrypoint: this.#resolvedPakoEntrypoint,
+            pakoPackageEntrypoint: undefined, // Deprecated: children use helpers/compression.js
 
             // Shared BufferRegistry for cross-instance caching
             bufferRegistry: this.#bufferRegistry,
@@ -434,7 +424,7 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
                     await pageConverter.ensureReady();
 
                     // Collect images and content streams for this page
-                    const pageData = this.#collectPageData(page, pdfContext, pageIndex);
+                    const pageData = await this.#collectPageData(page, pdfContext, pageIndex);
 
                     result = await pageConverter.convertColor({
                         pageLeaf: /** @type {import('pdf-lib').PDFPageLeaf} */ (pdfContext.lookup(pageRef)),
@@ -485,9 +475,12 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
             });
         }
 
-        // Update PDF producer with color engine version for traceability
+        // Update PDF producer with color engine version for traceability (once)
+        const colorEngineSuffix = `(Color-Engine ${engineVersion.replace(/^color-engine-/, '')})`;
         const existingProducer = pdfDocument.getProducer()?.trim() || 'Unknown';
-        pdfDocument.setProducer(`${existingProducer} (Color-Engine ${engineVersion.replace(/^color-engine-/, '')})`);
+        if (!existingProducer.includes(colorEngineSuffix)) {
+            pdfDocument.setProducer(`${existingProducer} ${colorEngineSuffix}`);
+        }
 
         return {
             pagesProcessed: pageFilter ? pageFilter.size : allPages.length,
@@ -506,7 +499,7 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
      * @param {import('pdf-lib').PDFContext} context
      * @param {number} pageIndex
      */
-    #collectPageData(page, context, pageIndex) {
+    async #collectPageData(page, context, pageIndex) {
         /** @type {import('./pdf-page-color-converter.js').PDFPageColorConverterInputImage[]} */
         const images = [];
         /** @type {import('./pdf-page-color-converter.js').PDFPageColorConverterContentStreamImage[]} */
@@ -525,7 +518,7 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
                 : [contents];
 
             // Extract color space definitions for this page
-            const colorSpaceDefinitions = this.#extractColorSpaceDefinitions(pageDict, context);
+            const colorSpaceDefinitions = await this.#extractColorSpaceDefinitions(pageDict, context);
 
             for (const contentRef of contentRefs) {
                 if (contentRef instanceof PDFRef) {
@@ -562,7 +555,7 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
                                 if (obj instanceof PDFRawStream) {
                                     const subtype = obj.dict.get(PDFName.of('Subtype'));
                                     if (subtype instanceof PDFName && subtype.asString() === '/Image') {
-                                        const colorSpaceInfo = this.#getImageColorSpaceInfo(obj.dict, context);
+                                        const colorSpaceInfo = await this.#getImageColorSpaceInfo(obj.dict, context);
                                         if (colorSpaceInfo && !colorSpaceInfo.type.includes('CMYK')) {
                                             images.push({
                                                 ref,
@@ -592,7 +585,7 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
      * @param {import('pdf-lib').PDFContext} context
      * @returns {Record<string, PDFColorSpaceDefinition>}
      */
-    #extractColorSpaceDefinitions(pageDict, context) {
+    async #extractColorSpaceDefinitions(pageDict, context) {
         /** @type {Record<string, PDFColorSpaceDefinition>} */
         const definitions = {};
 
@@ -640,7 +633,7 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
                             : iccRef;
 
                         if (iccStream instanceof PDFRawStream) {
-                            const profileData = this.#getDecompressedStreamContents(iccStream);
+                            const profileData = await this.#getDecompressedStreamContents(iccStream);
                             const iccColorSpace = this.#getICCColorSpace(profileData);
                             // Map to normalized type (sGray, sRGB, etc.)
                             def.colorSpaceType = this.#normalizeColorSpaceType(iccColorSpace);
@@ -734,23 +727,15 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
      * Handles FlateDecode compressed streams.
      *
      * @param {import('pdf-lib').PDFRawStream} stream
-     * @returns {Uint8Array}
+     * @returns {Promise<Uint8Array>}
      */
-    #getDecompressedStreamContents(stream) {
+    async #getDecompressedStreamContents(stream) {
         const filter = stream.dict.get(PDFName.of('Filter'));
         const contents = stream.contents;
 
-        // Check if FlateDecode compressed
         if (filter instanceof PDFName && filter.asString() === '/FlateDecode') {
             try {
-                // Use pako for decompression (same as pdfImageColorConverter)
-                // Dynamic import would be cleaner but sync decompression is needed here
-                const pako = this.#pako;
-                if (pako) {
-                    return pako.inflate(contents);
-                }
-                // Fallback: try using built-in DecompressionStream if available
-                console.warn(`${CONTEXT_PREFIX} [PDFDocumentColorConverter] pako not loaded, returning compressed data`);
+                return await this.#compression.inflateToBuffer(contents);
             } catch (error) {
                 console.warn(`${CONTEXT_PREFIX} [PDFDocumentColorConverter] Failed to decompress stream:`, error.message);
             }
@@ -766,7 +751,7 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
      * @param {import('pdf-lib').PDFContext} context
      * @returns {PDFColorSpaceInformation?}
      */
-    #getImageColorSpaceInfo(dict, context) {
+    async #getImageColorSpaceInfo(dict, context) {
         const colorSpace = /** @type {import('pdf-lib').PDFName | import('pdf-lib').PDFRef | import('pdf-lib').PDFArray | undefined} */ (dict.get(PDFName.of('ColorSpace')));
         const bitsPerComponent = /** @type {import('pdf-lib').PDFNumber | undefined} */ (dict.get(PDFName.of('BitsPerComponent')))?.asNumber?.() || 8;
 
@@ -807,7 +792,7 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
 
                             if (n === 3) {
                                 // Get profile data (may need decompression)
-                                const profileData = this.#getDecompressedStreamContents(profileStream);
+                                const profileData = await this.#getDecompressedStreamContents(profileStream);
                                 return {
                                     type: 'ICCBased-RGB',
                                     components: 3,
@@ -816,7 +801,7 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
                                 };
                             } else if (n === 4) {
                                 // Get profile data (may need decompression)
-                                const profileData = this.#getDecompressedStreamContents(profileStream);
+                                const profileData = await this.#getDecompressedStreamContents(profileStream);
                                 return {
                                     type: 'ICCBased-CMYK',
                                     components: 4,
@@ -825,7 +810,7 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
                                 };
                             } else if (n === 1) {
                                 // Grayscale ICC profile
-                                const profileData = this.#getDecompressedStreamContents(profileStream);
+                                const profileData = await this.#getDecompressedStreamContents(profileStream);
                                 return {
                                     type: 'ICCBased-Gray',
                                     components: 1,
@@ -891,7 +876,7 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
                                     if (profileStream instanceof PDFRawStream) {
                                         const nItem = profileStream.dict.get(PDFName.of('N'));
                                         const n = nItem instanceof PDFNumber ? nItem.asNumber() : 0;
-                                        const profileData = this.#getDecompressedStreamContents(profileStream);
+                                        const profileData = await this.#getDecompressedStreamContents(profileStream);
                                         if (n === 3) {
                                             baseInfo = { type: 'ICCBased-RGB', components: 3, inputFormat: TYPE_RGB_8, sourceProfile: profileData };
                                         } else if (n === 4) {
@@ -912,7 +897,7 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
                         if (lookupItem instanceof PDFRef) {
                             const lookupStream = context.lookup(lookupItem);
                             if (lookupStream instanceof PDFRawStream) {
-                                lookupData = this.#getDecompressedStreamContents(lookupStream);
+                                lookupData = await this.#getDecompressedStreamContents(lookupStream);
                             }
                         } else if (lookupItem instanceof PDFHexString) {
                             // Hex string lookup table - decode hex to bytes

@@ -13,7 +13,10 @@
  * @ai Claude Opus 4.6 (code generation)
  */
 
-import { PDFDocument, StandardFonts } from '../../packages/pdf-lib/pdf-lib.esm.js';
+import {
+    PDFDocument, StandardFonts,
+    PDFName, PDFString, PDFHexString, PDFDict, PDFArray, PDFRef, PDFRawStream,
+} from '../../packages/pdf-lib/pdf-lib.esm.js';
 
 import {
     uint8ArrayToBase64,
@@ -28,6 +31,7 @@ import { ManifestColorSpaceResolver } from './manifest-color-space-resolver.js';
 import { AssetPagePreConverter } from './asset-page-pre-converter.js';
 import { OutputProfileAnalyzer } from './output-profile-analyzer.js';
 import { AssemblyPolicyResolver } from './assembly-policy-resolver.js';
+import { getEnvironmentDescriptor } from './environment-descriptor.js';
 
 // ============================================================================
 // Constants
@@ -247,7 +251,7 @@ export class TestFormPDFDocumentGenerator {
      * @returns {Promise<GenerationResult>}
      */
     async generate(iccProfileBuffer, userMetadata, callbacks = {}) {
-        const { onProgress = () => {} } = callbacks;
+        const { onProgress = () => { } } = callbacks;
 
         // ----------------------------------------------------------------
         // 1. Load manifest
@@ -280,10 +284,6 @@ export class TestFormPDFDocumentGenerator {
         await onProgress('preparing', 30, 'Parsing ICC profile\u2026');
         const iccProfileHeader = ICCService.parseICCHeaderFromSource(iccProfileBuffer);
 
-        if (iccProfileHeader.colorSpace !== 'CMYK' && iccProfileHeader.colorSpace !== 'RGB') {
-            throw new Error(`Destination profile must be CMYK or RGB. Got: ${iccProfileHeader.colorSpace}`);
-        }
-
         console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] ICC profile:`, {
             colorSpace: iccProfileHeader.colorSpace,
             description: iccProfileHeader.description,
@@ -299,6 +299,7 @@ export class TestFormPDFDocumentGenerator {
             iccProfileBuffer,
             iccProfileHeader,
             policyResolver.policyData.maxGCRTest,
+            policyResolver.policyData.profileCategories,
         );
 
         const assemblyPlan = policyResolver.resolve(
@@ -319,7 +320,7 @@ export class TestFormPDFDocumentGenerator {
         // ----------------------------------------------------------------
         const manifestURL = this.#resources
             ? this.#resources.manifest
-            : resolveAssetURL(/** @type {string} */ (this.#assetBase), 'manifest.json');
+            : resolveAssetURL(/** @type {string} */(this.#assetBase), 'manifest.json');
 
         /**
          * Resolves a manifest-relative profile path to a fetchable URL.
@@ -350,6 +351,7 @@ export class TestFormPDFDocumentGenerator {
                 manifest, metadataJSON, iccProfileBuffer, iccProfileHeader,
                 colorSpaceResolver, userMetadata,
                 assemblyPlan.generationPasses.map(p => p.intentPass),
+                policyResolver.policyData.availableCustomIntents,
             );
 
             console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Docket PDF generated: ${docketPDFBuffer ? (docketPDFBuffer.byteLength / 1024).toFixed(1) + ' KB' : 'null'}`);
@@ -671,7 +673,7 @@ export class TestFormPDFDocumentGenerator {
      * @returns {Promise<GenerationResult>}
      */
     async #generateMultiIntentPasses(assetPDFBuffer, manifestBuffer, iccProfileBuffer, iccProfileHeader, colorSpaceResolver, assemblyPlan, userMetadata, callbacks, docketPDFBuffer = null) {
-        const { onProgress = () => {}, onChainOutput } = callbacks;
+        const { onProgress = () => { }, onChainOutput } = callbacks;
 
         const metadataJSON = this.#buildMetadataJSON(
             assemblyPlan.generationPasses[0].manifest,
@@ -797,7 +799,7 @@ export class TestFormPDFDocumentGenerator {
      * @returns {Promise<GenerationResult>}
      */
     async #generateSeparateChains(assetPDFBuffer, manifest, manifestBuffer, iccProfileBuffer, iccProfileHeader, colorSpaceResolver, userMetadata, callbacks, docketPDFBuffer = null) {
-        const { onProgress = () => {}, onChainOutput } = callbacks;
+        const { onProgress = () => { }, onChainOutput } = callbacks;
         const recombine = this.#processingStrategy === 'recombined-chains';
 
         // ------------------------------------------------------------------
@@ -1098,7 +1100,6 @@ export class TestFormPDFDocumentGenerator {
         const resources = {};
         resources['input/Barcode.ps'] = barcodeBuffer;
         resources['input/Slugs.ps'] = new TextEncoder().encode(slugSourceText).buffer;
-        resources['input/Output.icc'] = iccProfileBuffer;
 
         const slugsPDFBuffer = await GhostscriptService.generateSlugsPDF(
             resources,
@@ -1149,6 +1150,19 @@ export class TestFormPDFDocumentGenerator {
             `Device${iccProfileHeader.colorSpace}`,
         );
         console.timeEnd('replaceTransarencyBlendingSpaceInPDFDocument');
+
+        // Set TrimBox, BleedBox, CropBox from MediaBox on pages that lack them.
+        // Pages assembled via embedPage/drawPage don't inherit source page boxes.
+        for (const page of document.getPages()) {
+            const node = page.node;
+            const mediaBox = node.lookup(PDFName.of('MediaBox'));
+            if (!mediaBox) continue;
+            for (const boxName of ['TrimBox', 'BleedBox', 'CropBox']) {
+                if (!node.get(PDFName.of(boxName))) {
+                    node.set(PDFName.of(boxName), mediaBox);
+                }
+            }
+        }
     }
 
     /**
@@ -1164,7 +1178,7 @@ export class TestFormPDFDocumentGenerator {
     async #postProcessDocument(document, iccProfileHeader, iccProfileBuffer, manifestBuffer) {
         // Always use the user's destination ICC profile for the output intent
         // (not a source profile extracted from the document)
-        PDFService.setOutputIntentForPDFDocument(document, {
+        await PDFService.setOutputIntentForPDFDocument(document, {
             iccProfile: new Uint8Array(iccProfileBuffer),
             identifier: iccProfileHeader.description || `ICCBased_${iccProfileHeader.colorSpace}`,
             subType: 'GTS_PDFX',
@@ -1176,6 +1190,230 @@ export class TestFormPDFDocumentGenerator {
             manifestBuffer,
             'test-form.manifest.json',
         );
+
+        // Add Document ID if missing (required by PDF/X standards)
+        if (!document.context.trailerInfo.ID) {
+            const generateHexId = () => {
+                const bytes = new Uint8Array(16);
+                for (let i = 0; i < 16; i++) bytes[i] = Math.floor(Math.random() * 256);
+                return PDFHexString.of(Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(''));
+            };
+            const idArray = PDFArray.withContext(document.context);
+            idArray.push(generateHexId());
+            idArray.push(generateHexId());
+            document.context.trailerInfo.ID = document.context.register(idArray);
+        }
+
+        // Add Name entry to OCCD if OCProperties exists but D lacks Name
+        const ocProps = document.catalog.lookup(PDFName.of('OCProperties'));
+        if (ocProps instanceof PDFDict) {
+            const d = ocProps.lookup(PDFName.of('D'));
+            if (d instanceof PDFDict && !d.get(PDFName.of('Name'))) {
+                d.set(PDFName.of('Name'), PDFString.of('Default'));
+            }
+
+            // Register any OCGs referenced in content but not in OCProperties/OCGs
+            const ocgsArray = ocProps.lookup(PDFName.of('OCGs'));
+            if (ocgsArray instanceof PDFArray) {
+                const registeredRefs = new Set();
+                for (let i = 0; i < ocgsArray.size(); i++) {
+                    const ref = ocgsArray.get(i);
+                    if (ref instanceof PDFRef) registeredRefs.add(ref.toString());
+                }
+
+                /** @type {PDFRef[]} */
+                const missingRefs = [];
+                const missingRefStrings = new Set();
+
+                for (const [, obj] of document.context.enumerateIndirectObjects()) {
+                    if (!(obj instanceof PDFRawStream) && !(obj instanceof PDFDict)) continue;
+                    const dict = obj instanceof PDFRawStream ? obj.dict : obj;
+
+                    const oc = dict.get(PDFName.of('OC'));
+                    if (oc instanceof PDFRef && !registeredRefs.has(oc.toString()) && !missingRefStrings.has(oc.toString())) {
+                        const ocObj = document.context.lookup(oc);
+                        if (ocObj instanceof PDFDict) {
+                            const type = ocObj.get(PDFName.of('Type'));
+                            if (type instanceof PDFName && type.encodedName === '/OCG') {
+                                missingRefStrings.add(oc.toString());
+                                missingRefs.push(oc);
+                            }
+                        }
+                    }
+
+                    const resources = dict.lookup(PDFName.of('Resources'));
+                    if (resources instanceof PDFDict) {
+                        const properties = resources.lookup(PDFName.of('Properties'));
+                        if (properties instanceof PDFDict) {
+                            for (const [, propVal] of properties.entries()) {
+                                if (!(propVal instanceof PDFRef)) continue;
+                                if (registeredRefs.has(propVal.toString()) || missingRefStrings.has(propVal.toString())) continue;
+                                const propObj = document.context.lookup(propVal);
+                                if (propObj instanceof PDFDict) {
+                                    const type = propObj.get(PDFName.of('Type'));
+                                    if (type instanceof PDFName && type.encodedName === '/OCG') {
+                                        missingRefStrings.add(propVal.toString());
+                                        missingRefs.push(propVal);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (missingRefs.length > 0) {
+                    for (const ref of missingRefs) ocgsArray.push(ref);
+                    if (d instanceof PDFDict) {
+                        const onArray = d.lookup(PDFName.of('ON'));
+                        if (onArray instanceof PDFArray) {
+                            for (const ref of missingRefs) onArray.push(ref);
+                        }
+                        const orderArray = d.lookup(PDFName.of('Order'));
+                        if (orderArray instanceof PDFArray) {
+                            for (const ref of missingRefs) orderArray.push(ref);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Generate or patch XMP metadata for PDF/X-4 conformance
+        await this.#ensureXMPMetadata(document, iccProfileHeader);
+    }
+
+    /**
+     * Ensure XMP metadata exists and contains required PDF/X-4 entries.
+     * Creates minimal XMP if missing, patches existing XMP if incomplete.
+     *
+     * @param {PDFDocument} document
+     * @param {{ colorSpace: string, description: string }} iccProfileHeader
+     */
+    async #ensureXMPMetadata(document, iccProfileHeader) {
+        const nowDate = new Date();
+        const xmpNow = nowDate.toISOString().replace(/\.\d+Z$/, 'Z');
+        const pdfNow = `D:${nowDate.getUTCFullYear()}${String(nowDate.getUTCMonth() + 1).padStart(2, '0')}${String(nowDate.getUTCDate()).padStart(2, '0')}${String(nowDate.getUTCHours()).padStart(2, '0')}${String(nowDate.getUTCMinutes()).padStart(2, '0')}${String(nowDate.getUTCSeconds()).padStart(2, '0')}Z`;
+
+        // Extract Info dict values
+        let title = '', creator = '', producer = '', creationDate = '';
+        const infoRef = document.context.trailerInfo.Info;
+        if (infoRef) {
+            const info = infoRef instanceof PDFRef ? document.context.lookup(infoRef) : infoRef;
+            if (info instanceof PDFDict) {
+                const getStr = (key) => {
+                    const val = info.lookup(PDFName.of(key));
+                    if (val instanceof PDFString) return val.value;
+                    if (val instanceof PDFHexString) return val.decodeText();
+                    return '';
+                };
+                title = getStr('Title');
+                creator = getStr('Creator');
+                producer = getStr('Producer');
+                creationDate = getStr('CreationDate');
+
+                // Sync Info dict ModDate
+                info.set(PDFName.of('ModDate'), PDFString.of(pdfNow));
+            }
+        }
+
+        const pdfDateToISO = (pdfDate) => {
+            if (!pdfDate) return xmpNow;
+            const m = pdfDate.match(/D:(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/);
+            if (!m) return xmpNow;
+            return `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}Z`;
+        };
+        const createDateISO = pdfDateToISO(creationDate);
+
+        const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const versionId = crypto.randomUUID?.() ?? `${Date.now()}`;
+        const documentId = crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+        const existingMetaRef = document.catalog.get(PDFName.of('Metadata'));
+
+        if (existingMetaRef instanceof PDFRef) {
+            // Patch existing XMP using xml-markup-parser
+            try {
+                const { parseXML, serializeXML, findElementNS, getTextContent, setTextContent, createElement } =
+                    await import('../../classes/baseline/xml-markup-parser.js');
+
+                {
+                    const metaObj = document.context.lookup(existingMetaRef);
+                    if (metaObj instanceof PDFRawStream) {
+                        const xmpText = new TextDecoder('utf-8').decode(metaObj.getContents());
+                        const xmpDoc = parseXML(xmpText, { tolerant: true });
+                        const NS_RDF = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
+                        const NS_XMPMM = 'http://ns.adobe.com/xap/1.0/mm/';
+                        const NS_PDFXID = 'http://www.npes.org/pdfx/ns/id/';
+                        const NS_PDF = 'http://ns.adobe.com/pdf/1.3/';
+                        const NS_XMP = 'http://ns.adobe.com/xap/1.0/';
+
+                        const desc = findElementNS(xmpDoc, NS_RDF, 'Description');
+                        if (desc) {
+                            if (!findElementNS(desc, NS_XMPMM, 'VersionID'))
+                                createElement(desc, 'xmpMM:VersionID', NS_XMPMM, versionId);
+                            if (!findElementNS(desc, NS_XMPMM, 'DocumentID'))
+                                createElement(desc, 'xmpMM:DocumentID', NS_XMPMM, `uuid:${documentId}`);
+                            if (!findElementNS(desc, NS_XMPMM, 'RenditionClass'))
+                                createElement(desc, 'xmpMM:RenditionClass', NS_XMPMM, 'default');
+                            if (!findElementNS(desc, NS_PDFXID, 'GTS_PDFXVersion'))
+                                createElement(desc, 'pdfxid:GTS_PDFXVersion', NS_PDFXID, 'PDF/X-4');
+
+                            const producerEl = findElementNS(desc, NS_PDF, 'Producer');
+                            if (producerEl && producer && getTextContent(producerEl) !== producer)
+                                setTextContent(producerEl, producer);
+                            else if (!producerEl && producer)
+                                createElement(desc, 'pdf:Producer', NS_PDF, producer);
+
+                            const modEl = findElementNS(desc, NS_XMP, 'ModifyDate');
+                            if (modEl) setTextContent(modEl, xmpNow);
+                            const metaDateEl = findElementNS(desc, NS_XMP, 'MetadataDate');
+                            if (metaDateEl) setTextContent(metaDateEl, xmpNow);
+
+                            const serialized = serializeXML(xmpDoc);
+                            const xmpBytes = new TextEncoder().encode(serialized);
+                            const newStream = document.context.stream(xmpBytes, {
+                                Type: 'Metadata', Subtype: 'XML', Length: xmpBytes.length,
+                            });
+                            document.context.assign(existingMetaRef, newStream);
+                            return; // patched successfully
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn(`${CONTEXT_PREFIX} [postProcessDocument] XMP patch failed, generating new XMP:`, e.message);
+            }
+        }
+
+        // Generate new XMP from scratch
+        const xmp = `<?xpacket begin="\uFEFF" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+    <rdf:Description rdf:about=""
+      xmlns:dc="http://purl.org/dc/elements/1.1/"
+      xmlns:xmp="http://ns.adobe.com/xap/1.0/"
+      xmlns:pdf="http://ns.adobe.com/pdf/1.3/"
+      xmlns:xmpMM="http://ns.adobe.com/xap/1.0/mm/"
+      xmlns:pdfxid="http://www.npes.org/pdfx/ns/id/">
+      <dc:title><rdf:Alt><rdf:li xml:lang="x-default">${esc(title)}</rdf:li></rdf:Alt></dc:title>
+      <xmp:CreateDate>${createDateISO}</xmp:CreateDate>
+      <xmp:ModifyDate>${xmpNow}</xmp:ModifyDate>
+      <xmp:MetadataDate>${xmpNow}</xmp:MetadataDate>
+      <xmp:CreatorTool>${esc(creator)}</xmp:CreatorTool>
+      <pdf:Producer>${esc(producer)}</pdf:Producer>
+      <xmpMM:DocumentID>uuid:${documentId}</xmpMM:DocumentID>
+      <xmpMM:VersionID>${versionId}</xmpMM:VersionID>
+      <xmpMM:RenditionClass>default</xmpMM:RenditionClass>
+      <pdfxid:GTS_PDFXVersion>PDF/X-4</pdfxid:GTS_PDFXVersion>
+    </rdf:Description>
+  </rdf:RDF>
+</x:xmpmeta>
+<?xpacket end="w"?>`;
+
+        const xmpBytes = new TextEncoder().encode(xmp);
+        const xmpStream = document.context.stream(xmpBytes, {
+            Type: 'Metadata', Subtype: 'XML', Length: xmpBytes.length,
+        });
+        const xmpRef = document.context.register(xmpStream);
+        document.catalog.set(PDFName.of('Metadata'), xmpRef);
     }
 
     /**
@@ -1195,7 +1433,7 @@ export class TestFormPDFDocumentGenerator {
      * @param {Array<{ renderingIntent: string, blackPointCompensation: boolean, label: string }>} [intentPasses]
      * @returns {Promise<ArrayBuffer | null>}
      */
-    async #generateDocketPDF(manifest, metadataJSON, iccProfileBuffer, iccProfileHeader, colorSpaceResolver, userMetadata, intentPasses) {
+    async #generateDocketPDF(manifest, metadataJSON, iccProfileBuffer, iccProfileHeader, colorSpaceResolver, userMetadata, intentPasses, availableIntents) {
         const docketConfig = manifest.docket;
 
         // Resolve docket asset page indices in the asset PDF
@@ -1272,22 +1510,32 @@ export class TestFormPDFDocumentGenerator {
         // Generate and embed slugs BEFORE text overlay (so clipping doesn't hide them)
         console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Docket slugs: userMetadata=${!!userMetadata}, pages=${docketDocument.getPageCount()}`);
         if (userMetadata) {
-            const docketPages = passes.map((pass) => ({
-                layout: 'Docket',
-                colorSpace: docketConfig.colorSpace,
-                metadata: {
-                    title: 'Docket',
-                    variant: pass.label,
+            // Generate docket slugs using the same per-pass pattern as test form pages.
+            // Each pass gets its own 1-page slug document embedded onto the corresponding
+            // docket page, with the pass-specific rendering intent label — identical to how
+            // #generateMultiIntentPasses handles test form slugs.
+            for (let passIndex = 0; passIndex < passes.length; passIndex++) {
+                const pass = passes[passIndex];
+                const docketPage = [{
+                    layout: 'Docket',
                     colorSpace: docketConfig.colorSpace,
-                },
-            }));
+                    metadata: {
+                        title: 'Docket',
+                        colorSpace: docketConfig.colorSpace,
+                    },
+                }];
 
-            const slugsDocument = await this.#generateSlugsPDF(
-                docketPages, iccProfileBuffer, iccProfileHeader, userMetadata,
-                passes.map(p => p.label).join(', '),
-                parsedMetadata.assembly?.profileCategoryLabel,
-            );
-            await PDFService.embedSlugsIntoPDFDocument(docketDocument, slugsDocument);
+                const slugsDocument = await this.#generateSlugsPDF(
+                    docketPage, iccProfileBuffer, iccProfileHeader, userMetadata,
+                    pass.label,
+                    parsedMetadata.assembly?.profileCategoryLabel,
+                );
+
+                // Embed this pass's slug onto the corresponding docket page
+                const page = docketDocument.getPage(passIndex);
+                const embeddedSlug = (await docketDocument.embedPdf(slugsDocument, [0]))[0];
+                page.drawPage(embeddedSlug);
+            }
         }
 
         // Embed fonts for text rendering (small sizes to fit all content)
@@ -1297,7 +1545,7 @@ export class TestFormPDFDocumentGenerator {
         const labelFontSize = 6;
         const lineHeight = fontSize * 1.25;
         const sectionGap = lineHeight * 0.4;
-        const labelColumnWidth = 50;
+        const emSpace = boldFont.widthOfTextAtSize('M', labelFontSize);
 
         // Draw metadata on each page (one per intent pass)
         for (let pageIndex = 0; pageIndex < passes.length; pageIndex++) {
@@ -1313,9 +1561,20 @@ export class TestFormPDFDocumentGenerator {
             };
 
             // Build fields for this pass
-            // Field types: { label, value } for text, { checkbox, checked, value } for checkboxes, null for section breaks
             /** @type {Array<{ label: string, value: string } | { checkbox: true, checked: boolean, value: string } | { radio: true, selected: boolean, value: string } | null>} */
             const fields = [];
+            const settings = parsedMetadata.settings;
+            const overrides = settings?.assemblyOverrides;
+
+            // --- Generation ---
+            fields.push({ label: 'Test Form', value: parsedMetadata.testFormVersion ?? '' });
+            fields.push({ label: 'Generated', value: parsedMetadata.generatedAt ?? '' });
+            if (parsedMetadata.runtime?.navigator) {
+                const nav = parsedMetadata.runtime.navigator;
+                fields.push({ label: 'Environment', value: `${nav.browser ?? ''} (${nav.os ?? ''})` });
+            }
+
+            fields.push(null); // Section break
 
             // --- Specifications ---
             if (userMetadata) {
@@ -1328,16 +1587,10 @@ export class TestFormPDFDocumentGenerator {
 
             fields.push(null); // Section break
 
-            // --- Generation ---
-            fields.push({ label: 'Test Form', value: parsedMetadata.testFormVersion ?? '' });
-            fields.push({ label: 'Generated', value: parsedMetadata.generatedAt ?? '' });
-
-            fields.push(null); // Section break
-
             // --- Output Profile (full ICC header) ---
             if (parsedMetadata.color?.profile) {
                 const p = parsedMetadata.color.profile;
-                fields.push({ label: 'Profile', value: p.description ?? '' });
+                fields.push({ label: 'Output Profile', value: p.description ?? '' });
                 fields.push({ label: 'Color Space', value: p.colorSpace ?? '' });
                 if (p.version) fields.push({ label: 'ICC Version', value: p.version });
                 if (p.deviceClass) fields.push({ label: 'Device Class', value: p.deviceClass });
@@ -1346,79 +1599,103 @@ export class TestFormPDFDocumentGenerator {
                 if (p.copyright) fields.push({ label: 'Copyright', value: p.copyright });
             }
 
-            // --- Output Settings ---
-            const settings = parsedMetadata.settings;
+            // --- Output Bit Depth (own group) ---
+            fields.push(null); // Section break
             if (settings) {
-                fields.push({ label: 'Bit Depth', value: settings.outputBitsPerComponent === 'auto' ? 'Same as Source' : `${settings.outputBitsPerComponent}-bit` });
+                fields.push({ label: 'Output Bit Depth', value: settings.outputBitsPerComponent === 'auto' ? 'Same as Source' : `${settings.outputBitsPerComponent}-bit` });
             }
-
             if (parsedMetadata.assembly) {
                 fields.push({ label: 'Category', value: parsedMetadata.assembly.profileCategoryLabel ?? '' });
             }
-
             fields.push(null); // Section break
 
-            // --- Rendering Intents ---
-            for (let i = 0; i < passes.length; i++) {
-                fields.push({ label: `Intent ${i + 1}`, value: passes[i].label });
+            // --- Assembly Filters ---
+
+            // Intents: Auto/Custom radios inline, all available intents as checkboxes
+            // with selected passes checked
+            const intentMode = overrides?.renderingIntentOverrides ? 'Custom' : 'Auto';
+            const selectedIntentLabels = new Set(passes.map(p => p.label));
+            fields.push({
+                label: 'Intents', inline: [
+                    { radio: true, selected: intentMode === 'Auto', value: 'Auto' },
+                    { radio: true, selected: intentMode === 'Custom', value: 'Custom' },
+                ]
+            });
+            for (const intent of (availableIntents ?? passes)) {
+                fields.push({ checkbox: true, checked: selectedIntentLabels.has(intent.label), value: intent.label });
             }
 
-            fields.push(null); // Section break
-
-            // --- Assembly Filters (auto/custom + checkboxes) ---
-            const overrides = settings?.assemblyOverrides;
-
-            // Layouts
+            // Layouts: Auto/Custom radios inline, checkboxes on separate lines
             const layoutMode = overrides?.enabledLayoutNames ? 'Custom' : 'Auto';
-            fields.push({ label: 'Layouts', value: '' });
-            fields.push({ radio: true, selected: layoutMode === 'Auto', value: 'Auto' });
-            fields.push({ radio: true, selected: layoutMode === 'Custom', value: 'Custom' });
+            fields.push({
+                label: 'Layouts', inline: [
+                    { radio: true, selected: layoutMode === 'Auto', value: 'Auto' },
+                    { radio: true, selected: layoutMode === 'Custom', value: 'Custom' },
+                ]
+            });
             if (parsedMetadata.manifest?.layouts) {
                 const uniqueLayouts = [...new Set(parsedMetadata.manifest.layouts.map(
                     (/** @type {{ layout: string }} */ l) => l.layout,
                 ))];
-                const enabledSet = overrides?.enabledLayoutNames
-                    ? new Set(overrides.enabledLayoutNames)
-                    : null;
+                const enabledSet = overrides?.enabledLayoutNames ? new Set(overrides.enabledLayoutNames) : null;
                 for (const name of uniqueLayouts) {
-                    const checked = enabledSet ? enabledSet.has(name) : true;
-                    fields.push({ checkbox: true, checked, value: name });
+                    fields.push({ checkbox: true, checked: enabledSet ? enabledSet.has(name) : true, value: name });
                 }
             }
 
-            // Color Spaces
+            // Color Spaces: Auto/Custom radios inline, checkboxes inline on next line
             const colorSpaceMode = overrides?.enabledColorSpaceNames ? 'Custom' : 'Auto';
-            fields.push({ label: 'Color Spaces', value: '' });
-            fields.push({ radio: true, selected: colorSpaceMode === 'Auto', value: 'Auto' });
-            fields.push({ radio: true, selected: colorSpaceMode === 'Custom', value: 'Custom' });
-            if (parsedMetadata.manifest?.colorSpaces) {
-                const enabledSet = overrides?.enabledColorSpaceNames
-                    ? new Set(overrides.enabledColorSpaceNames)
-                    : null;
-                for (const name of Object.keys(parsedMetadata.manifest.colorSpaces)) {
-                    const checked = enabledSet ? enabledSet.has(name) : true;
-                    fields.push({ checkbox: true, checked, value: name });
-                }
+            fields.push({
+                label: 'Color Spaces', inline: [
+                    { radio: true, selected: colorSpaceMode === 'Auto', value: 'Auto' },
+                    { radio: true, selected: colorSpaceMode === 'Custom', value: 'Custom' },
+                ]
+            });
+            {
+                const enabledSet = overrides?.enabledColorSpaceNames ? new Set(overrides.enabledColorSpaceNames) : null;
+                const colorSpaceNames = parsedMetadata.manifest?.colorSpaces ? Object.keys(parsedMetadata.manifest.colorSpaces) : [];
+                fields.push({
+                    inline: colorSpaceNames.map(name =>
+                        ({ checkbox: true, checked: enabledSet ? enabledSet.has(name) : true, value: name }),
+                    )
+                });
             }
-
-            // Rendering Intent mode
-            const intentMode = overrides?.renderingIntentOverrides ? 'Custom' : 'Auto';
-            fields.push({ label: 'Intents', value: '' });
-            fields.push({ radio: true, selected: intentMode === 'Auto', value: 'Auto' });
-            fields.push({ radio: true, selected: intentMode === 'Custom', value: 'Custom' });
 
             fields.push(null); // Section break
 
             // --- Debugging ---
             if (settings) {
                 fields.push({ label: 'Debugging', value: settings.debugging ? 'Enabled' : 'Disabled' });
-                fields.push({ label: 'Workers', value: settings.useWorkers ? 'Enabled' : 'Disabled' });
-                fields.push({ label: 'Strategy', value: settings.processingStrategy ?? 'in-place' });
+                fields.push({
+                    label: 'Workers', inline: [
+                        { checkbox: true, checked: settings.useWorkers, value: 'Bootstrap' },
+                        { checkbox: true, checked: settings.useWorkers, value: 'Parallel' },
+                    ]
+                });
+                const strategy = settings.processingStrategy ?? 'in-place';
+                fields.push({
+                    label: 'Strategy', inline: [
+                        { radio: true, selected: strategy === 'in-place', value: 'In-Place' },
+                        { radio: true, selected: strategy === 'recombined-chains', value: 'Recombined' },
+                        { radio: true, selected: strategy === 'separate-chains', value: 'Separate' },
+                    ]
+                });
             }
 
             const { cmyk } = await import('../../packages/pdf-lib/pdf-lib.esm.js');
             const kBlack = cmyk(0, 0, 0, 1);
             const controlSize = fontSize * 0.7;
+
+            // Compute label column width from widest label + em space gap
+            let labelColumnWidth = 0;
+            for (const field of fields) {
+                if (field && 'label' in field && field.label) {
+                    const w = boldFont.widthOfTextAtSize(`${field.label}:`, labelFontSize);
+                    if (w > labelColumnWidth) labelColumnWidth = w;
+                }
+            }
+            labelColumnWidth += emSpace;
+
             const valueColumnX = bounds.x + labelColumnWidth;
             const maxValueWidth = bounds.width - labelColumnWidth;
 
@@ -1459,11 +1736,46 @@ export class TestFormPDFDocumentGenerator {
                 return linesDrawn;
             };
 
-            // Draw fields within bounds (PDF y-axis is bottom-up, start from top)
+            // Pre-compute explainer height to reserve space at bottom of bounds
+            let explainerText = 'Keep this file and submit it digitally alongside your physical prints. Do not print this docket.';
+            try {
+                const details = await (await fetch(new URL('../details.json', import.meta.url).href)).json();
+                if (details?.docket?.explainer) explainerText = details.docket.explainer;
+            } catch { /* Use fallback */ }
+
+            const explainerFontSize = 7;
+            const explainerLineHeight = explainerFontSize * 1.25;
+            const prefixText = 'Important Note';
+            const prefixWidth = boldFont.widthOfTextAtSize(prefixText, explainerFontSize);
+            const separatorText = ': ';
+            const separatorWidth = font.widthOfTextAtSize(separatorText, explainerFontSize);
+
+            // Measure explainer line count
+            const bodyMaxWidth = bounds.width - prefixWidth - separatorWidth;
+            let explainerLineCount = 1;
+            {
+                let line = '';
+                let firstLine = true;
+                for (const word of explainerText.split(' ')) {
+                    const testLine = line ? `${line} ${word}` : word;
+                    const maxW = firstLine ? bodyMaxWidth : bounds.width;
+                    if (font.widthOfTextAtSize(testLine, explainerFontSize) > maxW && line) {
+                        explainerLineCount++;
+                        firstLine = false;
+                        line = word;
+                    } else {
+                        line = testLine;
+                    }
+                }
+            }
+            const explainerHeight = explainerLineCount * explainerLineHeight + sectionGap;
+            const fieldsBottomY = bounds.y + explainerHeight;
+
+            // Draw fields aligned to top of bounds, stopping above explainer
             let y = bounds.y + bounds.height - lineHeight;
 
             for (const field of fields) {
-                if (y < bounds.y) break;
+                if (y < fieldsBottomY) break;
 
                 if (field === null) {
                     y -= sectionGap;
@@ -1537,6 +1849,43 @@ export class TestFormPDFDocumentGenerator {
                         font,
                         color: kBlack,
                     });
+                } else if ('inline' in field) {
+                    // Label with inline controls on the same line
+                    if (field.label) {
+                        page.drawText(`${field.label}:`, {
+                            x: bounds.x,
+                            y,
+                            size: labelFontSize,
+                            font: boldFont,
+                            color: kBlack,
+                        });
+                    }
+
+                    let inlineX = valueColumnX;
+                    for (const item of field.inline) {
+                        if ('radio' in item) {
+                            const radius = controlSize * 0.4;
+                            const rCenterY = y + controlSize * 0.45;
+                            page.drawCircle({ x: inlineX + radius, y: rCenterY, size: radius, borderWidth: 0.4, borderColor: kBlack });
+                            if (item.selected) {
+                                page.drawCircle({ x: inlineX + radius, y: rCenterY, size: radius * 0.5, color: kBlack });
+                            }
+                            page.drawText(item.value, { x: inlineX + radius * 2 + 2, y, size: fontSize, font, color: kBlack });
+                            inlineX += radius * 2 + 2 + font.widthOfTextAtSize(item.value, fontSize) + 6;
+                        } else if ('checkbox' in item) {
+                            const cbY = y + 0.5;
+                            page.drawRectangle({ x: inlineX, y: cbY, width: controlSize, height: controlSize, borderWidth: 0.3, borderColor: kBlack });
+                            if (item.checked) {
+                                const s = controlSize;
+                                page.drawSvgPath(
+                                    `M ${s * 0.15} ${s * 0.55} L ${s * 0.4} ${s * 0.85} L ${s * 0.85} ${s * 0.2}`,
+                                    { x: inlineX, y: cbY + controlSize, borderWidth: 0.6, borderColor: kBlack },
+                                );
+                            }
+                            page.drawText(item.value, { x: inlineX + controlSize + 2, y, size: fontSize, font, color: kBlack });
+                            inlineX += controlSize + 2 + font.widthOfTextAtSize(item.value, fontSize) + 6;
+                        }
+                    }
                 } else {
                     // Standard label: value field
                     if (field.label) {
@@ -1560,17 +1909,50 @@ export class TestFormPDFDocumentGenerator {
                 y -= lineHeight;
             }
 
-            // Footer: indicate which intent this page was converted with
-            const footerText = `Converted with: ${passes[pageIndex].label}`;
-            const footerY = bounds.y;
-            page.drawText(footerText, {
-                x: bounds.x,
-                y: footerY,
-                size: labelFontSize,
-                font: boldFont,
-                color: kBlack,
-            });
-        }
+            // Footer: important note explainer at bottom of bounds
+            // Draws from bottom of bounds area, first line has bold prefix
+            {
+                const explainerStartY = bounds.y + (explainerLineCount - 1) * explainerLineHeight;
+                let explainerY = explainerStartY;
+
+                // Draw prefix in bold on first line
+                page.drawText(prefixText, {
+                    x: bounds.x, y: explainerY,
+                    size: explainerFontSize, font: boldFont, color: kBlack,
+                });
+                page.drawText(separatorText, {
+                    x: bounds.x + prefixWidth, y: explainerY,
+                    size: explainerFontSize, font, color: kBlack,
+                });
+
+                // Draw body text wrapping — first line after prefix, rest full width
+                const bodyX = bounds.x + prefixWidth + separatorWidth;
+                const words = explainerText.split(' ');
+                let line = '';
+                let firstLine = true;
+                for (const word of words) {
+                    const testLine = line ? `${line} ${word}` : word;
+                    const maxW = firstLine ? bodyMaxWidth : bounds.width;
+                    if (font.widthOfTextAtSize(testLine, explainerFontSize) > maxW && line) {
+                        page.drawText(line, {
+                            x: firstLine ? bodyX : bounds.x, y: explainerY,
+                            size: explainerFontSize, font, color: kBlack,
+                        });
+                        explainerY -= explainerLineHeight;
+                        firstLine = false;
+                        line = word;
+                    } else {
+                        line = testLine;
+                    }
+                }
+                if (line) {
+                    page.drawText(line, {
+                        x: firstLine ? bodyX : bounds.x, y: explainerY,
+                        size: explainerFontSize, font, color: kBlack,
+                    });
+                }
+            }
+        } // end per-page loop
 
         // Post-process: decalibrate and set output intent
         await this.#postProcessPages(docketDocument, iccProfileHeader);
@@ -1584,7 +1966,7 @@ export class TestFormPDFDocumentGenerator {
             JSON.stringify(strippedMetadata, null, 2),
         ).buffer;
 
-        PDFService.setOutputIntentForPDFDocument(docketDocument, {
+        await PDFService.setOutputIntentForPDFDocument(docketDocument, {
             iccProfile: new Uint8Array(iccProfileBuffer),
             identifier: iccProfileHeader.description || `ICCBased_${iccProfileHeader.colorSpace}`,
             subType: 'GTS_PDFX',
@@ -1623,9 +2005,18 @@ export class TestFormPDFDocumentGenerator {
         /** @satisfies {Parameters<uint8ArrayToBase64>[1]} */
         const base64Options = { 'alphabet': 'base64' };
 
+        const environment = getEnvironmentDescriptor();
+
         return JSON.stringify({
             testFormVersion: this.#testFormVersion,
             generatedAt: new Date().toISOString(),
+            runtime: {
+                navigator: {
+                    browser: `${environment.browser} ${environment.browserVersion}`,
+                    os: environment.os,
+                    userAgent: environment.userAgent,
+                },
+            },
             metadata: userMetadata ? { slugs: userMetadata } : undefined,
             settings: {
                 debugging: this.#debugging,
@@ -1682,7 +2073,7 @@ export class TestFormPDFDocumentGenerator {
                 url = new URL(fileName, this.#resources.manifest).href;
             }
         } else {
-            url = resolveAssetURL(/** @type {string} */ (this.#assetBase), fileName);
+            url = resolveAssetURL(/** @type {string} */(this.#assetBase), fileName);
         }
         const cacheKey = url;
 
@@ -1719,11 +2110,14 @@ export class TestFormPDFDocumentGenerator {
         const cachedResponse = await cache?.match?.(url) ?? null;
         const cachedHeaders = cachedResponse?.headers ?? null;
 
-        // Use cache if available and fresh (content-length matches or no HEAD to compare)
-        const cacheIsFresh = cachedResponse && (
-            !fetchedHeaders
-            || fetchedHeaders.get('content-length') === cachedHeaders?.get('content-length')
-        );
+        // Use cache if available and fresh (ETag or Last-Modified match, content-length as last resort)
+        const cacheIsFresh = cachedResponse && (!fetchedHeaders || (() => {
+            const etag = fetchedHeaders.get('etag');
+            if (etag) return etag === cachedHeaders?.get('etag');
+            const modified = fetchedHeaders.get('last-modified');
+            if (modified) return modified === cachedHeaders?.get('last-modified');
+            return fetchedHeaders.get('content-length') === cachedHeaders?.get('content-length');
+        })());
 
         if (cacheIsFresh) {
             const contentLength = cachedResponse.headers.get('content-length');

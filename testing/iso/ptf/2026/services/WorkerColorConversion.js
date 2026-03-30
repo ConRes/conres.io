@@ -15,7 +15,7 @@
  */
 
 import { PDFRawStream, PDFName, PDFArray, PDFDict, PDFRef, PDFNumber } from '../packages/pdf-lib/pdf-lib.esm.js';
-import pako from '../packages/pako/dist/pako.mjs';
+import { inflateToBuffer } from '../helpers/compression.js';
 import {
     TYPE_RGB_8,
     TYPE_RGB_16,
@@ -37,7 +37,7 @@ import {
  * @param {PDFRawStream} stream
  * @returns {Uint8Array}
  */
-function decompressICCProfile(stream) {
+async function decompressICCProfile(stream) {
     const contents = stream.contents;
     const filter = stream.dict.get(PDFName.of('Filter'));
 
@@ -54,7 +54,7 @@ function decompressICCProfile(stream) {
 
     if (isFlate) {
         try {
-            return pako.inflate(contents);
+            return await inflateToBuffer(contents);
         } catch (e) {
             console.warn('Failed to decompress ICC profile:', e.message);
             return contents;
@@ -142,7 +142,7 @@ function isFlateEncoded(stream) {
  * @param {import('pdf-lib').PDFContext} context
  * @returns {ColorSpaceInfo | null}
  */
-function getImageColorSpaceInfo(dict, context) {
+async function getImageColorSpaceInfo(dict, context) {
     const colorSpace = dict.get(PDFName.of('ColorSpace'));
     const bpc = dict.get(PDFName.of('BitsPerComponent'))?.asNumber?.() || 8;
 
@@ -195,7 +195,7 @@ function getImageColorSpaceInfo(dict, context) {
                         const n = profileStream.dict.get(PDFName.of('N'))?.asNumber?.() || 0;
 
                         // Extract and decompress ICC profile data (profiles may be FlateDecode compressed)
-                        const profileData = decompressICCProfile(profileStream);
+                        const profileData = await decompressICCProfile(profileStream);
 
                         // Determine input format and type based on components and BPC
                         if (n === 1) {
@@ -239,17 +239,17 @@ function getImageColorSpaceInfo(dict, context) {
  * @param {import('pdf-lib').PDFDocument} pdfDocument
  * @returns {Array<{ref: import('pdf-lib').PDFRef, stream: PDFRawStream, colorSpaceInfo: ColorSpaceInfo}>}
  */
-function collectImageXObjects(pdfDocument) {
+async function collectImageXObjects(pdfDocument) {
     const context = pdfDocument.context;
     const images = [];
 
-    context.enumerateIndirectObjects().forEach(([ref, obj]) => {
+    await Promise.all(context.enumerateIndirectObjects().map(async ([ref, obj]) => {
         if (obj instanceof PDFRawStream) {
             const dict = obj.dict;
             const subtype = dict.get(PDFName.of('Subtype'));
 
             if (subtype instanceof PDFName && subtype.asString() === '/Image') {
-                const colorSpaceInfo = getImageColorSpaceInfo(dict, context);
+                const colorSpaceInfo = await getImageColorSpaceInfo(dict, context);
 
                 // Only process images with supported color spaces (not already CMYK)
                 if (colorSpaceInfo && !colorSpaceInfo.type.includes('CMYK')) {
@@ -257,7 +257,7 @@ function collectImageXObjects(pdfDocument) {
                 }
             }
         }
-    });
+    }));
 
     return images;
 }
@@ -398,15 +398,15 @@ function collectContentStreams(pdfDocument) {
  * Create tasks for worker processing
  * @param {import('pdf-lib').PDFDocument} pdfDocument
  * @param {ConvertOptions} options
- * @returns {StreamTask[]}
+ * @returns {Promise<StreamTask[]>}
  */
-function createWorkerTasks(pdfDocument, options) {
+async function createWorkerTasks(pdfDocument, options) {
     const tasks = [];
     const renderingIntent = INTENT_MAP[options.renderingIntent || 'relative-colorimetric'] || 1;
 
     // Collect image tasks
     if (options.convertImages) {
-        const images = collectImageXObjects(pdfDocument);
+        const images = await collectImageXObjects(pdfDocument);
 
         for (const { ref, stream, colorSpaceInfo } of images) {
             const dict = stream.dict;
@@ -540,7 +540,7 @@ export async function convertWithWorkers(pdfDocument, options) {
     }
 
     // Create tasks with compressed data
-    const tasks = createWorkerTasks(pdfDocument, options);
+    const tasks = await createWorkerTasks(pdfDocument, options);
 
     if (verbose) {
         console.log(`Created ${tasks.length} tasks for workers`);

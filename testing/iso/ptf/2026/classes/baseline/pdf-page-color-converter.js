@@ -391,67 +391,72 @@ export class PDFPageColorConverter extends CompositeColorConverter {
             }
         }
 
-        // Dispatch regular images to workers in parallel
+        // Dispatch regular images to workers via bounded-concurrency lanes.
+        //
+        // Each lane processes one image at a time: prepare task (copies
+        // compressed data) → submit to worker (decompress + convert +
+        // compress + transfer back) → apply result → then start the next.
+        //
+        // This ensures at most N images (= worker count) have their
+        // buffers in flight simultaneously, preventing memory spikes from
+        // eager preparation of all tasks before any worker starts.
         if (workerTasks.length > 0) {
-            // Prepare all tasks
-            /** @type {Array<{task: import('./worker-pool.js').ImageTask, imageData: any, imageInput: any}>} */
-            const preparedTasks = [];
+            const workerCount = workerPool.workerCount ?? 2;
+            const sharedDestination = workerPool.hasSharedProfiles ? this.configuration.destinationProfile : undefined;
+            const sharedIntermediates = workerPool.hasSharedProfiles ? this.configuration.intermediateProfiles : undefined;
 
-            for (const { imageData, imageInput } of workerTasks) {
-                try {
-                    // Check for per-image configuration override
-                    const imageOverride = this.getConfigurationFor(imageData.ref);
-                    let converter = this.#imageConverter;
+            // Shared queue index — lanes pull from this atomically
+            let nextIndex = 0;
 
-                    if (imageOverride) {
-                        const overrideConfig = this.deriveImageConfiguration(imageData.ref);
-                        converter = this.createChildConverter(PDFImageColorConverter, overrideConfig);
-                    }
+            /**
+             * A single lane: pulls images from the queue one at a time,
+             * prepares, submits, waits for completion, applies result.
+             * @returns {Promise<number>} Number of images successfully converted in this lane
+             */
+            const runLane = async () => {
+                let laneConverted = 0;
 
-                    const task = /** @type {import('./worker-pool.js').ImageTask} */ (
-                        converter.prepareWorkerTask(imageInput, context)
-                    );
+                while (nextIndex < workerTasks.length) {
+                    const idx = nextIndex++;
+                    const { imageData, imageInput } = workerTasks[idx];
 
-                    if (task) {
-                        preparedTasks.push({ task, imageData, imageInput });
-                    }
-                } catch (error) {
-                    errors.push(`Image ${imageData.ref.toString()}: ${/** @type {Error} */ (error).message}`);
-                }
-            }
-
-            // Strip shared profiles from tasks to avoid per-task structured clone overhead.
-            // Workers fall back to broadcasted sharedConfig when these fields are undefined.
-            // Only strip when the task's profile matches the document-level shared profile —
-            // per-image overrides (via getConfigurationFor) may provide different profiles
-            // that must be preserved for the worker to use.
-            if (workerPool.hasSharedProfiles) {
-                const sharedDestination = this.configuration.destinationProfile;
-                const sharedIntermediates = this.configuration.intermediateProfiles;
-                for (const { task } of preparedTasks) {
-                    if (task.destinationProfile === sharedDestination) {
-                        task.destinationProfile = undefined;
-                    }
-                    if (task.intermediateProfiles === sharedIntermediates) {
-                        task.intermediateProfiles = undefined;
-                    }
-                }
-            }
-
-            // Submit all tasks to worker pool in parallel
-            const results = await Promise.all(
-                preparedTasks.map(async ({ task, imageData, imageInput }) => {
                     const imageSpan = this.diagnostics.startNestedSpan(imageBatchSpan, 'worker-image', {
                         ref: imageData.ref.toString(),
-                        width: task.width,
-                        height: task.height,
                     });
 
                     try {
+                        // Prepare task — copies compressed data for transfer
+                        const imageOverride = this.getConfigurationFor(imageData.ref);
+                        let converter = this.#imageConverter;
+
+                        if (imageOverride) {
+                            const overrideConfig = this.deriveImageConfiguration(imageData.ref);
+                            converter = this.createChildConverter(PDFImageColorConverter, overrideConfig);
+                        }
+
+                        const task = /** @type {import('./worker-pool.js').ImageTask} */ (
+                            converter.prepareWorkerTask(imageInput, context)
+                        );
+
+                        if (!task) continue;
+
+                        // Strip shared profiles to avoid per-task structured clone overhead
+                        if (sharedDestination !== undefined && task.destinationProfile === sharedDestination) {
+                            task.destinationProfile = undefined;
+                        }
+                        if (sharedIntermediates !== undefined && task.intermediateProfiles === sharedIntermediates) {
+                            task.intermediateProfiles = undefined;
+                        }
+
+                        this.diagnostics.updateSpan(imageSpan, {
+                            width: task.width,
+                            height: task.height,
+                        });
+
+                        // Submit and wait for this image to fully complete
                         const result = await workerPool.submitImage(task);
 
                         if (result.success && result.pixelBuffer) {
-                            // Validate required worker result fields
                             if (result.bitsPerComponent === undefined) {
                                 throw new Error(`Worker result missing bitsPerComponent for image ${imageData.ref.toString()}`);
                             }
@@ -459,7 +464,6 @@ export class PDFPageColorConverter extends CompositeColorConverter {
                                 throw new Error(`Worker result missing isCompressed for image ${imageData.ref.toString()}`);
                             }
 
-                            // Create PDFImageColorConverterResult from worker result
                             /** @type {import('./pdf-image-color-converter.js').PDFImageColorConverterResult} */
                             const imageResult = {
                                 streamRef: imageData.ref,
@@ -472,7 +476,6 @@ export class PDFPageColorConverter extends CompositeColorConverter {
                                 pixelCount: result.pixelCount ?? (task.width * task.height),
                             };
 
-                            // Apply result to PDF
                             this.#applyImageResult(imageData.stream, imageResult);
 
                             this.diagnostics.updateSpan(imageSpan, {
@@ -481,25 +484,28 @@ export class PDFPageColorConverter extends CompositeColorConverter {
                                 worker: true,
                             });
 
-                            return { success: true };
+                            laneConverted++;
                         } else {
                             const errorMsg = result.error || 'Unknown worker error';
                             errors.push(`Image ${imageData.ref.toString()}: ${errorMsg}`);
                             this.diagnostics.abortSpan(imageSpan, { reason: errorMsg });
-                            return { success: false };
                         }
                     } catch (error) {
                         const errorMsg = /** @type {Error} */ (error).message;
                         errors.push(`Image ${imageData.ref.toString()}: ${errorMsg}`);
                         this.diagnostics.abortSpan(imageSpan, { reason: errorMsg });
-                        return { success: false };
                     } finally {
                         this.diagnostics.endSpan(imageSpan);
                     }
-                })
-            );
+                }
 
-            imagesConverted += results.filter(r => r.success).length;
+                return laneConverted;
+            };
+
+            // Start N lanes, each pulling from the shared queue
+            const lanes = Array.from({ length: Math.min(workerCount, workerTasks.length) }, () => runLane());
+            const laneCounts = await Promise.all(lanes);
+            imagesConverted += laneCounts.reduce((sum, n) => sum + n, 0);
         }
 
         return imagesConverted;

@@ -122,11 +122,11 @@ export class PDFImageColorConverter extends ImageColorConverter {
     // Private Fields
     // ========================================
 
-    /** @type {typeof import('pako') | null} */
-    #pako = null;
+    /** @type {typeof import('../../helpers/compression.js') | null} */
+    #compression = null;
 
     /** @type {Promise<void>} */
-    #pakoReady;
+    #compressionReady;
 
     // ========================================
     // Constructor
@@ -146,7 +146,7 @@ export class PDFImageColorConverter extends ImageColorConverter {
     constructor(configuration, options = {}) {
         // PDF domain - affects policy severity
         super(configuration, { ...options, domain: options.domain ?? 'PDF' });
-        this.#pakoReady = this.#loadPako();
+        this.#compressionReady = this.#loadCompression();
     }
 
     // ========================================
@@ -154,17 +154,11 @@ export class PDFImageColorConverter extends ImageColorConverter {
     // ========================================
 
     /**
-     * Loads pako library for compression.
-     *
-     * Uses the resolved entrypoint from configuration (propagated from
-     * PDFDocumentColorConverter, which resolves via import.meta.resolve).
-     * Falls back to bare 'pako' specifier if no entrypoint is configured.
-     *
+     * Loads the compression provider.
      * @returns {Promise<void>}
      */
-    async #loadPako() {
-        const entrypoint = this.configuration.pakoPackageEntrypoint;
-        this.#pako = await import(entrypoint ?? new URL('../../packages/pako/dist/pako.mjs', import.meta.url).href);
+    async #loadCompression() {
+        this.#compression = await import('../../helpers/compression.js');
     }
 
     // ========================================
@@ -213,7 +207,7 @@ export class PDFImageColorConverter extends ImageColorConverter {
      * @returns {Promise<PDFImageColorConverterResult>} Converted image data
      */
     async convertPDFImageColor(input, context) {
-        await this.#pakoReady;
+        await this.#compressionReady;
         await this.ensureReady();
 
         const config = this.configuration;
@@ -238,7 +232,7 @@ export class PDFImageColorConverter extends ImageColorConverter {
                 compressedSize: streamData.length,
             });
             try {
-                pixelData = this.#decompress(streamData);
+                pixelData = await this.#decompress(streamData);
                 this.diagnostics.updateSpan(decodeSpan, {
                     decompressedSize: pixelData.length,
                 });
@@ -478,13 +472,13 @@ export class PDFImageColorConverter extends ImageColorConverter {
 
         let outputCompressed = false;
 
-        if (config.compressOutput && this.#pako) {
+        if (config.compressOutput && this.#compression) {
             const encodeSpan = this.diagnostics.startNestedSpan(parentSpan, 'encode', {
                 ref: String(streamRef),
                 uncompressedSize: outputData.length,
             });
             try {
-                outputData = this.#compress(outputData);
+                outputData = await this.#compress(outputData);
                 outputCompressed = true;
                 this.diagnostics.updateSpan(encodeSpan, {
                     compressedSize: outputData.length,
@@ -513,36 +507,22 @@ export class PDFImageColorConverter extends ImageColorConverter {
 
     /**
      * Decompresses FlateDecode data.
-     *
-     * @param {Uint8Array} data - Compressed data
-     * @returns {Uint8Array} Decompressed data
+     * @param {Uint8Array} data
+     * @returns {Promise<Uint8Array>}
      */
-    #decompress(data) {
-        if (!this.#pako) {
-            throw new Error('pako not available for decompression');
-        }
-        try {
-            return this.#pako.inflate(data);
-        } catch (error) {
-            throw new Error(`Failed to decompress image data: ${error}`);
-        }
+    async #decompress(data) {
+        if (!this.#compression) throw new Error('compression provider not loaded');
+        return this.#compression.inflateToBuffer(data);
     }
 
     /**
      * Compresses data with FlateDecode.
-     *
-     * @param {Uint8Array} data - Uncompressed data
-     * @returns {Uint8Array} Compressed data
+     * @param {Uint8Array} data
+     * @returns {Promise<Uint8Array>}
      */
-    #compress(data) {
-        if (!this.#pako) {
-            throw new Error('pako not available for compression');
-        }
-        try {
-            return this.#pako.deflate(data);
-        } catch (error) {
-            throw new Error(`Failed to compress image data: ${error}`);
-        }
+    async #compress(data) {
+        if (!this.#compression) throw new Error('compression provider not loaded');
+        return this.#compression.deflateToBuffer(data);
     }
 
     // ========================================

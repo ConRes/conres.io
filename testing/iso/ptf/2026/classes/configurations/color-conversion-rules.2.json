@@ -1,13 +1,45 @@
 [
   {
+    "policyId": "lab-16bit-to-32bit-float-multiprofile-requirement",
+    "engines": [
+      "color-engine-2025-12-15",
+      "color-engine-2025-12-19",
+      "color-engine-2026-01-07",
+      "color-engine-2026-01-21",
+      "color-engine-2026-01-30"
+    ],
+    "rules": [
+      {
+        "description": "Lab 16-bit to 32-bit Float conversion requires multiprofile transform",
+        "severity": {
+          "default": "warning",
+          "PDF": "warning"
+        },
+        "constraints": {
+          "inputBitsPerComponent": [16],
+          "outputBitsPerComponent": [32],
+          "sourceColorSpaces": [
+            "Lab"
+          ],
+          "destinationColorSpaces": [
+            "Lab"
+          ]
+        },
+        "overrides": {
+          "requiresMultiprofileTransform": true,
+          "intermediateProfiles": []
+        }
+      }
+    ]
+  },
+  {
     "policyId": "k-only-gcr-to-relative-colorimetric-fallback",
     "engines": [
       "color-engine-2025-12-15",
       "color-engine-2025-12-19",
       "color-engine-2026-01-07",
       "color-engine-2026-01-21",
-      "color-engine-2026-01-30",
-      "color-engine-2026-02-14"
+      "color-engine-2026-01-30"
     ],
     "rules": [
       {
@@ -33,85 +65,10 @@
     ]
   },
   {
-    "disabled": true,
-    "policyId": "relative-colorimetric-lab-fallback",
-    "engines": [
-      "color-engine-2025-12-15",
-      "color-engine-2025-12-19",
-      "color-engine-2026-01-07",
-      "color-engine-2026-01-21",
-      "color-engine-2026-01-30",
-      "color-engine-2026-02-14"
-    ],
-    "rules": [
-      {
-        "description": "Force Relative Colorimetric for Lab input",
-        "severity": {
-          "default": "error",
-          "PDF": "warning"
-        },
-        "constraints": {
-          "renderingIntents": [
-            "preserve-k-only-relative-colorimetric-gcr"
-          ],
-          "destinationColorSpaces": [
-            "CMYK"
-          ],
-          "sourceColorSpaces": [
-            "Lab"
-          ]
-        },
-        "overrides": {
-          "renderingIntent": "relative-colorimetric"
-        }
-      }
-    ]
-  },
-  {
-    "disabled": true,
-    "policyId": "k-only-gcr-legacy-multistage-transform-requirement-deprecated",
-    "engines": [
-      "color-engine-2025-12-15",
-      "color-engine-2025-12-19",
-      "color-engine-2026-01-07",
-      "color-engine-2026-01-21",
-      "color-engine-2026-01-30",
-      "color-engine-2026-02-14"
-    ],
-    "rules": [
-      {
-        "description": "ColorEngine ({{COLOR_ENGINE_VERSION}}) only supports RGB input for K-Only GCR",
-        "severity": "warning",
-        "constraints": {
-          "renderingIntents": [
-            "preserve-k-only-relative-colorimetric-gcr"
-          ],
-          "sourceColorSpaces": [
-            "Gray",
-            "CMYK",
-            "Lab"
-          ],
-          "destinationColorSpaces": [
-            "CMYK"
-          ]
-        },
-        "overrides": {
-          "intermediateProfiles": [
-            "../../resources/profiles/sRGB v4.icc"
-          ]
-        }
-      }
-    ]
-  },
-  {
     "policyId": "k-only-gcr-legacy-multistage-transform-requirement",
     "engines": [
       "color-engine-2025-12-15",
-      "color-engine-2025-12-19",
-      "color-engine-2026-01-07",
-      "color-engine-2026-01-21",
-      "color-engine-2026-01-30",
-      "color-engine-2026-02-14"
+      "color-engine-2025-12-19"
     ],
     "rules": [
       {
@@ -132,25 +89,19 @@
         },
         "overrides": {
           "requiresMultiprofileTransform": true,
-          "intermediateTransforms": [
-            {
-              "intermediateProfile": "../../resources/profiles/sRGB v4.icc",
-              "renderingIntent": "relative-colorimetric",
-              "blackPointCompensation": true
-            }
+          "intermediateProfiles": [
+            "../../resources/profiles/sRGB v4.icc"
           ]
         }
       }
     ]
   },
   {
-    "disabled": true,
     "policyId": "k-only-gcr-multiprofile-transform-requirement",
     "engines": [
       "color-engine-2026-01-07",
       "color-engine-2026-01-21",
-      "color-engine-2026-01-30",
-      "color-engine-2026-02-14"
+      "color-engine-2026-01-30"
     ],
     "rules": [
       {
@@ -178,8 +129,7 @@
   {
     "policyId": "rgb-to-rgb-multiprofile-black-point-scaling-enhancement",
     "engines": [
-      "color-engine-2026-01-30",
-      "color-engine-2026-02-14"
+      "color-engine-2026-01-30"
     ],
     "rules": [
       {

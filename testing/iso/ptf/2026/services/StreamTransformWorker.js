@@ -34,10 +34,8 @@ const importModuleRecord = (specifier) => {
 };
 
 const modulePromises = {
-    /** @type {Promise<typeof import('pako') ?>} */
-    pako: IS_NODE ? undefined : importModuleRecord('../packages/pako/dist/pako.mjs').promise,
-    /** @type {Promise<typeof import('zlib')> | undefined} */
-    zlib: IS_NODE ? importModuleRecord('zlib').promise : undefined,
+    /** @type {Promise<typeof import('../helpers/compression.js')>} */
+    '../helpers/compression.js': importModuleRecord('../helpers/compression.js').promise,
     /** @type {Promise<import('./ColorConversionUtils.js')>} */
     './ColorConversionUtils.js': importModuleRecord('./ColorConversionUtils.js').promise,
 };
@@ -59,10 +57,8 @@ if (IS_NODE) {
 /** @type {import('../classes/diagnostics/auxiliary-diagnostics-collector.js').AuxiliaryDiagnosticsCollector | null} */
 let diagnostics = null;
 
-/** @type {any} */
-let pako = null;
-/** @type {any} */
-let zlib = null;
+/** @type {typeof import('../helpers/compression.js') | null} */
+let compression = null;
 /** @type {any} */
 let colorEngine = null;
 /** @type {any} */
@@ -101,36 +97,12 @@ const transformCache = new Map();
 const ADAPTIVE_BPC_THRESHOLD = 2 * 1024 * 1024;
 
 /**
- * Initialize compression library
+ * Initialize compression provider.
+ * Uses native Compression Streams API via helpers/compression.js.
  */
 async function initCompression() {
-    if (pako || zlib) return;
-
-    if (IS_NODE)
-        zlib = modulePromises.zlib ? await modulePromises.zlib : null;
-    else
-        pako = modulePromises.pako ? await modulePromises.pako : null;
-
-    // try {
-    //     if (IS_NODE) {
-    //         zlib = await import('zlib');
-    //     } else {
-    //         // Use relative path for browser context (Web Workers don't inherit importmap)
-    //         pako = await import('../packages/pako/dist/pako.mjs');
-    //     }
-    // } catch (e) {
-    //     // Try the other one
-    //     try {
-    //         if (!IS_NODE) {
-    //             zlib = await import('zlib');
-    //         } else {
-    //             // Fallback to bare specifier (may work with importmap in some contexts)
-    //             pako = await import('pako');
-    //         }
-    //     } catch {
-    //         throw new Error('No compression library available');
-    //     }
-    // }
+    if (compression) return;
+    compression = await modulePromises['../helpers/compression.js'];
 }
 
 /**
@@ -183,31 +155,21 @@ async function initColorConversionUtils() {
 }
 
 /**
- * Inflate compressed data
+ * Inflate compressed data.
  * @param {Uint8Array} data
- * @returns {Uint8Array}
+ * @returns {Promise<Uint8Array>}
  */
-function inflate(data) {
-    if (pako) {
-        return new Uint8Array(pako.inflate(data));
-    } else if (zlib) {
-        return new Uint8Array(zlib.inflateSync(data));
-    }
-    throw new Error('No compression library');
+async function inflate(data) {
+    return compression.inflateToBuffer(data);
 }
 
 /**
- * Deflate data
+ * Deflate data.
  * @param {Uint8Array} data
- * @returns {Uint8Array}
+ * @returns {Promise<Uint8Array>}
  */
-function deflate(data) {
-    if (pako) {
-        return new Uint8Array(pako.deflate(data));
-    } else if (zlib) {
-        return new Uint8Array(zlib.deflateSync(data));
-    }
-    throw new Error('No compression library');
+async function deflate(data) {
+    return compression.deflateToBuffer(data);
 }
 
 /**
@@ -344,7 +306,7 @@ async function processContentStream(task) {
     try {
         // 1. Inflate compressed stream
         const inflated = task.isCompressed
-            ? inflate(new Uint8Array(task.compressedData))
+            ? await inflate(new Uint8Array(task.compressedData))
             : new Uint8Array(task.compressedData);
 
         // 2. Decode to text (ISO 8859-1 identity mapping, not UTF-8)
@@ -399,7 +361,7 @@ async function processContentStream(task) {
         }
 
         // 6. Deflate result
-        const result = deflate(newBytes);
+        const result = await deflate(newBytes);
 
         return {
             success: true,
@@ -452,7 +414,7 @@ async function processImage(task) {
     try {
         // 1. Inflate compressed image data
         let inflated = task.isCompressed
-            ? inflate(new Uint8Array(task.compressedData))
+            ? await inflate(new Uint8Array(task.compressedData))
             : new Uint8Array(task.compressedData);
 
         // 1b. For 16-bit images, convert to 8-bit (matches baseline PDFService behavior)
@@ -580,7 +542,7 @@ async function processImage(task) {
         }
 
         // 3. Deflate result
-        const result = deflate(outputPixels);
+        const result = await deflate(outputPixels);
 
         return {
             success: true,
@@ -625,12 +587,12 @@ async function processBenchmark(task) {
 
         // Benchmark deflate
         const deflateStart = performance.now();
-        const compressed = deflate(testData);
+        const compressed = await deflate(testData);
         results.deflateTime = performance.now() - deflateStart;
 
         // Benchmark inflate
         const inflateStart = performance.now();
-        const inflated = inflate(compressed);
+        const inflated = await inflate(compressed);
         results.inflateTime = performance.now() - inflateStart;
 
         // Benchmark transform (if requested)

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>ISO Perceptual Test Form Validator - conres.io</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <script type="importmap">
+        {
+            "imports": {
+                "pdf-lib": "../packages/pdf-lib/pdf-lib.esm.js",
+                "icc": "../packages/icc/index.js",
+                "pako": "../packages/pako/dist/pako.mjs"
+            }
+        }
+    </script>
+    <link rel=stylesheet href="https://smotaal.io/markout/styles/styles.css" />
+    <style>
+        html {
+            --shade: #6688aaf6;
+            --shade-dark: #2a3a55f6;
+
+            /* Status colors — shared across all 2026 tools */
+            --status-error: #cc3333;
+            --status-warning: #cc9933;
+            --status-pass: #339933;
+            --status-info: #3366cc;
+            --status-skipped: #999999;
+        }
+
+        label.full-row+input,
+        label+select {
+            display: flex;
+            place-self: center;
+            margin: 1em auto;
+        }
+
+        :is(article, aside, nav, section) h1 {
+            font-size: 1.75em;
+        }
+
+        :is(section, article)+hr:has(+ :is(section, article)) {
+            border-width: 1px;
+        }
+
+        :is(section, article) div {
+            width: fit-content;
+            margin: 0 auto;
+        }
+
+        :is(section, article) img.inline-icon {
+            height: 1em;
+            display: inline-block;
+            margin-block: 0.125em -0.125em;
+            margin-inline: 0.125em;
+        }
+
+        :is(section, article) :is(ul, ol)>li {
+            margin-block: 0.5em;
+        }
+
+        fieldset {
+            border: none;
+        }
+
+        :is(section, article) :is(form, fieldset) {
+            display: grid;
+            width: fit-content;
+            margin: 1em auto;
+            grid-template-columns: [row-start] 1fr [field-start] 3fr [row-end];
+            gap: 1em;
+        }
+
+        :is(section, article) :is(form, fieldset) label:not(:has(+ .full-row)) {
+            grid-column: row-start;
+            text-align: right;
+        }
+
+        :is(section, article) :is(form, fieldset) input {
+            grid-column: field-start;
+        }
+
+        .full-row,
+        :is(section, article) :is(form, fieldset) :is(progress, progress + output, .full-row, label:has(+ .full-row, + progress)) {
+            grid-column-start: row-start;
+            grid-column-end: row-end;
+            place-self: center;
+        }
+
+        :is(section, article) :is(form, fieldset) progress+output {
+            margin-block-start: -1em;
+            font-size: smaller;
+        }
+
+        form>article :is(article, section):has(>fieldset:disabled) {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        /* Findings */
+        .finding {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0.4em 0.6em;
+            margin: 0.2em 0;
+            border-left: 4px solid transparent;
+            border-radius: 0 4px 4px 0;
+            display: flex;
+            gap: 0.5em;
+            align-items: baseline;
+            background: transparent;
+            transition: background 0.15s;
+        }
+
+        .finding[data-status="fail"][data-severity="error"] {
+            border-left-color: var(--status-error);
+            background: color-mix(in srgb, var(--status-error) 8%, transparent);
+        }
+        .finding[data-status="fail"][data-severity="warning"] {
+            border-left-color: var(--status-warning);
+            background: color-mix(in srgb, var(--status-warning) 8%, transparent);
+        }
+        .finding[data-status="pass"] {
+            border-left-color: var(--status-pass);
+            background: color-mix(in srgb, var(--status-pass) 6%, transparent);
+        }
+        .finding[data-status="skipped"] {
+            border-left-color: var(--status-skipped);
+            background: color-mix(in srgb, var(--status-skipped) 5%, transparent);
+        }
+
+        .finding .status-icon {
+            flex-shrink: 0;
+            width: 1.2em;
+            text-align: center;
+        }
+
+        .finding .fix-check {
+            flex-shrink: 0;
+            margin-left: auto;
+        }
+
+        .finding-details {
+            font-size: 0.85em;
+            opacity: 0.7;
+            margin-left: 1.7em;
+        }
+
+        /* Summary bar */
+        .summary-errors { color: var(--status-error); }
+        .summary-warnings { color: var(--status-warning); }
+        .summary-passed { color: var(--status-pass); }
+        .summary-skipped { color: var(--status-skipped); }
+
+        /* Changelog */
+        .changelog {
+            padding: 0.5em 1em;
+            background: color-mix(in srgb, var(--status-pass) 8%, transparent);
+            border-left: 4px solid var(--status-pass);
+            border-radius: 0 6px 6px 0;
+            font-size: 0.85em;
+        }
+
+        /* Document info */
+        .doc-info {
+            font-size: 0.9em;
+            opacity: 0.85;
+        }
+
+        [hidden] { display: none !important; }
+
+        pdf-validator-app {
+            display: flex;
+            flex-direction: column;
+        }
+
+        hgroup > p {
+            /* font-size: 1.25em; */
+            font-weight: bold;
+            opacity: 0.5;
+            margin: 0;
+        }
+
+        hgroup > h1 {
+            margin: 0;
+            padding: 0;
+        }
+
+        hgroup:has(h1) {
+            text-align: center;
+            margin: 3em auto 2em auto;
+        }
+
+        hgroup:has(h1) + p {
+            max-width: 35em;
+            place-self: center;
+            text-align: center;
+            margin: 0 auto;
+        }
+    </style>
+    <script type="module">
+        import { bootstrap } from "./validator.js";
+        bootstrap();
+    </script>
+</head>
+
+<body>
+    <main>
+        <pdf-validator-app>
+            <template shadowrootmode="closed">
+                <form method="dialog" style="display: flex; flex-direction: column; flex: 1;">
+                    <article style="flex: 1;">
+                        <header>
+                            <slot name="header"></slot>
+                        </header>
+                        <slot name="article"></slot>
+                    </article>
+                    <footer style="flex-shrink: 0;">
+                        <slot name="footer"></slot>
+                    </footer>
+                </form>
+            </template>
+            <header slot="header">
+                <hgroup>
+                    <p>Contrast-Resolution</p>
+                    <h1>Test Form Validator</h1>
+                    <p><small>For Internal Use Only</small></p>
+                </hgroup>
+                <p>Validate and fix structural issues in PDF test forms for compatibility
+                    with PDF/X-4 standards and older Adobe Acrobat versions.</p>
+            </header>
+            <section id="overview" slot="article">
+                <template shadowrootmode="closed">
+                    <article>
+                        <header>
+                            <slot name="header"></slot>
+                        </header>
+                        <slot name="article"></slot>
+                        <footer>
+                            <slot name="footer"></slot>
+                        </footer>
+                    </article>
+                </template>
+                <h2 slot="header">Overview</h2>
+                <div slot="article">
+                    <p>Drop a generated PDF to analyze its structure against PDF/X-4 rules.
+                        The validator detects missing page boxes, output intent issues,
+                        optional content problems, and other structural defects.</p>
+                    <p>Fixable issues can be corrected with a single click. The fixed PDF
+                        is re-validated to confirm all corrections were applied.</p>
+                </div>
+            </section>
+            <section id="validation" slot="article">
+                <template shadowrootmode="closed">
+                    <article>
+                        <header>
+                            <slot name="header"></slot>
+                        </header>
+                        <slot name="article"></slot>
+                        <footer>
+                            <slot name="footer"></slot>
+                        </footer>
+                    </article>
+                </template>
+                <h2 slot="header">Validation</h2>
+                <fieldset name="input-fieldset" slot="article" id="input-fieldset"
+                    style="display: grid; place-content: center;">
+                    <div class="full-row" style="padding: 0.25em 0">
+                        <label for="pdf-input" class="full-row">PDF file:
+                            <input type="file" id="pdf-input" accept=".pdf" />
+                        </label>
+                    </div>
+                    <small class="full-row" id="file-info" hidden></small>
+                    <div class="full-row">
+                        <button id="validate-button" disabled>Validate</button>
+                    </div>
+                </fieldset>
+                <fieldset name="progress-fieldset" slot="article" id="progress-fieldset" style="opacity:0;">
+                    <progress id="validation-progress" name="validation-progress" max="100"
+                        style="width:20em;"></progress>
+                    <output id="validation-progress-output"></output>
+                </fieldset>
+                <fieldset name="summary-fieldset" slot="article" id="summary-fieldset" hidden
+                    style="display: block; width: 100%; padding: 0;">
+                    <div id="document-info"></div>
+                    <div id="summary-bar" style="display:flex; gap:1em; font-weight:bold; justify-content:center; padding: 0.5em 0;">
+                        <span class="summary-errors" id="summary-errors"></span>
+                        <span class="summary-warnings" id="summary-warnings"></span>
+                        <span class="summary-passed" id="summary-passed"></span>
+                        <span class="summary-skipped" id="summary-skipped"></span>
+                    </div>
+                </fieldset>
+                <fieldset name="report-fieldset" slot="article" id="report-fieldset" hidden
+                    style="display: block; width: 100%; padding: 0;">
+                    <div id="report" style="width:100%;"></div>
+                </fieldset>
+                <fieldset name="actions-fieldset" slot="article" id="actions-fieldset" hidden
+                    style="display: flex; gap: 0.5em; justify-content: center; padding: 0.5em 0; flex-wrap: wrap;">
+                    <button id="fix-all-button" disabled>Fix All</button>
+                    <button id="fix-selected-button" disabled>Fix Selected</button>
+                    <button id="download-button" disabled>Download Fixed PDF</button>
+                    <button id="reset-button">Reset</button>
+                </fieldset>
+                <fieldset name="changelog-fieldset" slot="article" id="changelog-fieldset" hidden
+                    style="display: block; width: 100%; padding: 0;">
+                    <div class="changelog" style="width: 100%;">
+                        <h3>Changes Applied</h3>
+                        <ul id="changelog-list"></ul>
+                    </div>
+                </fieldset>
+                <details class="full-row" id="debugging-details" slot="article" style="width: 100%;">
+                    <summary><b>Debugging</b> — Enable or disable debugging features</summary>
+                    <fieldset name="workers-fieldset" class="full-row"
+                        style="display: block; padding: 0.5em; width: 100%;">
+                        <legend style="display: flex; gap: 0.5em; width: 100%; align-items: center;">
+                            <div style="flex: auto;"><b>Workers</b></div>
+                        </legend>
+                        <small class="full-row">
+                            <label class="full-row" for="bootstrap-worker-checkbox"><input type="checkbox"
+                                    id="bootstrap-worker-checkbox" name="bootstrap-worker"
+                                    checked />Bootstrap Worker</label>
+                        </small>
+                    </fieldset>
+                </details>
+            </section>
+            <footer slot="footer">
+                <p style="text-align: center; font-size: smaller; margin-block: 2em 1em;">Copyright &copy; 2020-2026 Saleh Abdel Motaal and the Contrast-Resolution Team</p>
+            </footer>
+        </pdf-validator-app>
+    </main>
+</body>
+
+</html>

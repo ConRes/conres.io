@@ -102,11 +102,8 @@ if (IS_NODE) {
 /** @type {import('./color-engine-provider.js').ColorEngineProvider | null} */
 let colorEngineProvider = null;
 
-/** @type {typeof import('pako') | null} */
-let pako = null;
-
-/** @type {typeof import('zlib') | null} */
-let zlib = null;
+/** @type {typeof import('../../helpers/compression.js') | null} */
+let compression = null;
 
 /** @type {string | undefined} */
 let engineVersion = undefined;
@@ -126,20 +123,12 @@ let sharedConfig = null;
 // ============================================================================
 
 /**
- * Initialize compression library.
- *
- * In browsers, uses the resolved pako entrypoint from sharedConfig
- * (broadcast by PDFDocumentColorConverter via WorkerPool.broadcastSharedProfiles).
- * Falls back to bare 'pako' specifier if no entrypoint is configured.
+ * Initialize compression provider.
+ * Uses native Compression Streams API via helpers/compression.js.
  */
 async function initCompression() {
-    if (pako || zlib) return;
-
-    if (IS_NODE) {
-        zlib = await importModule('zlib');
-    } else {
-        pako = await importModule(sharedConfig?.pakoPackageEntrypoint ?? new URL('../../packages/pako/dist/pako.mjs', import.meta.url).href);
-    }
+    if (compression) return;
+    compression = await importModule('../../helpers/compression.js');
 }
 
 /**
@@ -189,32 +178,20 @@ async function initDiagnostics(port, workerId) {
 
 /**
  * Inflate compressed data.
- * @param {Uint8Array} data - Compressed data
- * @returns {Uint8Array} Decompressed data
+ * @param {Uint8Array} data
+ * @returns {Promise<Uint8Array>}
  */
-function inflate(data) {
-    if (pako) {
-        return new Uint8Array(pako.inflate(data));
-    }
-    if (zlib) {
-        return new Uint8Array(zlib.inflateSync(data));
-    }
-    throw new Error('No compression library available');
+async function inflate(data) {
+    return compression.inflateToBuffer(data);
 }
 
 /**
  * Deflate data.
- * @param {Uint8Array} data - Uncompressed data
- * @returns {Uint8Array} Compressed data
+ * @param {Uint8Array} data
+ * @returns {Promise<Uint8Array>}
  */
-function deflate(data) {
-    if (pako) {
-        return new Uint8Array(pako.deflate(data));
-    }
-    if (zlib) {
-        return new Uint8Array(zlib.deflateSync(data));
-    }
-    throw new Error('No compression library available');
+async function deflate(data) {
+    return compression.deflateToBuffer(data);
 }
 
 // ============================================================================
