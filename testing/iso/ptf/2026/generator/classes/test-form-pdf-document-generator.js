@@ -2120,14 +2120,11 @@ export class TestFormPDFDocumentGenerator {
         const cachedResponse = await cache?.match?.(url) ?? null;
         const cachedHeaders = cachedResponse?.headers ?? null;
 
-        // Use cache if available and fresh (ETag or Last-Modified match, content-length as last resort)
-        const cacheIsFresh = cachedResponse && (!fetchedHeaders || (() => {
-            const etag = fetchedHeaders.get('etag');
-            if (etag) return etag === cachedHeaders?.get('etag');
-            const modified = fetchedHeaders.get('last-modified');
-            if (modified) return modified === cachedHeaders?.get('last-modified');
-            return fetchedHeaders.get('content-length') === cachedHeaders?.get('content-length');
-        })());
+        // Use cache if available and fresh (content-length matches or no HEAD to compare)
+        const cacheIsFresh = cachedResponse && (
+            !fetchedHeaders
+            || fetchedHeaders.get('content-length') === cachedHeaders?.get('content-length')
+        );
 
         if (cacheIsFresh) {
             const contentLength = cachedResponse.headers.get('content-length');
