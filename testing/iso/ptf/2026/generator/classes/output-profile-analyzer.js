@@ -2,9 +2,12 @@
 /**
  * OutputProfileAnalyzer — Determines the output ICC profile category.
  *
- * Analyzes an ICC output profile to classify it as RGB, CMYK (Max-GCR),
- * or CMYK (non-Max GCR). For CMYK profiles, performs a Maximum GCR test
- * using 32-bit float Lab-to-CMYK transforms through the color engine.
+ * Analyzes an ICC output profile to classify it into a policy-defined
+ * profile category. Categories are declared in assembly-policy.json,
+ * each with a `profileColorSpace` field that maps ICC color space
+ * signatures to categories. When multiple categories share the same
+ * `profileColorSpace` (e.g., CMYK and CMYK-MaxGCR), a Maximum GCR
+ * test using 32-bit float Lab-to-CMYK transforms disambiguates.
  *
  * Two detection methods are available:
  *
@@ -91,35 +94,58 @@ export class OutputProfileAnalyzer {
     /**
      * Analyzes an output ICC profile to determine its category.
      *
-     * - RGB profiles are categorized immediately without engine usage.
-     * - CMYK profiles are tested for Maximum GCR using the color engine.
+     * Matches the ICC header's color space against `profileColorSpace` fields
+     * in the policy's profile categories (case-insensitive). When a single
+     * category matches, it is returned immediately. When multiple categories
+     * share the same `profileColorSpace` (e.g., CMYK and CMYK-MaxGCR), a
+     * Maximum GCR test disambiguates.
      *
      * @param {ArrayBuffer} profileBuffer - The ICC profile data
      * @param {{ colorSpace: string }} profileHeader - Parsed ICC header (from ICCService)
      * @param {MaxGCRTestConfiguration} maxGCRTestConfiguration - Test parameters from assembly policy
+     * @param {Record<string, import('../classes/assembly-policy-resolver.js').ProfileCategoryDefinition>} profileCategories - Profile category definitions from assembly policy
      * @param {MaxGCRDetectionOptions} [detectionOptions] - Which detection methods to use
      * @returns {Promise<ProfileAnalysisResult>}
      */
-    static async analyzeProfile(profileBuffer, profileHeader, maxGCRTestConfiguration, detectionOptions) {
+    static async analyzeProfile(profileBuffer, profileHeader, maxGCRTestConfiguration, profileCategories, detectionOptions) {
         const { colorSpace } = profileHeader;
 
-        if (colorSpace === 'RGB') {
+        // Find all categories whose profileColorSpace matches the ICC color space (case-insensitive)
+        const iccColorSpaceUpper = colorSpace.toUpperCase();
+        /** @type {[string, import('../classes/assembly-policy-resolver.js').ProfileCategoryDefinition][]} */
+        const matchingCategories = Object.entries(profileCategories).filter(
+            ([, definition]) => definition.profileColorSpace.toUpperCase() === iccColorSpaceUpper,
+        );
+
+        if (matchingCategories.length === 0) {
+            const supportedColorSpaces = [...new Set(
+                Object.values(profileCategories).map(d => d.profileColorSpace),
+            )];
+            throw new Error(
+                `Unsupported output profile color space: "${colorSpace}". ` +
+                `Supported: ${supportedColorSpaces.join(', ')}`
+            );
+        }
+
+        // Single match — return immediately (no further analysis needed)
+        if (matchingCategories.length === 1) {
+            const [categoryKey] = matchingCategories[0];
+            /** @type {ProfileCategory} */
+            const profileCategory = /** @type {ProfileCategory} */ (categoryKey);
+
+            console.log(
+                `${CONTEXT_PREFIX} [OutputProfileAnalyzer] Profile category: ${profileCategory}`
+            );
+
             return {
-                profileCategory: 'RGB',
+                profileCategory,
                 colorSpace,
                 isMaxGCR: false,
                 testResults: null,
             };
         }
 
-        if (colorSpace !== 'CMYK') {
-            throw new Error(
-                `Unsupported output profile color space: "${colorSpace}". ` +
-                `Only RGB and CMYK output profiles are supported.`
-            );
-        }
-
-        // CMYK profile — run Max GCR test
+        // Multiple matches (e.g., CMYK / CMYK-MaxGCR) — run Max GCR test to disambiguate
         const { isMaxGCR, testResults } = await OutputProfileAnalyzer.#testMaxGCR(
             profileBuffer,
             maxGCRTestConfiguration,

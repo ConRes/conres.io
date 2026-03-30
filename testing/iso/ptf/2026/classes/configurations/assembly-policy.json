@@ -1,7 +1,22 @@
 {
     "profileCategories": {
+        "Gray": {
+            "description": "Gray output profile",
+            "profileColorSpace": "Gray",
+            "includedColorSpaceTypes": ["Gray", "Lab"],
+            "excludedColorSpaceTypes": ["DeviceN"],
+            "renderingIntentPasses": [
+                {
+                    "renderingIntent": "relative-colorimetric",
+                    "blackPointCompensation": true,
+                    "label": "Relative Colorimetric with Blackpoint Compensation"
+                }
+            ],
+            "multiPDF": false
+        },
         "RGB": {
             "description": "RGB output profile",
+            "profileColorSpace": "RGB",
             "includedColorSpaceTypes": ["RGB", "Gray", "Lab"],
             "excludedColorSpaceTypes": ["DeviceN"],
             "renderingIntentPasses": [
@@ -15,6 +30,7 @@
         },
         "CMYK-MaxGCR": {
             "description": "CMYK output profile with Maximum GCR",
+            "profileColorSpace": "CMYK",
             "includedColorSpaceTypes": ["RGB", "Gray", "Lab", "DeviceN"],
             "excludedColorSpaceTypes": [],
             "renderingIntentPasses": [
@@ -28,6 +44,7 @@
         },
         "CMYK": {
             "description": "CMYK output profile (non-Max GCR)",
+            "profileColorSpace": "CMYK",
             "includedColorSpaceTypes": ["RGB", "Gray", "Lab", "DeviceN"],
             "excludedColorSpaceTypes": [],
             "renderingIntentPasses": [
@@ -72,6 +89,7 @@
         "preserve-k-only-relative-colorimetric-gcr":    "K-Only GCR"
     },
     "profileCategoryLabels": {
+        "Gray":         "Gray",
         "RGB":          "RGB",
         "CMYK":         "CMYK",
         "CMYK-MaxGCR":  "CMYK (Max-GCR)"
