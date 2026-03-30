@@ -117,6 +117,9 @@ export class TestFormGeneratorAppElement extends HTMLElement {
     /** @type {string | null} */
     #cachedManifestVersion = null;
 
+    /** @type {string | null} Detected ICC color space from last profile analysis */
+    #detectedProfileColorSpace = null;
+
     /** @type {Record<string, any> | null} */
     #details = null;
 
@@ -891,14 +894,17 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                     buffer, header, policyData.maxGCRTest, policyData.profileCategories,
                 );
                 previewCategory = analysis.profileCategory;
+                this.#detectedProfileColorSpace = header.colorSpace;
                 this.#updateProfileGuidance({ colorSpace: header.colorSpace, description: header.description, profileCategory: previewCategory });
 
                 console.log(`${CONTEXT_PREFIX} [TestFormGeneratorAppElement] Auto preview: profile category = ${previewCategory}`);
             } catch (error) {
                 console.warn(`${CONTEXT_PREFIX} [TestFormGeneratorAppElement] Failed to analyze ICC profile for auto preview:`, error);
+                this.#detectedProfileColorSpace = null;
                 this.#updateProfileGuidance();
             }
         } else {
+            this.#detectedProfileColorSpace = null;
             this.#updateProfileGuidance();
         }
 
@@ -1161,6 +1167,13 @@ export class TestFormGeneratorAppElement extends HTMLElement {
 
         if (!iccProfileFile) {
             validationErrors.push('Please select a calibrated ICC profile.');
+        } else {
+            // Check profile color space directly from ICC header bytes
+            const profileBytes = new Uint8Array(await iccProfileFile.arrayBuffer());
+            const colorSpaceSig = String.fromCharCode(profileBytes[16], profileBytes[17], profileBytes[18], profileBytes[19]).trim();
+            if (colorSpaceSig === 'GRAY') {
+                validationErrors.push('Gray profiles are not yet supported. Please use an sRGB or CMYK output profile.');
+            }
         }
 
         if (!isDebugging) {
