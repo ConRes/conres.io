@@ -13,7 +13,10 @@
  * @ai Claude Opus 4.6 (code generation)
  */
 
-import { PDFDocument, StandardFonts } from '../../packages/pdf-lib/pdf-lib.esm.js';
+import {
+    PDFDocument, StandardFonts,
+    PDFName, PDFString, PDFHexString, PDFDict, PDFArray, PDFRef, PDFRawStream,
+} from '../../packages/pdf-lib/pdf-lib.esm.js';
 
 import {
     uint8ArrayToBase64,
@@ -1177,6 +1180,230 @@ export class TestFormPDFDocumentGenerator {
             manifestBuffer,
             'test-form.manifest.json',
         );
+
+        // Add Document ID if missing (required by PDF/X standards)
+        if (!document.context.trailerInfo.ID) {
+            const generateHexId = () => {
+                const bytes = new Uint8Array(16);
+                for (let i = 0; i < 16; i++) bytes[i] = Math.floor(Math.random() * 256);
+                return PDFHexString.of(Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(''));
+            };
+            const idArray = PDFArray.withContext(document.context);
+            idArray.push(generateHexId());
+            idArray.push(generateHexId());
+            document.context.trailerInfo.ID = document.context.register(idArray);
+        }
+
+        // Add Name entry to OCCD if OCProperties exists but D lacks Name
+        const ocProps = document.catalog.lookup(PDFName.of('OCProperties'));
+        if (ocProps instanceof PDFDict) {
+            const d = ocProps.lookup(PDFName.of('D'));
+            if (d instanceof PDFDict && !d.get(PDFName.of('Name'))) {
+                d.set(PDFName.of('Name'), PDFString.of('Default'));
+            }
+
+            // Register any OCGs referenced in content but not in OCProperties/OCGs
+            const ocgsArray = ocProps.lookup(PDFName.of('OCGs'));
+            if (ocgsArray instanceof PDFArray) {
+                const registeredRefs = new Set();
+                for (let i = 0; i < ocgsArray.size(); i++) {
+                    const ref = ocgsArray.get(i);
+                    if (ref instanceof PDFRef) registeredRefs.add(ref.toString());
+                }
+
+                /** @type {PDFRef[]} */
+                const missingRefs = [];
+                const missingRefStrings = new Set();
+
+                for (const [, obj] of document.context.enumerateIndirectObjects()) {
+                    if (!(obj instanceof PDFRawStream) && !(obj instanceof PDFDict)) continue;
+                    const dict = obj instanceof PDFRawStream ? obj.dict : obj;
+
+                    const oc = dict.get(PDFName.of('OC'));
+                    if (oc instanceof PDFRef && !registeredRefs.has(oc.toString()) && !missingRefStrings.has(oc.toString())) {
+                        const ocObj = document.context.lookup(oc);
+                        if (ocObj instanceof PDFDict) {
+                            const type = ocObj.get(PDFName.of('Type'));
+                            if (type instanceof PDFName && type.encodedName === '/OCG') {
+                                missingRefStrings.add(oc.toString());
+                                missingRefs.push(oc);
+                            }
+                        }
+                    }
+
+                    const resources = dict.lookup(PDFName.of('Resources'));
+                    if (resources instanceof PDFDict) {
+                        const properties = resources.lookup(PDFName.of('Properties'));
+                        if (properties instanceof PDFDict) {
+                            for (const [, propVal] of properties.entries()) {
+                                if (!(propVal instanceof PDFRef)) continue;
+                                if (registeredRefs.has(propVal.toString()) || missingRefStrings.has(propVal.toString())) continue;
+                                const propObj = document.context.lookup(propVal);
+                                if (propObj instanceof PDFDict) {
+                                    const type = propObj.get(PDFName.of('Type'));
+                                    if (type instanceof PDFName && type.encodedName === '/OCG') {
+                                        missingRefStrings.add(propVal.toString());
+                                        missingRefs.push(propVal);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (missingRefs.length > 0) {
+                    for (const ref of missingRefs) ocgsArray.push(ref);
+                    if (d instanceof PDFDict) {
+                        const onArray = d.lookup(PDFName.of('ON'));
+                        if (onArray instanceof PDFArray) {
+                            for (const ref of missingRefs) onArray.push(ref);
+                        }
+                        const orderArray = d.lookup(PDFName.of('Order'));
+                        if (orderArray instanceof PDFArray) {
+                            for (const ref of missingRefs) orderArray.push(ref);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Generate or patch XMP metadata for PDF/X-4 conformance
+        await this.#ensureXMPMetadata(document, iccProfileHeader);
+    }
+
+    /**
+     * Ensure XMP metadata exists and contains required PDF/X-4 entries.
+     * Creates minimal XMP if missing, patches existing XMP if incomplete.
+     *
+     * @param {PDFDocument} document
+     * @param {{ colorSpace: string, description: string }} iccProfileHeader
+     */
+    async #ensureXMPMetadata(document, iccProfileHeader) {
+        const nowDate = new Date();
+        const xmpNow = nowDate.toISOString().replace(/\.\d+Z$/, 'Z');
+        const pdfNow = `D:${nowDate.getUTCFullYear()}${String(nowDate.getUTCMonth() + 1).padStart(2, '0')}${String(nowDate.getUTCDate()).padStart(2, '0')}${String(nowDate.getUTCHours()).padStart(2, '0')}${String(nowDate.getUTCMinutes()).padStart(2, '0')}${String(nowDate.getUTCSeconds()).padStart(2, '0')}Z`;
+
+        // Extract Info dict values
+        let title = '', creator = '', producer = '', creationDate = '';
+        const infoRef = document.context.trailerInfo.Info;
+        if (infoRef) {
+            const info = infoRef instanceof PDFRef ? document.context.lookup(infoRef) : infoRef;
+            if (info instanceof PDFDict) {
+                const getStr = (key) => {
+                    const val = info.lookup(PDFName.of(key));
+                    if (val instanceof PDFString) return val.value;
+                    if (val instanceof PDFHexString) return val.decodeText();
+                    return '';
+                };
+                title = getStr('Title');
+                creator = getStr('Creator');
+                producer = getStr('Producer');
+                creationDate = getStr('CreationDate');
+
+                // Sync Info dict ModDate
+                info.set(PDFName.of('ModDate'), PDFString.of(pdfNow));
+            }
+        }
+
+        const pdfDateToISO = (pdfDate) => {
+            if (!pdfDate) return xmpNow;
+            const m = pdfDate.match(/D:(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/);
+            if (!m) return xmpNow;
+            return `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}Z`;
+        };
+        const createDateISO = pdfDateToISO(creationDate);
+
+        const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const versionId = crypto.randomUUID?.() ?? `${Date.now()}`;
+        const documentId = crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+        const existingMetaRef = document.catalog.get(PDFName.of('Metadata'));
+
+        if (existingMetaRef instanceof PDFRef) {
+            // Patch existing XMP using xml-markup-parser
+            try {
+                const { parseXML, serializeXML, findElementNS, getTextContent, setTextContent, createElement } =
+                    await import('../../classes/baseline/xml-markup-parser.js');
+
+                {
+                    const metaObj = document.context.lookup(existingMetaRef);
+                    if (metaObj instanceof PDFRawStream) {
+                        const xmpText = new TextDecoder('utf-8').decode(metaObj.getContents());
+                        const xmpDoc = parseXML(xmpText, { tolerant: true });
+                        const NS_RDF = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
+                        const NS_XMPMM = 'http://ns.adobe.com/xap/1.0/mm/';
+                        const NS_PDFXID = 'http://www.npes.org/pdfx/ns/id/';
+                        const NS_PDF = 'http://ns.adobe.com/pdf/1.3/';
+                        const NS_XMP = 'http://ns.adobe.com/xap/1.0/';
+
+                        const desc = findElementNS(xmpDoc, NS_RDF, 'Description');
+                        if (desc) {
+                            if (!findElementNS(desc, NS_XMPMM, 'VersionID'))
+                                createElement(desc, 'xmpMM:VersionID', NS_XMPMM, versionId);
+                            if (!findElementNS(desc, NS_XMPMM, 'DocumentID'))
+                                createElement(desc, 'xmpMM:DocumentID', NS_XMPMM, `uuid:${documentId}`);
+                            if (!findElementNS(desc, NS_XMPMM, 'RenditionClass'))
+                                createElement(desc, 'xmpMM:RenditionClass', NS_XMPMM, 'default');
+                            if (!findElementNS(desc, NS_PDFXID, 'GTS_PDFXVersion'))
+                                createElement(desc, 'pdfxid:GTS_PDFXVersion', NS_PDFXID, 'PDF/X-4');
+
+                            const producerEl = findElementNS(desc, NS_PDF, 'Producer');
+                            if (producerEl && producer && getTextContent(producerEl) !== producer)
+                                setTextContent(producerEl, producer);
+                            else if (!producerEl && producer)
+                                createElement(desc, 'pdf:Producer', NS_PDF, producer);
+
+                            const modEl = findElementNS(desc, NS_XMP, 'ModifyDate');
+                            if (modEl) setTextContent(modEl, xmpNow);
+                            const metaDateEl = findElementNS(desc, NS_XMP, 'MetadataDate');
+                            if (metaDateEl) setTextContent(metaDateEl, xmpNow);
+
+                            const serialized = serializeXML(xmpDoc);
+                            const xmpBytes = new TextEncoder().encode(serialized);
+                            const newStream = document.context.stream(xmpBytes, {
+                                Type: 'Metadata', Subtype: 'XML', Length: xmpBytes.length,
+                            });
+                            document.context.assign(existingMetaRef, newStream);
+                            return; // patched successfully
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn(`${CONTEXT_PREFIX} [postProcessDocument] XMP patch failed, generating new XMP:`, e.message);
+            }
+        }
+
+        // Generate new XMP from scratch
+        const xmp = `<?xpacket begin="\uFEFF" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+    <rdf:Description rdf:about=""
+      xmlns:dc="http://purl.org/dc/elements/1.1/"
+      xmlns:xmp="http://ns.adobe.com/xap/1.0/"
+      xmlns:pdf="http://ns.adobe.com/pdf/1.3/"
+      xmlns:xmpMM="http://ns.adobe.com/xap/1.0/mm/"
+      xmlns:pdfxid="http://www.npes.org/pdfx/ns/id/">
+      <dc:title><rdf:Alt><rdf:li xml:lang="x-default">${esc(title)}</rdf:li></rdf:Alt></dc:title>
+      <xmp:CreateDate>${createDateISO}</xmp:CreateDate>
+      <xmp:ModifyDate>${xmpNow}</xmp:ModifyDate>
+      <xmp:MetadataDate>${xmpNow}</xmp:MetadataDate>
+      <xmp:CreatorTool>${esc(creator)}</xmp:CreatorTool>
+      <pdf:Producer>${esc(producer)}</pdf:Producer>
+      <xmpMM:DocumentID>uuid:${documentId}</xmpMM:DocumentID>
+      <xmpMM:VersionID>${versionId}</xmpMM:VersionID>
+      <xmpMM:RenditionClass>default</xmpMM:RenditionClass>
+      <pdfxid:GTS_PDFXVersion>PDF/X-4</pdfxid:GTS_PDFXVersion>
+    </rdf:Description>
+  </rdf:RDF>
+</x:xmpmeta>
+<?xpacket end="w"?>`;
+
+        const xmpBytes = new TextEncoder().encode(xmp);
+        const xmpStream = document.context.stream(xmpBytes, {
+            Type: 'Metadata', Subtype: 'XML', Length: xmpBytes.length,
+        });
+        const xmpRef = document.context.register(xmpStream);
+        document.catalog.set(PDFName.of('Metadata'), xmpRef);
     }
 
     /**
