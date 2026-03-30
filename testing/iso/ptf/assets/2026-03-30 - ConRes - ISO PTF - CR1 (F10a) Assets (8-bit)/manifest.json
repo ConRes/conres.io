@@ -70,11 +70,6 @@
             "barcodes":   [ { "type": "PDF417" } ]
         },
         {
-            "asset":      "A - Interlaken Aerial",
-            "colorSpace": "sGray",
-            "barcodes":   [ { "type": "PDF417" } ]
-        },
-        {
             "asset":      "P - Type Sizes",
             "colorSpace": "sGray",
             "barcodes":   [
