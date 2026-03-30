@@ -475,9 +475,12 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
             });
         }
 
-        // Update PDF producer with color engine version for traceability
+        // Update PDF producer with color engine version for traceability (once)
+        const colorEngineSuffix = `(Color-Engine ${engineVersion.replace(/^color-engine-/, '')})`;
         const existingProducer = pdfDocument.getProducer()?.trim() || 'Unknown';
-        pdfDocument.setProducer(`${existingProducer} (Color-Engine ${engineVersion.replace(/^color-engine-/, '')})`);
+        if (!existingProducer.includes(colorEngineSuffix)) {
+            pdfDocument.setProducer(`${existingProducer} ${colorEngineSuffix}`);
+        }
 
         return {
             pagesProcessed: pageFilter ? pageFilter.size : allPages.length,

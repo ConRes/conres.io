@@ -1153,6 +1153,19 @@ export class TestFormPDFDocumentGenerator {
             `Device${iccProfileHeader.colorSpace}`,
         );
         console.timeEnd('replaceTransarencyBlendingSpaceInPDFDocument');
+
+        // Set TrimBox, BleedBox, CropBox from MediaBox on pages that lack them.
+        // Pages assembled via embedPage/drawPage don't inherit source page boxes.
+        for (const page of document.getPages()) {
+            const node = page.node;
+            const mediaBox = node.lookup(PDFName.of('MediaBox'));
+            if (!mediaBox) continue;
+            for (const boxName of ['TrimBox', 'BleedBox', 'CropBox']) {
+                if (!node.get(PDFName.of(boxName))) {
+                    node.set(PDFName.of(boxName), mediaBox);
+                }
+            }
+        }
     }
 
     /**
