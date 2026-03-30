@@ -1,0 +1,222 @@
+{
+  "schemaVersion": "1.0",
+  "profile": "pdf-x-4",
+  "categories": [
+    {
+      "categoryId": "page-geometry",
+      "displayName": "Page Geometry",
+      "description": "Page box definitions required for prepress workflows.",
+      "rules": [
+        {
+          "ruleId": "page-missing-trimbox-or-artbox",
+          "pdfxReference": "RUL122",
+          "displayName": "Page does not have TrimBox or ArtBox",
+          "description": "Either ArtBox or TrimBox should be defined for pages used in prepress. PDF/X ISO standards require the presence of one of these boxes.",
+          "scope": "page",
+          "severity": { "default": "error" },
+          "conditions": [
+            { "property": "PAGE::HasTrimBox", "expected": true },
+            { "property": "PAGE::HasArtBox", "expected": true }
+          ],
+          "logic": "or",
+          "fixId": "set-geometry-from-mediabox"
+        }
+      ]
+    },
+    {
+      "categoryId": "document-structure",
+      "displayName": "Document Structure",
+      "description": "Required document-level entries and structural integrity.",
+      "rules": [
+        {
+          "ruleId": "document-id-missing",
+          "pdfxReference": "RUL127",
+          "displayName": "Document ID missing",
+          "description": "The Document ID in a PDF document is required by PDF/X standards. It consists of two hex strings in the file trailer.",
+          "scope": "document",
+          "severity": { "default": "error" },
+          "conditions": [
+            { "property": "DOC::HasDocumentID", "expected": true }
+          ],
+          "logic": "and",
+          "fixId": "add-document-id"
+        },
+        {
+          "ruleId": "xobject-missing-subtype",
+          "pdfxReference": "RUL92",
+          "displayName": "XObject missing required Subtype entry",
+          "description": "An XObject stream is missing its required Subtype entry. This causes Adobe Acrobat to crash with an unrecoverable error (error 18).",
+          "scope": "object",
+          "severity": { "default": "error" },
+          "conditions": [
+            { "property": "XOBJECT::HasSubtype", "expected": true }
+          ],
+          "logic": "and"
+        },
+        {
+          "ruleId": "document-damaged",
+          "pdfxReference": "RUL113",
+          "displayName": "Document is damaged and could not be loaded",
+          "description": "The PDF file could not be parsed. It may be truncated, corrupted, or not a valid PDF file.",
+          "scope": "document",
+          "severity": { "default": "error" },
+          "conditions": [
+            { "property": "DOC::LoadSucceeded", "expected": true }
+          ],
+          "logic": "and"
+        }
+      ]
+    },
+    {
+      "categoryId": "output-intent",
+      "displayName": "Output Intent",
+      "description": "PDF/X output intent and ICC profile configuration.",
+      "rules": [
+        {
+          "ruleId": "output-intent-profile-bare-stream",
+          "pdfxReference": "RUL208",
+          "displayName": "Output intent ICC profile stream missing required attributes",
+          "description": "The DestOutputProfile ICC stream should have /N (number of color components), /Alternate (fallback device color space), and ideally /Filter /FlateDecode for compression. Missing attributes may cause compatibility issues with older PDF readers.",
+          "scope": "document",
+          "severity": { "default": "warning" },
+          "conditions": [
+            { "property": "OUTPUTINTENT::ProfileHasN", "expected": true },
+            { "property": "OUTPUTINTENT::ProfileHasAlternate", "expected": true }
+          ],
+          "logic": "and",
+          "fixId": "fix-output-intent-profile"
+        }
+      ]
+    },
+    {
+      "categoryId": "optional-content",
+      "displayName": "Optional Content (Layers)",
+      "description": "Optional content group structure and registration.",
+      "rules": [
+        {
+          "ruleId": "ocg-not-in-ocproperties",
+          "pdfxReference": "RUL131",
+          "displayName": "Layer (OCG) not listed in document's OCProperties",
+          "description": "The PDF specification requires that a layer must be defined in the document's layer dictionary (OCProperties) in order to be displayed in a viewer.",
+          "scope": "document",
+          "severity": { "default": "error" },
+          "conditions": [
+            { "property": "OCG::AllListedInOCProperties", "expected": true }
+          ],
+          "logic": "and",
+          "fixId": "strip-orphaned-ocg"
+        },
+        {
+          "ruleId": "occd-missing-name",
+          "pdfxReference": "RUL106",
+          "displayName": "Optional content configuration dictionary has no Name entry",
+          "description": "PDF/X-4 requires that each optional content configuration dictionary (OCCD) has a Name entry which is unique throughout the PDF.",
+          "scope": "document",
+          "severity": { "default": "error" },
+          "conditions": [
+            { "property": "OCCD::HasName", "expected": true }
+          ],
+          "logic": "and",
+          "fixId": "add-occd-name"
+        }
+      ]
+    },
+    {
+      "categoryId": "xmp-metadata",
+      "displayName": "XMP Metadata",
+      "description": "XMP metadata presence and PDF/X conformance entries.",
+      "rules": [
+        {
+          "ruleId": "metadata-missing-xmp",
+          "pdfxReference": "RUL54",
+          "displayName": "Metadata missing (XMP)",
+          "description": "PDF/X standards require the presence of XMP metadata in the document catalog.",
+          "scope": "document",
+          "severity": { "default": "error" },
+          "conditions": [
+            { "property": "DOC::HasXMPMetadata", "expected": true }
+          ],
+          "logic": "and",
+          "fixId": "generate-minimal-xmp"
+        },
+        {
+          "ruleId": "xmp-missing-version-id",
+          "pdfxReference": "RUL196",
+          "displayName": "XMP does not have VersionID entry",
+          "description": "The XMP Media Management Schema requires a VersionID entry for PDF/X conformance.",
+          "scope": "document",
+          "severity": { "default": "error" },
+          "conditions": [
+            { "property": "XMP::HasVersionID", "expected": true }
+          ],
+          "logic": "and",
+          "fixId": "patch-xmp-metadata"
+        },
+        {
+          "ruleId": "xmp-missing-pdfx-version",
+          "pdfxReference": "RUL42",
+          "displayName": "PDF/X-4 entry missing or incorrect",
+          "description": "The XMP PDF/X Identification schema must contain a GTS_PDFXVersion entry set to 'PDF/X-4'.",
+          "scope": "document",
+          "severity": { "default": "error" },
+          "conditions": [
+            { "property": "XMP::HasGTSPDFXVersion", "expected": true }
+          ],
+          "logic": "and",
+          "fixId": "patch-xmp-metadata"
+        },
+        {
+          "ruleId": "xmp-producer-mismatch",
+          "pdfxReference": "RUL29",
+          "displayName": "Producer mismatch between Document Info and XMP Metadata",
+          "description": "The Producer field in the document's Info dictionary must match the Producer entry in the XMP metadata.",
+          "scope": "document",
+          "severity": { "default": "error" },
+          "conditions": [
+            { "property": "XMP::ProducerMatchesInfoDict", "expected": true }
+          ],
+          "logic": "and",
+          "fixId": "patch-xmp-metadata"
+        }
+      ]
+    }
+  ],
+  "fixes": {
+    "set-geometry-from-mediabox": {
+      "displayName": "Set page boxes from MediaBox",
+      "description": "Sets TrimBox, BleedBox, and CropBox to the page's MediaBox values.",
+      "strategy": "copy-from-mediabox",
+      "targets": ["TrimBox", "BleedBox", "CropBox"]
+    },
+    "add-document-id": {
+      "displayName": "Add Document ID",
+      "description": "Generates a random 16-byte hex string pair and sets it as the document ID in the trailer.",
+      "strategy": "generate-random-id"
+    },
+    "fix-output-intent-profile": {
+      "displayName": "Fix output intent ICC profile attributes",
+      "description": "Adds /N (color components), /Alternate (device color space), and /Filter /FlateDecode to the DestOutputProfile stream. The color component count and alternate space are determined from the ICC profile header.",
+      "strategy": "fix-icc-stream-attributes"
+    },
+    "strip-orphaned-ocg": {
+      "displayName": "Remove unregistered OCG layers",
+      "description": "Removes OCG references from page content and Form XObjects that are not listed in the document's OCProperties dictionary.",
+      "strategy": "strip-unregistered-ocg"
+    },
+    "add-occd-name": {
+      "displayName": "Add Name to OCCD",
+      "description": "Adds a Name entry to the default optional content configuration dictionary.",
+      "strategy": "add-occd-name-entry"
+    },
+    "generate-minimal-xmp": {
+      "displayName": "Generate minimal XMP metadata",
+      "description": "Creates a minimal XMP metadata stream with required entries from the document's Info dictionary.",
+      "strategy": "generate-xmp-from-info-dict"
+    },
+    "patch-xmp-metadata": {
+      "displayName": "Patch XMP metadata",
+      "description": "Adds missing required entries to existing XMP metadata: VersionID, DocumentID, GTS_PDFXVersion, and syncs Producer and dates with the Info dictionary.",
+      "strategy": "patch-existing-xmp"
+    }
+  }
+}
