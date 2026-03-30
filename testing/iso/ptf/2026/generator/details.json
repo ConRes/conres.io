@@ -19,7 +19,7 @@
                 "highlight": true
             },
             "eightBit": {
-                "text": "The 8-bit variant is for systems that cannot process 16-bit source data. Use the standard version unless you have a specific reason.",
+                "text": "The 8-bit variant is only used for troubleshooting on systems when generation with the 16-bit variant fails. Use the standard version unless you have a specific reason.",
                 "warn": true,
                 "highlight": true
             },
@@ -62,7 +62,7 @@
                 "warn": false
             },
             "16-bit": {
-                "text": "Higher precision — use only if your RIP and workflow require 16-bit data.",
+                "text": "Higher precision — use only when printing on systems with wide-gamut or high-dynamic-range. Due to browser limitations, you may need to use the separate chains ",
                 "warn": true
             },
             "auto": {
