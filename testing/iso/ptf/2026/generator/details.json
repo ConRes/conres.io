@@ -107,29 +107,28 @@
                     "Rendering intent and output profile name",
                     "Participant email and generation timestamp"
                 ],
-                "footer": "The slug QR code ties each printed page back to the specific test form digital file, the layout and source color space, the output profile and rendering intent, and the participant and generation session. This is essential for sorting scanned pages from different round-robin participants."
+                "footer": "The slug QR code ties each printed page back to the layout, the specific test form digital file, and its docket (which contains the ICC profile). The generation timestamp is shared across all PDFs in a session — docket and all rendering intent passes — so they can be identified as a set. This is essential for sorting scanned pages from different round-robin participants."
             },
             {
                 "heading": "Asset Barcodes",
                 "content": "Assets contain embedded barcodes (QR or PDF417) independent of the slug QR codes. These identify the source asset, variant, and version.",
                 "list": [
-                    "ConRes 21 (CR21) — QR codes with color space, target layout configuration (rows, columns) for automated analysis",
-                    "ConRes 20 (TV25 vs TV75) — QR codes with sRGB, sGray, or Lab distinguisher per PostScript-generated source",
-                    "CR21 vs CR20 — PDF417 with color space distinguisher per PostScript-generated source",
-                    "Interlaken Aerial — PDF417, same code for sRGB and sGray (same source asset, grayscale is a conversion)",
-                    "Interlaken Map (vector) — PDF417 with color/gray distinguisher (different PostScript sources)",
-                    "Vitznau Map (vector contour) — PDF417 with color/gray distinguisher (different PostScript sources)",
-                    "London, Winter Trees, Lake and Cat (pictorial) — PDF417 per element, same code regardless of color space (same source)",
-                    "Type Sizes — PDF417 per element (Palatino, Palatino Italic, Helvetica, Edwardian Script), sGray and SepK variants",
-                    "Lissajou — PDF417 per element (Frames, Shapes), sGray and SepK variants"
+                    "ConRes 21 (CR21) — QR codes with a robust configuration and labeling system developed by Franz, including color space distinguisher (sRGB, sGray, Lab), target layout parameters (rows, columns), intended to guide automated analysis software",
+                    "ConRes 20 (TV25 vs TV75) — PDF417 codes with sRGB, sGray, or Lab distinguisher, each with its own source asset",
+                    "Interlaken Aerial — PDF417, same code for sRGB and sGray since they are the same source asset (sGray is a grayscale conversion of sRGB)",
+                    "Interlaken Map — PDF417 with \"color\" or \"gray\" distinguisher since sRGB and sGray are different source assets",
+                    "Vitznau Map (contour) — PDF417 with \"color\" or \"gray\" distinguisher since sRGB and sGray are different source assets",
+                    "Pictorial: London (2 elements), Winter Trees (4 elements), Lake and Cat (2 elements) — PDF417 per element, same code irrespective of color space since they are all converted from the same source assets",
+                    "Type Sizes — PDF417 per element: Palatino, Palatino Italic, Helvetica, Edwardian Script (4 elements), irrespective of color space. Note: sGray and Separation Black variants need distinguisher codes — revision pending before round-robin",
+                    "Lissajou — PDF417 per element: Frames and Shapes (2 elements), irrespective of color space. Note: sGray and Separation Black variants need distinguisher codes — revision pending before round-robin"
                 ]
             },
             {
                 "heading": "Barcode Hierarchy and Segmentation",
                 "content": "All asset-level barcodes work in tandem with the slug QR code:",
                 "list": [
-                    "Slug QR — identifies the page, participant, output profile, rendering intent",
-                    "Asset barcode — identifies the specific source asset, variant, version"
+                    "Slug QR — identifies the page, participant, output profile, rendering intent, and generation timestamp",
+                    "Asset barcode — identifies the specific source asset, variant, and version"
                 ],
                 "footer": "Together, these enable the TestFormSegmenter to automate the segmentation process — splitting scanned pages into individual assessment targets for perceptual psychometrics testing."
             },
@@ -137,8 +136,8 @@
                 "heading": "Color Space Handling",
                 "content": "The test form contains assets in multiple source color spaces:",
                 "list": [
-                    "sRGB — standard RGB pictorial and vector assets",
-                    "sGray — grayscale variants (some converted from sRGB, some separate PostScript sources)",
+                    "sRGB — standard RGB pictorial and map assets",
+                    "sGray — grayscale variants (some converted from sRGB, some from separate sources)",
                     "Lab — CIE Lab color space (ConRes targets only)",
                     "SepK — Separation Black (Type Sizes and Lissajou only)"
                 ],
@@ -157,14 +156,18 @@
             },
             {
                 "heading": "Docket PDF",
-                "content": "The docket is a separate PDF generated alongside the test form. It contains:",
+                "content": "The docket is a separate PDF generated alongside the test form (introduced in F10a). It contains:",
                 "list": [
                     "The ICC output profile used for generation",
                     "All generation parameters (device, colorants, substrate, settings, email)",
                     "Assembly plan details (rendering intents, page count, profile category)",
-                    "Generation timestamp"
+                    "Generation timestamp (shared across all PDFs in the session)"
                 ],
                 "footer": "The docket must be kept and submitted digitally alongside physical prints. It does not need to be printed. Without the docket, submitted prints cannot be processed."
+            },
+            {
+                "heading": "Legacy: Metadata JSON",
+                "content": "Test form versions prior to F10a generated a metadata.json file instead of a docket PDF. The metadata JSON contained the generation parameters and a base64-encoded copy of the ICC profile. Starting with F10a, the metadata is embedded inside the docket PDF — the ICC profile is no longer duplicated in the metadata because it is already embedded in the PDF as the output intent."
             }
         ]
     }
