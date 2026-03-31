@@ -179,6 +179,26 @@
           "fixId": "patch-xmp-metadata"
         }
       ]
+    },
+    {
+      "categoryId": "font",
+      "displayName": "Font Embedding",
+      "description": "PDF/X-4 requires all fonts used for visible text to be embedded.",
+      "rules": [
+        {
+          "ruleId": "font-not-embedded",
+          "pdfxReference": "RUL217",
+          "displayName": "Font not embedded (and text rendering mode not 3)",
+          "description": "All fonts used for visible text must be embedded in the PDF. Unembedded fonts rely on the viewer to supply a substitute, which may differ from the intended appearance.",
+          "scope": "object",
+          "severity": { "default": "error" },
+          "conditions": [
+            { "property": "FONT::IsEmbedded", "expected": true }
+          ],
+          "logic": "and",
+          "fixId": "embed-missing-fonts"
+        }
+      ]
     }
   ],
   "fixes": {
@@ -217,6 +237,11 @@
       "displayName": "Patch XMP metadata",
       "description": "Adds missing required entries to existing XMP metadata: VersionID, DocumentID, GTS_PDFXVersion, and syncs Producer and dates with the Info dictionary.",
       "strategy": "patch-existing-xmp"
+    },
+    "embed-missing-fonts": {
+      "displayName": "Embed missing fonts",
+      "description": "Extracts font programs from Ghostscript WASM via a PostScript proxy and transplants them into the PDF. The original PDF is never processed by Ghostscript — only the font program bytes are transferred. Standard PDF fonts are substituted with metric-compatible URW alternatives (e.g., Helvetica → NimbusSans). Fonts not available in Ghostscript's library are reported as unfixable.",
+      "strategy": "gs-proxy-font-extraction"
     }
   }
 }

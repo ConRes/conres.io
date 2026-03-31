@@ -782,7 +782,7 @@ export class PDFValidatorAppElement extends HTMLElement {
 
             const { PDFPreflightFixer } = await import('../classes/pdf-preflight-fixer.js');
             const fixer = new PDFPreflightFixer(this.#document);
-            const changelog = fixer.applyFixes(fixIds);
+            const changelog = await fixer.applyFixes(fixIds);
             console.log(`${CONTEXT_PREFIX} [PDFValidatorApp] Fixes applied:`, changelog.length, 'changes');
 
             // Show aggregated changelog

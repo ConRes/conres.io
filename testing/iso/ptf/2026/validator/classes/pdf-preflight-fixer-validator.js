@@ -62,9 +62,9 @@ export class PDFPreflightFixerValidator extends PDFPreflightValidator {
      * Apply fixes by ID. Delegates to the composed fixer.
      *
      * @param {string[]} fixIds
-     * @returns {ChangelogEntry[]}
+     * @returns {Promise<ChangelogEntry[]>}
      */
-    fix(fixIds) {
+    async fix(fixIds) {
         return this.#fixer.applyFixes(fixIds);
     }
 
