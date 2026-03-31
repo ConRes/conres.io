@@ -261,7 +261,9 @@ export class PDFPreflightValidator {
         const objects = this.#document.context.enumerateIndirectObjects();
 
         for (const [ref, obj] of objects) {
-            // Object-scope rules only apply to specific object types
+            let target = null;
+            let details = {};
+
             if (rule.ruleId === 'xobject-missing-subtype') {
                 // Only check streams that have /Type /XObject
                 if (!(obj instanceof PDFRawStream) && !(obj instanceof PDFStream)) continue;
@@ -269,21 +271,33 @@ export class PDFPreflightValidator {
                 if (!dict) continue;
                 const type = dict.get(PDFName.of('Type'));
                 if (!(type instanceof PDFName) || type.encodedName !== '/XObject') continue;
+                target = obj;
+                details = { type: 'XObject', subtype: 'MISSING' };
+            } else if (rule.ruleId === 'font-not-embedded') {
+                // Check all Font dicts (including those without FontDescriptor — standard fonts)
+                if (!(obj instanceof PDFDict)) continue;
+                const type = obj.get(PDFName.of('Type'));
+                if (!(type instanceof PDFName) || type.encodedName !== '/Font') continue;
+                target = obj;
+                const baseFont = obj.lookup(PDFName.of('BaseFont'));
+                details = { fontName: baseFont instanceof PDFName ? baseFont.encodedName.replace(/^\//, '') : 'Unknown' };
+            }
 
-                const conditionResults = rule.conditions.map(cond => {
-                    const evaluator = this.#evaluators.get(cond.property);
-                    if (!evaluator) return { property: cond.property, result: undefined };
-                    const result = evaluator(obj, { document: this.#document, ref });
-                    return { property: cond.property, result: result === cond.expected };
-                });
+            if (!target) continue;
 
-                const status = this.#resolveConditions(conditionResults, rule.logic);
-                if (status === 'fail') {
-                    findings.push(this.#makeFinding(rule, status, severity,
-                        { ref: `${ref.objectNumber} ${ref.generationNumber} R` },
-                        { type: 'XObject', subtype: 'MISSING' }
-                    ));
-                }
+            const conditionResults = rule.conditions.map(cond => {
+                const evaluator = this.#evaluators.get(cond.property);
+                if (!evaluator) return { property: cond.property, result: undefined };
+                const result = evaluator(target, { document: this.#document, ref });
+                return { property: cond.property, result: result === cond.expected };
+            });
+
+            const status = this.#resolveConditions(conditionResults, rule.logic);
+            if (status === 'fail') {
+                findings.push(this.#makeFinding(rule, status, severity,
+                    { ref: `${ref.objectNumber} ${ref.generationNumber} R` },
+                    details,
+                ));
             }
         }
 
@@ -478,6 +492,44 @@ export class PDFPreflightValidator {
             const d = ocProps.lookup(PDFName.of('D'));
             if (!(d instanceof PDFDict)) return true; // no D entry = different issue
             return !!d.get(PDFName.of('Name'));
+        });
+
+        // --- Font ---
+        evaluators.set('FONT::IsEmbedded', (fontDict) => {
+            if (!(fontDict instanceof PDFDict)) return true;
+
+            // Type0 (composite) fonts delegate embedding to their descendant CIDFont
+            const subtype = fontDict.get(PDFName.of('Subtype'));
+            if (subtype instanceof PDFName && subtype.encodedName === '/Type0') {
+                // Check the DescendantFonts array for embedding
+                const descendants = fontDict.lookup(PDFName.of('DescendantFonts'));
+                if (descendants instanceof PDFArray && descendants.size() > 0) {
+                    const cidFont = descendants.lookup(0);
+                    if (cidFont instanceof PDFDict) {
+                        const cidDescRef = cidFont.get(PDFName.of('FontDescriptor'));
+                        if (cidDescRef instanceof PDFRef) {
+                            const cidDesc = this.#document?.context?.lookup(cidDescRef);
+                            if (cidDesc instanceof PDFDict) {
+                                return !!(cidDesc.get(PDFName.of('FontFile')) || cidDesc.get(PDFName.of('FontFile2')) || cidDesc.get(PDFName.of('FontFile3')));
+                            }
+                        }
+                    }
+                }
+                return true; // can't determine — don't false-flag
+            }
+
+            const descriptorRef = fontDict.get(PDFName.of('FontDescriptor'));
+            if (!(descriptorRef instanceof PDFRef)) {
+                // No descriptor = standard font reference, NOT embedded
+                return false;
+            }
+            const descriptor = this.#document?.context?.lookup(descriptorRef);
+            if (!(descriptor instanceof PDFDict)) return false;
+            return !!(
+                descriptor.get(PDFName.of('FontFile')) ||
+                descriptor.get(PDFName.of('FontFile2')) ||
+                descriptor.get(PDFName.of('FontFile3'))
+            );
         });
 
         // --- XMP Metadata ---

@@ -100,7 +100,21 @@ export class GhostscriptService {
      * @param {Uint8Array | ArrayBuffer} pdfBytes - The input PDF
      * @returns {Promise<ArrayBuffer>} - The output PDF with fonts embedded
      */
-    static async embedFontsInPDF(pdfBytes) {
+    /**
+     * Re-process a PDF through Ghostscript to embed fonts.
+     *
+     * GS substitutes its bundled NimbusSans for Helvetica references
+     * and embeds the font subsets. Uses `-dPDFX` to force embedding
+     * of Base 13 fonts (GS 10.05.1+ ignores `-dEmbedAllFonts` for these).
+     *
+     * See: https://share.google/aimode/PIfKr6jFweEgq4xRP
+     *
+     * @param {Uint8Array | ArrayBuffer} pdfBytes - The input PDF
+     * @param {{ subset?: boolean }} [options] - Options
+     * @param {boolean} [options.subset=true] - Subset fonts (false = full font programs for transplanting)
+     * @returns {Promise<ArrayBuffer>} - The output PDF with fonts embedded
+     */
+    static async embedFontsInPDF(pdfBytes, { subset = true } = {}) {
         /** @type {EmscriptenModule & { FS: typeof FS; callMain: (argv: string[]) => number}} */
         const ghostscriptModule = await GhostscriptModule({ noInitialRun: true });
 
@@ -114,8 +128,8 @@ export class GhostscriptService {
             '-sDEVICE=pdfwrite',
             '-sOutputFile=/output/doc.pdf',
             '-dCompatibilityLevel=1.7',
-            '-dEmbedAllFonts=true',
-            '-dSubsetFonts=true',
+            '-dPDFX',
+            `-dSubsetFonts=${subset}`,
             '-dAutoRotatePages=/None',
             '/input/doc.pdf',
         ]);

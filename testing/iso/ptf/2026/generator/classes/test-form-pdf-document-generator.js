@@ -2013,8 +2013,18 @@ export class TestFormPDFDocumentGenerator {
         const embeddedDocketBytes = await GhostscriptService.embedFontsInPDF(rawDocketBytes);
 
         // Reload the GS output and apply post-processing
-        // (GS strips our metadata, so output intent/XMP/doc ID must be applied after)
+        // (GS rewrites the Info dict with its own Creator/CreationDate — restore
+        // the original values so the XMP generation in #postProcessDocument stays in sync)
         const finalDocket = await PDFDocument.load(embeddedDocketBytes, { updateMetadata: false });
+
+        const finalInfo = finalDocket.context.trailerInfo.Info;
+        if (finalInfo) {
+            const info = finalInfo instanceof PDFRef ? finalDocket.context.lookup(finalInfo) : finalInfo;
+            if (info instanceof PDFDict) {
+                info.set(PDFName.of('Creator'), PDFString.of(`ConRes Test Form Generator (${this.#testFormVersion})`));
+                info.set(PDFName.of('CreationDate'), PDFString.of(`D:${this.#generationTimestamp.replace(/[-:T]/g, '').replace(/\.\d+Z$/, '')}Z`));
+            }
+        }
 
         await this.#postProcessPages(finalDocket, iccProfileHeader);
         await this.#postProcessDocument(

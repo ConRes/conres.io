@@ -31,6 +31,8 @@ import {
     setTextContent, createElement,
 } from '../../classes/baseline/xml-markup-parser.js';
 
+import { PDFFontEmbedder } from './pdf-font-embedder.js';
+
 /**
  * @typedef {{
  *   fixId: string,
@@ -58,28 +60,28 @@ export class PDFPreflightFixer {
      * Apply a single fix by ID.
      *
      * @param {string} fixId
-     * @returns {ChangelogEntry[]}
+     * @returns {Promise<ChangelogEntry[]>}
      */
-    applyFix(fixId) {
+    async applyFix(fixId) {
         const fixFn = this.#fixRegistry.get(fixId);
         if (!fixFn) {
             console.warn(`Unknown fix ID: ${fixId}`);
             return [];
         }
-        return fixFn();
+        return await fixFn();
     }
 
     /**
      * Apply multiple fixes. Returns combined changelog.
      *
      * @param {string[]} fixIds
-     * @returns {ChangelogEntry[]}
+     * @returns {Promise<ChangelogEntry[]>}
      */
-    applyFixes(fixIds) {
+    async applyFixes(fixIds) {
         /** @type {ChangelogEntry[]} */
         const changelog = [];
         for (const fixId of fixIds) {
-            changelog.push(...this.applyFix(fixId));
+            changelog.push(...await this.applyFix(fixId));
         }
         return changelog;
     }
@@ -96,6 +98,7 @@ export class PDFPreflightFixer {
         this.#fixRegistry.set('add-occd-name', () => this.#addOCCDName());
         this.#fixRegistry.set('generate-minimal-xmp', () => this.#generateMinimalXMP());
         this.#fixRegistry.set('patch-xmp-metadata', () => this.#patchExistingXMP());
+        this.#fixRegistry.set('embed-missing-fonts', () => this.#embedMissingFonts());
     }
 
     // ========================================================================
@@ -417,6 +420,7 @@ export class PDFPreflightFixer {
       <xmp:MetadataDate>${now}</xmp:MetadataDate>
       <xmp:CreatorTool>${esc(creator)}</xmp:CreatorTool>
       <pdf:Producer>${esc(producer)}</pdf:Producer>
+      <pdf:Trapped>False</pdf:Trapped>
       <xmpMM:DocumentID>uuid:${documentId}</xmpMM:DocumentID>
       <xmpMM:VersionID>${versionId}</xmpMM:VersionID>
       <xmpMM:RenditionClass>default</xmpMM:RenditionClass>
@@ -573,6 +577,12 @@ export class PDFPreflightFixer {
             }
         }
 
+        // Patch: pdf:Trapped (pdf: namespace, not xmp:)
+        if (!findElementNS(desc, NS.pdf, 'Trapped')) {
+            ensureElement(NS.pdf, 'pdf:Trapped', 'False');
+            patches.push('Trapped');
+        }
+
         // Patch: xmp:ModifyDate — sync with current time
         ensureElement(NS.xmp, 'xmp:ModifyDate', xmpNow);
         patches.push('ModifyDate sync');
@@ -609,6 +619,47 @@ export class PDFPreflightFixer {
             description: `Patched existing XMP: ${patches.join(', ')}`,
             location: null,
         });
+
+        return changelog;
+    }
+
+    // ========================================================================
+    // Fix: Embed missing fonts via GS WASM proxy
+    // ========================================================================
+
+    /** @returns {Promise<ChangelogEntry[]>} */
+    async #embedMissingFonts() {
+        /** @type {ChangelogEntry[]} */
+        const changelog = [];
+
+        const embedder = new PDFFontEmbedder(this.#document);
+        const results = await embedder.embedMissingFonts();
+
+        for (const result of results) {
+            switch (result.status) {
+                case 'embedded':
+                    changelog.push({
+                        fixId: 'embed-missing-fonts',
+                        description: `Embedded font ${result.fontName}${result.substituteFont && result.substituteFont !== result.fontName ? ` (via ${result.substituteFont})` : ''}`,
+                        location: result.descriptorRef ? { ref: result.descriptorRef.toString() } : null,
+                    });
+                    break;
+                case 'missing':
+                    changelog.push({
+                        fixId: 'embed-missing-fonts',
+                        description: `Could not embed font ${result.fontName} — not available in Ghostscript font library${result.substituteFont ? ` (tried ${result.substituteFont})` : ''}`,
+                        location: result.descriptorRef ? { ref: result.descriptorRef.toString() } : null,
+                    });
+                    break;
+                case 'error':
+                    changelog.push({
+                        fixId: 'embed-missing-fonts',
+                        description: `Error embedding font ${result.fontName}: ${result.error}`,
+                        location: result.descriptorRef ? { ref: result.descriptorRef.toString() } : null,
+                    });
+                    break;
+            }
+        }
 
         return changelog;
     }
