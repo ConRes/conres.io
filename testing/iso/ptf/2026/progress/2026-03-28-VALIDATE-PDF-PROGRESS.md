@@ -239,9 +239,23 @@ Full per-rule table with all 223 rules: `experiments/validator/preflight-rules-d
 - **Filename suffix stacking**: When a pre-suffixed PDF (from generator with debugging) is run through the validator with debugging, both suffixes appear. Decide: keep most recent only, or both? Deferred.
 - **RGB and Gray profiles not tested**: The `pdfxid:GTS_PDFXVersion = PDF/X-4` entry is written regardless of output intent color space. May need conditional logic for non-CMYK profiles.
 - **R7 ModDate mismatch untested**: Second-precision timestamp sync is implemented but never confirmed by Acrobat preflight.
-- **Generator-side fixes not applied**: TrimBox and OCG registration fixes exist in the validator fixer but not in `test-form-pdf-document-generator.js` page assembly. Future generated PDFs still have these issues.
+- **Generator-side fixes applied**: TrimBox, OCG registration, OCCD Name, Document ID, and XMP metadata fixes now run in `test-form-pdf-document-generator.js` post-processing (`fb39eb2`).
 - **Diagnostics layer not integrated**: Validator engine has `CONTEXT_PREFIX` logging in the UI element but doesn't use `DiagnosticsCollector` for structured timing/span tracking like the generator's color conversion pipeline.
 - **Dark mode contrast**: Style changes implemented but not verified in browser DevTools against WCAG AA.
+- **ICC profile download**: Download Profile button extracts ICC from DestOutputProfile stream, reads name from ICC `desc` tag (v2 textDescriptionType or v4 multiLocalizedUnicodeType), handles compressed/uncompressed via `acsp` magic byte detection.
+
+### PDF/X-4 Output Intent Reference
+
+See: https://share.google/aimode/cniS49dy27zNZLxZ3
+
+Per PDF spec (ISO 32000), the profile name can be stored in:
+- **OutputConditionIdentifier** — primary reference name in the OutputIntent dict
+- **Info** — human-readable description in the OutputIntent dict
+- **ICC `desc` tag** — canonical name from the profile binary itself (offset from tag table)
+- **Stream /Metadata** — XMP data on the stream (optional)
+- **Stream /AF** — Associated File specification with /F or /UF filename (PDF 2.0 only)
+
+The validator reads the ICC `desc` tag as the primary source for the download filename, falling back to `OutputConditionIdentifier`.
 
 ### 2026-03-29
 
@@ -319,3 +333,15 @@ Separate effort to transition the generator from pako/zlib to Compression Stream
 - Changelog aggregation: 66 per-page entries → "Set TrimBox, BleedBox, CropBox from MediaBox — pages 1, 2, ... and N" (1 line with human-readable page list).
 - Reorganized `experiments/validator/`: `helpers/`, `scripts/`, `pdf-lib-validation-suite/`.
 - Layout: footer pushed to bottom via flex chain (custom element → shadow form → article/footer), `hgroup` heading structure, native file input, full-width findings, block-display fieldsets for report/actions/changelog. See `2026-03-30-HARMONIZING-STYLES-PROGRESS.md` for the shared layout pattern.
+
+### 2026-03-31
+
+- **Download Profile button**: Extracts ICC from DestOutputProfile, reads name from ICC `desc` tag (v2/v4), falls back to `/AF` filename (PDF 2.0) then OutputConditionIdentifier. Handles compressed/uncompressed via `acsp` magic byte detection.
+- **Profile filename storage**: Generator's `setOutputIntentForPDFDocument` now stores original filename via `/AF` (PDF 2.0 Associated Files) on the OutputIntent dict.
+- **Font embedding**: See `2026-03-31-EMBEDDING-MISSING-FONTS-PROGRESS.md` for full details.
+  - `PDFFontEmbedder` class: creates pdf-lib proxy PDF with StandardFonts, runs through GS `-dPDFX` (forces embedding), extracts FontFile3 CFF streams, transplants into original PDF
+  - `GhostscriptService.embedFontsInPDF()`: `{ subset }` option — `true` for generator docket, `false` for validator proxy
+  - GS 10.05.1 regression: `-dEmbedAllFonts=true` no longer overrides NeverEmbed for Base 13; `-dPDFX` is the cross-version fix
+  - Generator docket pipeline: assemble → save → GS embed → reload → restore Info dict Creator/CreationDate → `#postProcessDocument`
+- **XMP fixes**: `pdf:Trapped` (correct namespace, not `xmp:Trapped`), `xmp:MetadataDate` created when missing (not just updated), Info dict ModDate synced in XMP patch path, `dc:title` fallback to testFormVersion when Info dict has no Title
+- **PDF/X-4 conformance achieved**: eciCMYK test forms pass with 0 errors on both Chrome and Safari. Docket pending R6 verification (Creator/CreationDate Info dict sync after GS pass).

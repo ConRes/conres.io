@@ -1,8 +1,8 @@
 # ISO PTF 2026 — Beta Release — PROGRESS
 
-**Created:** 2026-03-18
-**Last Updated:** 2026-03-18
-**Status:** Planning
+**Created:** 2026-03-18  
+**Last Updated:** 2026-03-31  
+**Status:** Beta Development
 
 ---
 
@@ -225,7 +225,7 @@ The 20+ temporary commits collapse into logical, coherent commits. Progress/trac
 | 7   | `feat(generator)`    | Generator prototype — in-browser color conversion      | `generator/` (all files)                                                                                                                                                                                                |
 | 8   | `feat(tests)`        | Test suite — classes, generator, legacy updates        | `tests/classes/`, `tests/generator/`, `tests/legacy/`, `tests/run-tests.js`                                                                                                                                             |
 | 9   | `chore(docs)`        | Documentation, integration notes, and progress history | `progress/` (standardized from various locations), root-level `*.md`                                                                                                                                                    |
-| 10  | `chore(staging)`     | Staging deployment tooling                             | `STAGING.md`, `experiments/scripts/sync-generator-to-staging.mjs`, `experiments/scripts/trace-dependencies.mjs`                                                                                                         |
+| 10  | `chore(staging)`     | Staging deployment tooling                             | `STAGING.md`, `experiments/tools/sync-generator-to-staging.mjs`, `experiments/tools/trace-dependencies.mjs`                                                                                                             |
 | 11  | `fix(pdf-lib)`       | Patch vendored pdf-lib — buffer copy compatibility fix | `packages/pdf-lib/pdf-lib.esm.js` (single functional patch, no reformatting)                                                                                                                                            |
 
 ### Progress Document Consolidation
@@ -261,45 +261,105 @@ All progress/tracking documents will be moved to `progress/` at the repository r
 
 ## 4. Roadmap
 
-### Phase 0 — Cleanup Master (Current)
+### Phase 0 — Cleanup Master ✅
 
-- [ ] Resolve remaining open questions `IN-PROGRESS`
-- [ ] Create `test-for-generator/2025/dev` branch from current master
-- [ ] Create final temporary commit (21) on dev branch
-- [ ] Create `test-for-generator/2025/clean` branch and worktree from `9c17c5d`
-- [ ] Build clean commits in worktree
-- [ ] Revise and consolidate progress documents
-- [ ] Swap master to clean history
-- [ ] Verify
+- [x] Resolved remaining open questions
+- [x] Created branch structure and preserved temporary commits
+- [x] Built clean commit history
+- [x] Swapped master to clean history
+- [x] Applied pdf-lib buffer copy patch (`e7bffaf`)
+- [x] Updated test imports from `classes/` to `classes/baseline/` (`69913fe`)
 
-### Phase 1 — Create `2026/` Directory Structure
+### Phase 1 — Create `2026/` Directory Structure ✅
 
-- [ ] `git mv` files from `2025/` to `2026/` (with history preservation)
-- [ ] Determine which files carry forward vs. which are 2025-only
-- [ ] Establish `2026/` directory layout
+- [x] `git mv` files from `2025/` to `2026/` with history preservation (`cf2158c`)
+- [x] Restored `2025/` alongside `2026/` copies (`2923211`)
+- [x] Established `2026/` directory layout with `classes/baseline/` as canonical
+- [x] Removed `classes/root/` copies, replaced 8-bit asset folders with symlinks (`9a1699f`)
 
-### Phase 2 — Beta Release Development
+### Phase 2 — Beta Release Development `IN-PROGRESS`
 
-- [ ] (To be defined after Phase 0 and Phase 1)
+**Generator (2026-03-20 → 2026-03-31):**
+
+- [x] Customized PDF assembly based on output profile (`658eb74`)
+- [x] Firefox 115 `safeDynamicImport` compatibility (`e5a5c69`)
+- [x] F9f and F10a test form assets (`fd6165d`, `c9bccbe`)
+- [x] Docket PDF generation replacing metadata.json (`2bf223c`)
+- [x] R2 UI layout with debugging and validation support (`325160a`)
+- [x] Generate/cancel button, UI lock, and wake lock (`379dabc`)
+- [x] Docket slug format, layout, and cache freshness (`7a0c405`)
+- [x] PDF/X-4 conformance fixes to post-processing (`e780c01`, `e2f1e72`, `56c5b41`)
+- [x] ICC profile filename via `/AF` and unified docket post-processing (`5c142ff`)
+- [x] Font embedding and validation improvements (`5ce6382`)
+- [ ] Gray profile category support (WIP — uncommitted)
+
+**Color Engine Integration (2026-03-27):**
+
+- [x] Added `color-engine-2026-03-27` package (`c09cdd0`)
+- [x] Enabled Lab K-Only GCR policy rules for new engine (`39a7a53`)
+- [x] Replaced hardcoded Lab K-Only GCR workarounds with policy evaluation (`eb6c072`)
+- [ ] Lab 16-bit K-Only GCR neutral fix — CE-side pipeline concatenation (CE fix applied, TFG no changes needed)
+  - See: `packages/color-engine-2026-03-27/documentation/Lab-K-Only-Neutrals.md`
+
+**Helpers Refactor (2026-03-29):**
+
+- [x] Split `import-helpers.js` into `helpers/imports.js`, `helpers/streams.js`, `helpers/buffers.js` (`a0d22f7`)
+- [x] Rewrote TC39 base64/hex polyfill cleanly with proper attribution
+- [x] Added `readableStreamAsyncIterable` for Safari compatibility
+- [x] Added `collectUint8ArrayChunks` for Compression Streams provider
+
+**Compression Streams API Adoption (2026-03-29):**
+
+- [x] Transitioned compression from pako to native Compression Streams API (`d07d1ae`)
+- [x] Verified in Node.js 24.7.0, Chromium 145, Firefox 115, Safari 26.3
+- See: `2026-03-29-COMPRESSION-STREAMS-API-ADOPTION-PROGRESS.md`
+
+**Staging and Tools (2026-03-29):**
+
+- [x] Moved staging tools from `experiments/scripts/` to `experiments/tools/` (`3c43ad5`)
+- [x] Created `STAGING.md` documenting sync groups and usage
+- [x] Added `validator` sync group to staging script (`a6d4bd6`)
+
+**Validator (2026-03-30):**
+
+- [x] Added `preflight-rules.json` for PDF/X-4 validation (`3f17cb1`)
+- [x] Added `PDFPreflightValidator` baseline check engine (`bd5c2dd`)
+- [x] Added `PDFPreflightFixer` and `PDFPreflightFixerValidator` (`424f900`)
+- [x] Added validator UI with drop zone, report, and fix flow (`39756c2`)
+- [x] Added `xml-markup-parser` with generator-based streaming architecture (`0387756`)
+- [x] Added validator investigation scripts and test suite (`219e7a5`)
+- See: `2026-03-28-VALIDATE-PDF-PROGRESS.md`
+
+**Safari OOM Investigation (2026-03-29 → ongoing):**
+
+- [x] Bounded-concurrency image lanes to prevent OOM (`cf09bee`)
+- [x] Replaced try/catch with unhandled error listeners in worker (`67bc0c5`)
+- [x] Captured Safari OOM logs: crashes at `worker-pool-entrypoint.js:284` and `buffers.js:25` during concurrent image conversion
+- [x] Analyzed Safari Web Inspector timeline: peak 9.5 GB, 96% of snapshots >3 GB, page memory (ArrayBuffer allocations) dominates at ~8 GB
+- [ ] Confirm which browsers/versions/platforms/architectures are affected
+- [ ] Determine if further concurrency reduction or streaming changes are needed
+- See: `2026-03-29-SAFARI-OOM-FIX-PROGRESS.md`
 
 ---
 
 ## 5. Current Status
 
-**Focus:** Resolving remaining open questions before executing the cleanup.
+**Focus:** Beta release development on `test-form-generator/2026/dev` branch.
 
-**Resolved:**
+**Active work streams:**
 
-- `pdf-lib.esm.js` — Apply only the `buffer.set` → element-by-element loop patch; discard whitespace reformatting
-- `Color-Engine-Integration-User-Notes.md` — Commit as-is
-- Root-level scratch documents — Do NOT commit
-- Clean commits start with CLAUDE.md + settings (commit 1)
-- Worktree-based approach using `test-for-generator/2025/*` branches
+| Stream                             | Status                                                                                         | Tracking Document                                                       |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Generator — Gray profile support   | WIP (uncommitted)                                                                              | —                                                                       |
+| Validator — PDF/X-4 preflight      | Committed, iterating                                                                           | `2026-03-28-VALIDATE-PDF-PROGRESS.md`                                   |
+| Compression Streams API adoption   | Steps 1-3 complete, transition committed                                                       | `2026-03-29-COMPRESSION-STREAMS-API-ADOPTION-PROGRESS.md`               |
+| Safari OOM investigation           | Ongoing — bounded concurrency committed, root cause under investigation                        | `2026-03-29-SAFARI-OOM-FIX-PROGRESS.md`                                 |
+| Color Engine 2026-03-27 Lab K-Only | CE fix applied, TFG policy changes committed, awaiting updated CE build for image verification | `packages/color-engine-2026-03-27/documentation/Lab-K-Only-Neutrals.md` |
+| Legacy Acrobat compatibility       | Waiting on Franz's test results                                                                | `2026-03-29-RESOLVE-LEGACY-COMPATIBILITY-PROGRESS.md`                   |
 
-**Remaining blockers:**
+**Branch:** `test-form-generator/2026/dev` — 60+ commits ahead of master since `cf2158c` (2026-03-19)
 
-1. [Q1](#q1-classes-root-level-files) — `classes/` root-level files: restore or update imports?
-2. [Q2](#q2-staging-class-files) — Staging repo class file divergence
+**Browsers verified (2026-03-29):** Chromium 145, Firefox 115, Safari 26.3 (macOS) — all produce correct output. Safari OOM intermittent on 1.5 GB asset PDFs.
 
 ---
 
@@ -472,24 +532,24 @@ The tests need to:
 
 **Dependency map:**
 
-| Legacy File | Root-Level Imports (DELETED) |
-| ----------- | --------------------------- |
-| `legacy-pdf-document-color-converter.js` | `../pdf-document-color-converter.js`, `../color-engine-provider.js` |
+| Legacy File                                    | Root-Level Imports (DELETED)                                                |
+| ---------------------------------------------- | --------------------------------------------------------------------------- |
+| `legacy-pdf-document-color-converter.js`       | `../pdf-document-color-converter.js`, `../color-engine-provider.js`         |
 | `legacy-pdf-content-stream-color-converter.js` | `../pdf-content-stream-color-converter.js`, `../color-conversion-policy.js` |
-| `legacy-pdf-image-color-converter.js` | `../pdf-image-color-converter.js`, `../color-conversion-policy.js` |
-| `legacy-pdf-page-color-converter.js` | `../composite-color-converter.js` |
-| `legacy-worker-pool-entrypoint.js` | `../color-engine-provider.js` (dynamic) |
-| `legacy-color-converter-helpers.js` | (none — pure utility exports) |
+| `legacy-pdf-image-color-converter.js`          | `../pdf-image-color-converter.js`, `../color-conversion-policy.js`          |
+| `legacy-pdf-page-color-converter.js`           | `../composite-color-converter.js`                                           |
+| `legacy-worker-pool-entrypoint.js`             | `../color-engine-provider.js` (dynamic)                                     |
+| `legacy-color-converter-helpers.js`            | (none — pure utility exports)                                               |
 
 **Who uses `classes/legacy/`:**
 
-| Consumer | Status |
-| -------- | ------ |
-| `classes/root/create-document-color-converter.js` | UNTRACKED — factory that dispatches between baseline and legacy |
-| `experiments/` | No references |
-| `tests/legacy/` | No references — legacy tests only test `services/` layer |
-| `experiments/legacy/convert-pdf-color.js` | No references — imports from `classes/diagnostics/` and `packages/` only |
-| `experiments/scripts/legacy/` | No references — standalone CLI tools with dynamic engine path |
+| Consumer                                          | Status                                                                   |
+| ------------------------------------------------- | ------------------------------------------------------------------------ |
+| `classes/root/create-document-color-converter.js` | UNTRACKED — factory that dispatches between baseline and legacy          |
+| `experiments/`                                    | No references                                                            |
+| `tests/legacy/`                                   | No references — legacy tests only test `services/` layer                 |
+| `experiments/legacy/convert-pdf-color.js`         | No references — imports from `classes/diagnostics/` and `packages/` only |
+| `experiments/scripts/legacy/`                     | No references — standalone CLI tools with dynamic engine path            |
 
 **Conclusion:** `classes/legacy/` is committed but:
 
@@ -499,11 +559,11 @@ The tests need to:
 
 **Options:**
 
-| Option | Description |
-| ------ | ----------- |
-| **L1** | Update `classes/legacy/` imports to use `../baseline/` — makes legacy classes extend baseline instead of root |
+| Option | Description                                                                                                             |
+| ------ | ----------------------------------------------------------------------------------------------------------------------- |
+| **L1** | Update `classes/legacy/` imports to use `../baseline/` — makes legacy classes extend baseline instead of root           |
 | **L2** | Delete `classes/legacy/` entirely — nobody uses it, and it was documented as "on hold due to many gaps and regressions" |
-| **L3** | Leave broken — document as on-hold, fix later if needed |
+| **L3** | Leave broken — document as on-hold, fix later if needed                                                                 |
 
 **Decision:** L2 — delete `classes/legacy/` from clean commits. Nobody imports it, and the code is broken. Git history preserves it.
 
@@ -515,11 +575,11 @@ The tests need to:
 
 **Definitive list of committed files that import from `classes/` ROOT (12 files total):**
 
-| Category | Files | Import Pattern | Count |
-| -------- | ----- | -------------- | ----- |
-| Tests (Node.js) | `buffer-registry.test.js`, `color-conversion-policy.test.js`, `color-converter-classes.test.js`, `color-converter.test.js`, `image-color-converter.test.js`, `lookup-table-color-converter.test.js`, `pdf-content-stream-color-converter.test.js`, `pdf-document-color-converter.test.js`, `pdf-image-color-converter.test.js`, `pdf-page-color-converter.test.js`, `profile-pool.test.js` | `../../classes/*.js` | 11 |
-| Tests (Playwright) | `color-converter-classes.test.js`, `color-engine-provider.test.js` | `../classes/*.js` (browser) | 2 (1 overlap) |
-| Experiments | `compare-pdf-outputs.js` | `../classes/pdf-image-color-sampler.js` | 1 |
+| Category           | Files                                                                                                                                                                                                                                                                                                                                                                                      | Import Pattern                          | Count         |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- | ------------- |
+| Tests (Node.js)    | `buffer-registry.test.js`, `color-conversion-policy.test.js`, `color-converter-classes.test.js`, `color-converter.test.js`, `image-color-converter.test.js`, `lookup-table-color-converter.test.js`, `pdf-content-stream-color-converter.test.js`, `pdf-document-color-converter.test.js`, `pdf-image-color-converter.test.js`, `pdf-page-color-converter.test.js`, `profile-pool.test.js` | `../../classes/*.js`                    | 11            |
+| Tests (Playwright) | `color-converter-classes.test.js`, `color-engine-provider.test.js`                                                                                                                                                                                                                                                                                                                         | `../classes/*.js` (browser)             | 2 (1 overlap) |
+| Experiments        | `compare-pdf-outputs.js`                                                                                                                                                                                                                                                                                                                                                                   | `../classes/pdf-image-color-sampler.js` | 1             |
 
 **Files that do NOT need changes (confirmed correct):**
 
@@ -551,6 +611,15 @@ Since `classes/` root and `classes/legacy/` have zero external consumers:
 
 ## 8. Activity Log
 
+### References
+
+- **PDF/X-4 Output Intent and ICC Profile Naming**: https://share.google/aimode/cniS49dy27zNZLxZ3
+  - Per ISO 32000: profile name stored in `OutputConditionIdentifier`, `Info`, ICC `desc` tag, stream `/Metadata` XMP, and `/AF` (PDF 2.0 Associated Files)
+  - Validator reads ICC `desc` tag as primary source for download filename
+  - Generator should store original filename via `/AF` (PDF 2.0) and/or in manifest metadata
+
+---
+
 ### 2026-03-18
 
 - **Created** this PROGRESS document
@@ -562,3 +631,42 @@ Since `classes/` root and `classes/legacy/` have zero external consumers:
 - **Resolved** 5 of 7 open questions per user direction
 - **Drafted** clean commit plan with 11 commits and progress document consolidation strategy
 - **Drafted** worktree-based execution plan using `test-for-generator/2025/*` branches
+
+### 2026-03-18 → 2026-03-19
+
+- **Executed** Phase 0 — cleaned up master, applied pdf-lib patch, updated test imports
+- **Executed** Phase 1 — `git mv` 2025→2026, restored 2025 alongside, established 2026 layout
+
+### 2026-03-19 → 2026-03-26
+
+- **Generator development**: customized PDF assembly, docket generation, UI layout, F9f/F10a assets
+- **Compatibility**: Firefox 115 `safeDynamicImport`, color conversion policy disabled flag support
+- **Assets**: added LFS transition for non-LFS assets
+
+### 2026-03-27
+
+- **Color Engine**: added `color-engine-2026-03-27` with Lab K-Only GCR neutral fix
+- **Policy**: enabled `relative-colorimetric-lab-fallback` for old engines, replaced hardcoded Lab K-Only GCR workarounds with policy-driven evaluation in `PDFImageColorConverter` and `StreamTransformWorker`
+- **Experiments**: copied/refactored 2025 experiments to 2026
+
+### 2026-03-29
+
+- **Compression Streams API**: completed audit of pako usage (181 code hits, 27 files), transitioned compression from pako to native API
+- **Helpers refactor**: split `import-helpers.js` into `imports.js`, `streams.js`, `buffers.js`; rewrote TC39 base64/hex polyfill
+- **Safari OOM**: implemented bounded-concurrency image lanes (`cf09bee`), replaced try/catch with unhandled error listeners in worker
+- **Staging tools**: moved from `experiments/scripts/` to `experiments/tools/`, created `STAGING.md`
+- **Browser testing**: verified generation in Chrome 145, Firefox 115, Safari 26.3 — captured Safari timeline (peak 9.5 GB, `page` memory dominates at ~8 GB from ArrayBuffer allocations)
+- **Safari OOM logs captured**: crashes at `worker-pool-entrypoint.js:284` (image processing) and `buffers.js:25` (`Uint8Array` allocation) — `RangeError: Out of memory`
+
+### 2026-03-30
+
+- **Generator**: docket slug format improvements, PDF/X-4 conformance fixes, cache freshness, documentation modal, error alerts, single timestamp across generation session
+- **Validator**: `PDFPreflightValidator`, `PDFPreflightFixer`, validator UI, `xml-markup-parser`, `preflight-rules.json`, investigation scripts
+- **Assets**: corrected F10a manifest asset order
+
+### 2026-03-31
+
+- **Generator**: ICC profile filename via `/AF`, font embedding, Ghostscript WASM update, Gray color space GS arguments, docket PDF/X-4 conformance improvements
+- **Validator**: Download Profile button with ICC desc tag extraction
+- **Staging**: added `validator` sync group to staging script
+- **Safari OOM**: investigation ongoing — need to confirm affected browsers/versions/platforms before concluding

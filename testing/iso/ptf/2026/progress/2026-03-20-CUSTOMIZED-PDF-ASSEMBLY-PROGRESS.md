@@ -18,11 +18,11 @@ The 2026 PDF Test Form Generator currently hardcodes the `preserve-k-only-relati
 
 ### Profile Category Rules
 
-| Category | Included Color Space Types | Rendering Intents | Multi-PDF |
-|---|---|---|---|
-| RGB | RGB, Gray, Lab | Relative Colorimetric with BPC | No |
-| CMYK (Max-GCR) | RGB, Gray, Lab, DeviceN | Relative Colorimetric with BPC | No |
-| CMYK (non-Max GCR) | RGB, Gray, Lab, DeviceN | Relative Colorimetric with BPC + K-Only GCR with BPC | Yes |
+| Category           | Included Color Space Types | Rendering Intents                                    | Multi-PDF |
+| ------------------ | -------------------------- | ---------------------------------------------------- | --------- |
+| RGB                | RGB, Gray, Lab             | Relative Colorimetric with BPC                       | No        |
+| CMYK (Max-GCR)     | RGB, Gray, Lab, DeviceN    | Relative Colorimetric with BPC                       | No        |
+| CMYK (non-Max GCR) | RGB, Gray, Lab, DeviceN    | Relative Colorimetric with BPC + K-Only GCR with BPC | Yes       |
 
 ### Design Reference
 
@@ -47,22 +47,22 @@ Full implementation plan: `~/.claude/plans/functional-mapping-thimble.md`
 
 **New Files (3):**
 
-| File | Step | Purpose |
-|---|---|---|
-| `classes/configurations/assembly-policy.json` | 1 | Declarative assembly rules |
-| `generator/classes/output-profile-analyzer.js` | 2 | ICC profile category detection via WASM color engine |
-| `generator/classes/assembly-policy-resolver.js` | 3 | Policy resolution + manifest filtering |
+| File                                            | Step | Purpose                                              |
+| ----------------------------------------------- | ---- | ---------------------------------------------------- |
+| `classes/configurations/assembly-policy.json`   | 1    | Declarative assembly rules                           |
+| `generator/classes/output-profile-analyzer.js`  | 2    | ICC profile category detection via WASM color engine |
+| `generator/classes/assembly-policy-resolver.js` | 3    | Policy resolution + manifest filtering               |
 
 **Modified Files (6):**
 
-| File | Step | Change Scope |
-|---|---|---|
-| `generator/classes/asset-page-pre-converter.js` | 4 | Parameterize rendering intent (surgical) |
-| `services/GhostscriptService.js` | 5 | Extend slug metadata (small) |
-| `generator/classes/test-form-pdf-document-generator.js` | 6 | Multi-pass generation loop (major) |
-| `generator/elements/test-form-generator-app-element.js` | 7 | Filter UI + override collection (moderate) |
-| `generator/index.html` | 7 | Filter section HTML (moderate) |
-| `generator/bootstrap-worker-entrypoint.js` | 8 | Forward assemblyOverrides (small) |
+| File                                                    | Step | Change Scope                               |
+| ------------------------------------------------------- | ---- | ------------------------------------------ |
+| `generator/classes/asset-page-pre-converter.js`         | 4    | Parameterize rendering intent (surgical)   |
+| `services/GhostscriptService.js`                        | 5    | Extend slug metadata (small)               |
+| `generator/classes/test-form-pdf-document-generator.js` | 6    | Multi-pass generation loop (major)         |
+| `generator/elements/test-form-generator-app-element.js` | 7    | Filter UI + override collection (moderate) |
+| `generator/index.html`                                  | 7    | Filter section HTML (moderate)             |
+| `generator/bootstrap-worker-entrypoint.js`              | 8    | Forward assemblyOverrides (small)          |
 
 ---
 
