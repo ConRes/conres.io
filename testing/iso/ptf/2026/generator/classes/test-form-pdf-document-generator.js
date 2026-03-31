@@ -1308,7 +1308,7 @@ export class TestFormPDFDocumentGenerator {
         const xmpNow = nowDate.toISOString().replace(/\.\d+Z$/, 'Z');
         const pdfNow = `D:${nowDate.getUTCFullYear()}${String(nowDate.getUTCMonth() + 1).padStart(2, '0')}${String(nowDate.getUTCDate()).padStart(2, '0')}${String(nowDate.getUTCHours()).padStart(2, '0')}${String(nowDate.getUTCMinutes()).padStart(2, '0')}${String(nowDate.getUTCSeconds()).padStart(2, '0')}Z`;
 
-        // Extract Info dict values
+        // Extract Info dict values (may be empty for documents created from scratch, e.g. docket)
         let title = '', creator = '', producer = '', creationDate = '';
         const infoRef = document.context.trailerInfo.Info;
         if (infoRef) {
@@ -1329,6 +1329,9 @@ export class TestFormPDFDocumentGenerator {
                 info.set(PDFName.of('ModDate'), PDFString.of(pdfNow));
             }
         }
+
+        // Fallback: use test form version as title if Info dict had none
+        if (!title) title = this.#testFormVersion ?? '';
 
         const pdfDateToISO = (pdfDate) => {
             if (!pdfDate) return xmpNow;
@@ -1380,8 +1383,16 @@ export class TestFormPDFDocumentGenerator {
 
                             const modEl = findElementNS(desc, NS_XMP, 'ModifyDate');
                             if (modEl) setTextContent(modEl, xmpNow);
+                            else createElement(desc, 'xmp:ModifyDate', NS_XMP, xmpNow);
+
                             const metaDateEl = findElementNS(desc, NS_XMP, 'MetadataDate');
                             if (metaDateEl) setTextContent(metaDateEl, xmpNow);
+                            else createElement(desc, 'xmp:MetadataDate', NS_XMP, xmpNow);
+
+                            // Ensure Trapped entry exists (pdf: namespace, not xmp:)
+                            if (!findElementNS(desc, NS_PDF, 'Trapped')) {
+                                createElement(desc, 'pdf:Trapped', NS_PDF, 'False');
+                            }
 
                             const serialized = serializeXML(xmpDoc);
                             const xmpBytes = new TextEncoder().encode(serialized);
@@ -1389,6 +1400,15 @@ export class TestFormPDFDocumentGenerator {
                                 Type: 'Metadata', Subtype: 'XML', Length: xmpBytes.length,
                             });
                             document.context.assign(existingMetaRef, newStream);
+
+                            // Sync Info dict ModDate with the XMP timestamp
+                            if (infoRef) {
+                                const info = infoRef instanceof PDFRef ? document.context.lookup(infoRef) : infoRef;
+                                if (info instanceof PDFDict) {
+                                    info.set(PDFName.of('ModDate'), PDFString.of(pdfNow));
+                                }
+                            }
+
                             return; // patched successfully
                         }
                     }
@@ -1418,6 +1438,7 @@ export class TestFormPDFDocumentGenerator {
       <xmpMM:VersionID>${versionId}</xmpMM:VersionID>
       <xmpMM:RenditionClass>default</xmpMM:RenditionClass>
       <pdfxid:GTS_PDFXVersion>PDF/X-4</pdfxid:GTS_PDFXVersion>
+      <pdf:Trapped>False</pdf:Trapped>
     </rdf:Description>
   </rdf:RDF>
 </x:xmpmeta>
@@ -1981,14 +2002,27 @@ export class TestFormPDFDocumentGenerator {
             JSON.stringify(strippedMetadata, null, 2),
         ).buffer;
 
-        // Reuse the same post-processing as the test form — output intent,
-        // document ID, OCG registration, OCCD name, XMP metadata
+        // Save the assembled docket (fonts not yet embedded)
+        const rawDocketBytes = await docketDocument.save({
+            addDefaultPage: false,
+            updateFieldAppearances: false,
+        });
+
+        // Re-process through Ghostscript to embed fonts
+        // GS substitutes NimbusSans for Helvetica and embeds the subsets
+        const embeddedDocketBytes = await GhostscriptService.embedFontsInPDF(rawDocketBytes);
+
+        // Reload the GS output and apply post-processing
+        // (GS strips our metadata, so output intent/XMP/doc ID must be applied after)
+        const finalDocket = await PDFDocument.load(embeddedDocketBytes, { updateMetadata: false });
+
+        await this.#postProcessPages(finalDocket, iccProfileHeader);
         await this.#postProcessDocument(
-            docketDocument, iccProfileHeader, iccProfileBuffer, strippedMetadataBuffer, 'metadata.json',
+            finalDocket, iccProfileHeader, iccProfileBuffer, strippedMetadataBuffer, 'metadata.json',
         );
 
         return /** @type {ArrayBuffer} */ (
-            (await docketDocument.save({
+            (await finalDocket.save({
                 addDefaultPage: false,
                 updateFieldAppearances: false,
             })).buffer
