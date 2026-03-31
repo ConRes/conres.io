@@ -292,6 +292,10 @@ export class TestFormPDFDocumentGenerator {
         await onProgress('preparing', 30, 'Parsing ICC profile\u2026');
         const iccProfileHeader = ICCService.parseICCHeaderFromSource(iccProfileBuffer);
 
+        if (iccProfileHeader.colorSpace !== 'CMYK' && iccProfileHeader.colorSpace !== 'RGB') {
+            throw new Error(`Destination profile must be CMYK or RGB. Got: ${iccProfileHeader.colorSpace}`);
+        }
+
         console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] ICC profile:`, {
             colorSpace: iccProfileHeader.colorSpace,
             description: iccProfileHeader.description,
