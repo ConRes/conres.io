@@ -91,6 +91,43 @@ export class GhostscriptService {
     }
 
     /**
+     * Re-process a PDF through Ghostscript to embed fonts.
+     *
+     * GS substitutes its bundled NimbusSans for Helvetica references
+     * and embeds the font subsets. This resolves the PDF/X-4 "font not
+     * embedded" violation for standard fonts that pdf-lib cannot embed.
+     *
+     * @param {Uint8Array | ArrayBuffer} pdfBytes - The input PDF
+     * @returns {Promise<ArrayBuffer>} - The output PDF with fonts embedded
+     */
+    static async embedFontsInPDF(pdfBytes) {
+        /** @type {EmscriptenModule & { FS: typeof FS; callMain: (argv: string[]) => number}} */
+        const ghostscriptModule = await GhostscriptModule({ noInitialRun: true });
+
+        try { ghostscriptModule.FS.mkdir('/input'); } catch { /* exists */ }
+        try { ghostscriptModule.FS.mkdir('/output'); } catch { /* exists */ }
+
+        ghostscriptModule.FS.writeFile('/input/doc.pdf', new Uint8Array(pdfBytes));
+
+        const exitCode = await ghostscriptModule.callMain([
+            '-dBATCH', '-dNOPAUSE', '-dNOSAFER',
+            '-sDEVICE=pdfwrite',
+            '-sOutputFile=/output/doc.pdf',
+            '-dCompatibilityLevel=1.7',
+            '-dEmbedAllFonts=true',
+            '-dSubsetFonts=true',
+            '-dAutoRotatePages=/None',
+            '/input/doc.pdf',
+        ]);
+
+        if (exitCode !== 0) {
+            throw new Error(`Ghostscript font embedding failed with exit code ${exitCode}`);
+        }
+
+        return ghostscriptModule.FS.readFile('/output/doc.pdf').slice().buffer;
+    }
+
+    /**
      * Processes PostScript data with Ghostscript
      * @param {string} slugTemplateText - The slug template text
      * @param {{ pages: Array<{ metadata: { title?: string, variant?: string, colorSpace?: string, resolution?: { values?: number[], value?: number, unit?: string } } }> }} slugData - Data to inject into the template
