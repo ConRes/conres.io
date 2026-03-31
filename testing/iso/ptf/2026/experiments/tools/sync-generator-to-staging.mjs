@@ -94,6 +94,7 @@ const PROJECT_ROOT = resolve(SCRIPT_DIR, '../../../../../..');
 /** @type {{ name: string, path: string }[]} */
 const ALL_SYNC_GROUPS = [
     { name: 'generator', path: 'testing/iso/ptf/2026/generator' },
+    { name: 'validator', path: 'testing/iso/ptf/2026/validator' },
     { name: 'assets', path: 'testing/iso/ptf/assets' },
     { name: 'classes', path: 'testing/iso/ptf/2026/classes' },
     { name: 'packages', path: 'testing/iso/ptf/2026/packages' },
@@ -112,6 +113,9 @@ const EXCLUDE_NAMES = new Set(['.DS_Store', 'Thumbs.db', '.gitkeep']);
  * - -backup.zip: local backup archives
  */
 const EXCLUDE_SUFFIXES = ['PROGRESS.md', '-backup', '-backup.zip'];
+
+/** Directory names to exclude entirely from sync. */
+const EXCLUDE_DIRS = new Set(['[Trash]', '[trash]', 'node_modules', '.git']);
 
 // ---------------------------------------------------------------------------
 // CLI argument parsing
@@ -251,6 +255,7 @@ try {
  */
 function shouldExclude(name) {
     if (EXCLUDE_NAMES.has(name)) return true;
+    if (EXCLUDE_DIRS.has(name)) return true;
     for (const suffix of EXCLUDE_SUFFIXES) {
         if (name.endsWith(suffix)) return true;
     }

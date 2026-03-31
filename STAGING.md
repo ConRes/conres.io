@@ -41,10 +41,10 @@ The `conres.io-staging` repository is the deployment target for testing the 2025
 
 Two tools support this workflow:
 
-| Tool | Purpose |
-|------|---------|
-| `sync-generator-to-staging.mjs` | Copy changed files from development to staging with parent-commit protection |
-| `trace-dependencies.mjs` | Trace the runtime dependency graph from an entry point to determine what files are actually needed |
+| Tool                            | Purpose                                                                                            |
+| ------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `sync-generator-to-staging.mjs` | Copy changed files from development to staging with parent-commit protection                       |
+| `trace-dependencies.mjs`        | Trace the runtime dependency graph from an entry point to determine what files are actually needed |
 
 Both are located in `testing/iso/ptf/2025/experiments/scripts/`.
 
@@ -56,23 +56,23 @@ Both are located in `testing/iso/ptf/2025/experiments/scripts/`.
 
 Copies files from the working tree to staging, classifying each as:
 
-| Status | Meaning | Action |
-|--------|---------|--------|
-| NEW | Not in parent commit, not in staging | Copied |
-| CHANGED | Not in parent commit, differs from staging | Copied |
-| UNCHANGED | Identical in both repositories | Skipped |
-| PROTECTED | Exists in the parent commit | NOT copied (manual review required) |
-| EXTRA | In staging but not in source | Reported (not deleted) |
+| Status    | Meaning                                    | Action                              |
+| --------- | ------------------------------------------ | ----------------------------------- |
+| NEW       | Not in parent commit, not in staging       | Copied                              |
+| CHANGED   | Not in parent commit, differs from staging | Copied                              |
+| UNCHANGED | Identical in both repositories             | Skipped                             |
+| PROTECTED | Exists in the parent commit                | NOT copied (manual review required) |
+| EXTRA     | In staging but not in source               | Reported (not deleted)              |
 
 **Sync groups** (paths relative to project root):
 
-| Group | Path | Notes |
-|-------|------|-------|
-| `generator` | `testing/iso/ptf/2025/generator/` | Generator prototype UI and logic |
-| `assets` | `testing/iso/ptf/assets/` | Asset PDFs, manifests, profiles |
-| `classes` | `testing/iso/ptf/2025/classes/` | Shared ecosystem classes (baseline and non-baseline) |
-| `packages` | `testing/iso/ptf/2025/packages/` | Vendored dependencies |
-| `services` | `testing/iso/ptf/2025/services/` | Service modules |
+| Group       | Path                              | Notes                                                |
+| ----------- | --------------------------------- | ---------------------------------------------------- |
+| `generator` | `testing/iso/ptf/2025/generator/` | Generator prototype UI and logic                     |
+| `assets`    | `testing/iso/ptf/assets/`         | Asset PDFs, manifests, profiles                      |
+| `classes`   | `testing/iso/ptf/2025/classes/`   | Shared ecosystem classes (baseline and non-baseline) |
+| `packages`  | `testing/iso/ptf/2025/packages/`  | Vendored dependencies                                |
+| `services`  | `testing/iso/ptf/2025/services/`  | Service modules                                      |
 
 **Usage:**
 
@@ -137,10 +137,10 @@ node testing/iso/ptf/2025/experiments/scripts/trace-dependencies.mjs \
 
 Files that appear in dev but NOT in staging fall into two categories:
 
-| Category | Action |
-|----------|--------|
+| Category                                                  | Action                                                             |
+| --------------------------------------------------------- | ------------------------------------------------------------------ |
 | Downstream of a PROTECTED file that differs between repos | **Do NOT sync** — staging's PROTECTED version does not import them |
-| Genuinely new files needed by synced groups | **Sync** — staging will fail without them |
+| Genuinely new files needed by synced groups               | **Sync** — staging will fail without them                          |
 
 ### Step 2: Dry-run the sync
 
@@ -154,6 +154,7 @@ node testing/iso/ptf/2025/experiments/scripts/sync-generator-to-staging.mjs \
 ```
 
 Review the output:
+
 - Confirm all CHANGED/NEW files are expected
 - Confirm PROTECTED files are already in staging (no manual action needed)
 - Confirm no unintended files are included
@@ -202,17 +203,17 @@ Not all groups need syncing every time. Use the dependency trace to decide.
 
 ### Groups that are safe to sync routinely
 
-| Group | Rationale |
-|-------|-----------|
-| `generator` | Generator UI and logic — always sync when generator code changes |
-| `assets` | Asset PDFs and manifests — sync when assets are added or updated |
-| `classes` | Shared ecosystem classes — sync when baseline class behavior changes |
+| Group       | Rationale                                                            |
+| ----------- | -------------------------------------------------------------------- |
+| `generator` | Generator UI and logic — always sync when generator code changes     |
+| `assets`    | Asset PDFs and manifests — sync when assets are added or updated     |
+| `classes`   | Shared ecosystem classes — sync when baseline class behavior changes |
 
 ### Groups that must NOT be synced as a whole
 
-| Group | Why NOT | What to do instead |
-|-------|---------|-------------------|
-| `packages` | Contains ALL vendored package versions (500+ files). Only `color-engine`, `pako`, and `ghostscript-wasm` are used at runtime — all typically already in staging. | Copy individual changed packages manually. |
+| Group      | Why NOT                                                                                                                                                                                                                                                                                                                                                                                                  | What to do instead                                                                           |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `packages` | Contains ALL vendored package versions (500+ files). Only `color-engine`, `pako`, and `ghostscript-wasm` are used at runtime — all typically already in staging.                                                                                                                                                                                                                                         | Copy individual changed packages manually.                                                   |
 | `services` | **DANGEROUS.** The dev `PDFService.js` imports NEW service files that staging's PROTECTED parent-commit version does NOT import. Syncing the group copies files that are unreachable in staging and pollutes the deployment. The only file in `services/` that is a runtime dependency of the safe groups is `services/helpers/pdf-lib.js` (imported by `classes/baseline/pdf-page-color-converter.js`). | Copy `services/helpers/pdf-lib.js` individually in Step 4. Never sync `services` as a group. |
 
 ### Symlinks and deployment
