@@ -8,14 +8,42 @@ import { prepareInputResources, mkdirRecursiveWithFS } from "../helpers.js";
  * Service for Ghostscript operations
  */
 export class GhostscriptService {
+    /** @type {Record<Uppercase<string>, {name: string, arguments: string[]}>} */
+    static #slugsColorSpaceArguments = {
+        'GRAY': {
+            name: 'Gray',
+            arguments: "-sProcessColorModel=DeviceGray -sColorConversionStrategy=Gray -dRenderIntent=1 -dBlackPtComp=1".split(' '),
+        },
+        'RGB': {
+            name: 'RGB',
+            arguments: "-sProcessColorModel=DeviceRGB -sColorConversionStrategy=RGB -dRenderIntent=1 -dBlackPtComp=1 -dKPreserve=0 -dVectorKPreserve=0 -dTextKPreserve=0".split(' '),
+        },
+        'CMYK': {
+            name: 'CMYK',
+            arguments: "-sProcessColorModel=DeviceCMYK -sColorConversionStrategy=CMYK -dRenderIntent=1 -dBlackPtComp=1 -dKPreserve=2".split(' '),
+        },
+    };
+
     /**
      * Generates slugs PDF using Ghostscript
      * @param {Record<string, ArrayBuffer>} resources - Map of resources
-     * @param {string} colorSpace - The color space (RGB or CMYK)
+     * @param {string} colorSpace - The color space (Gray, RGB, or CMYK)
      * @param {boolean} debugging - Whether to enable debugging
      * @returns {Promise<ArrayBuffer>} - The generated PDF buffer
      */
     static async generateSlugsPDF(resources, colorSpace, debugging = false) {
+        const { arguments: colorSpaceArguments } = GhostscriptService.#slugsColorSpaceArguments[`${colorSpace}`.toUpperCase()];
+        if (!colorSpaceArguments) {
+            const supported = Object.keys(GhostscriptService.#slugsColorSpaceArguments);
+            const joined = supported.length <= 1
+                ? supported[0] ?? 'none'
+                : supported.slice(0, -1).join(', ') + ' and ' + supported[supported.length - 1];
+            throw new Error(
+                `Ghostscript rendered slugs currently support ${joined} only. ` +
+                `Got: "${colorSpace}"`
+            );
+        }
+
         // Load Ghostscript module
         /** @type {EmscriptenModule & { FS: typeof FS; callMain: (argv: string[]) => number}} */
         const ghostscriptModule = await GhostscriptModule({ noInitialRun: true });
@@ -24,7 +52,7 @@ export class GhostscriptService {
         /** @type {Record<string, import('../helpers.js').InputResource>} */
         const inputResources = {};
 
-        for (const asset of ['Barcode.ps', 'Slugs.ps', 'Output.icc']) {
+        for (const asset of ['Barcode.ps', 'Slugs.ps']) {
             const pathname = `/input/${asset}`;
             const buffer = resources[`input/${asset}`];
 
@@ -47,13 +75,10 @@ export class GhostscriptService {
             "-dNOSAFER",
             "-sDEVICE=pdfwrite",
             "-sOutputFile=/output/Slugs.pdf",
-            "-sOutputICCProfile=/input/Output.icc",
             "-dPDFSETTINGS=/printer",
             "-dCompatibilityLevel=1.7",
             "-dAutoRotatePages=/None",
-            ...colorSpace === 'RGB'
-                ? "-sProcessColorModel=DeviceRGB -sColorConversionStrategy=RGB -dRenderIntent=1 -dBlackPtComp=1 -dKPreserve=0 -dVectorKPreserve=0 -dTextKPreserve=0".split(' ')
-                : "-sProcessColorModel=DeviceCMYK -sColorConversionStrategy=CMYK -dRenderIntent=1 -dBlackPtComp=1 -dKPreserve=2".split(' '),
+            ...colorSpaceArguments,
             "/input/Slugs.ps",
         ]);
 
