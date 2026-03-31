@@ -56,6 +56,82 @@ function savePersistedState(state) {
 }
 
 // ============================================================================
+// ICC Profile Helpers
+// ============================================================================
+
+/**
+ * Read the profile description from the ICC `desc` tag.
+ *
+ * The `desc` tag is the canonical name stored inside the ICC profile binary.
+ * Supports both `desc` (textDescriptionType, ICC v2) and `mluc`
+ * (multiLocalizedUnicodeType, ICC v4) type signatures.
+ *
+ * @param {Uint8Array} profileBytes — raw (decompressed) ICC profile data
+ * @returns {string | null} — profile description, or null if not found
+ */
+function readICCDescTag(profileBytes) {
+    if (profileBytes.length < 132) return null;
+
+    const u32 = (offset) =>
+        (profileBytes[offset] << 24) | (profileBytes[offset + 1] << 16) |
+        (profileBytes[offset + 2] << 8) | profileBytes[offset + 3];
+
+    const tagCount = u32(128);
+
+    for (let i = 0; i < tagCount; i++) {
+        const base = 132 + i * 12;
+        if (base + 12 > profileBytes.length) break;
+
+        const sig = String.fromCharCode(
+            profileBytes[base], profileBytes[base + 1],
+            profileBytes[base + 2], profileBytes[base + 3],
+        );
+
+        if (sig !== 'desc') continue;
+
+        const offset = u32(base + 4);
+        const size = u32(base + 8);
+        if (offset + size > profileBytes.length) return null;
+
+        const typeSig = String.fromCharCode(
+            profileBytes[offset], profileBytes[offset + 1],
+            profileBytes[offset + 2], profileBytes[offset + 3],
+        );
+
+        if (typeSig === 'desc') {
+            // textDescriptionType (ICC v2): offset+8 = ASCII count (uint32), then ASCII string
+            const asciiCount = u32(offset + 8);
+            if (asciiCount > 0 && offset + 12 + asciiCount <= profileBytes.length) {
+                return new TextDecoder().decode(
+                    profileBytes.slice(offset + 12, offset + 12 + asciiCount - 1),
+                );
+            }
+        } else if (typeSig === 'mluc') {
+            // multiLocalizedUnicodeType (ICC v4): records with UTF-16BE strings
+            const recordCount = u32(offset + 8);
+            const recordSize = u32(offset + 12);
+            if (recordCount > 0 && recordSize >= 12) {
+                const rBase = offset + 16; // first record
+                const strLen = u32(rBase + 4);
+                const strOffset = u32(rBase + 8);
+                const strBytes = profileBytes.slice(offset + strOffset, offset + strOffset + strLen);
+                let str = '';
+                for (let j = 0; j < strBytes.length; j += 2) {
+                    const code = (strBytes[j] << 8) | strBytes[j + 1];
+                    if (code === 0) break; // null terminator
+                    str += String.fromCharCode(code);
+                }
+                return str || null;
+            }
+        }
+
+        return null; // found desc tag but couldn't parse
+    }
+
+    return null; // no desc tag found
+}
+
+// ============================================================================
 // Changelog Aggregation
 // ============================================================================
 
@@ -167,6 +243,9 @@ export class PDFValidatorAppElement extends HTMLElement {
 
     /** @type {Worker | null} */
     #activeWorker = null;
+
+    /** @type {{ bytes: Uint8Array, name: string } | null} */
+    #extractedProfile = null;
 
     connectedCallback() {
         this.#restorePersistedState();
@@ -281,6 +360,8 @@ export class PDFValidatorAppElement extends HTMLElement {
         this.querySelector('#actions-fieldset')?.setAttribute('hidden', '');
         this.querySelector('#changelog-fieldset')?.setAttribute('hidden', '');
         this.#hideProgress();
+        this.#extractedProfile = null;
+        /** @type {HTMLButtonElement} */ (this.querySelector('#download-profile-button')).disabled = true;
         /** @type {HTMLButtonElement} */ (this.querySelector('#download-button')).disabled = true;
         /** @type {HTMLButtonElement} */ (this.querySelector('#fix-all-button')).disabled = true;
         /** @type {HTMLButtonElement} */ (this.querySelector('#fix-selected-button')).disabled = true;
@@ -413,6 +494,9 @@ export class PDFValidatorAppElement extends HTMLElement {
                 pages: report.documentInfo.pageCount,
             });
             this.#renderReport(report);
+
+            // Extract ICC profile for Download Profile button
+            if (this.#document) await this.#extractOutputProfile(this.#document);
         } catch (error) {
             this.#hideProgress();
             console.error(`${CONTEXT_PREFIX} [PDFValidatorApp] Validation error:`, error);
@@ -475,6 +559,17 @@ export class PDFValidatorAppElement extends HTMLElement {
                     pages: report.documentInfo.pageCount,
                 });
                 this.#renderReport(report);
+
+                // Extract ICC profile for Download Profile button (worker path — load doc just for extraction)
+                if (this.#pdfBuffer && !this.#extractedProfile) {
+                    try {
+                        const { PDFDocument } = await import('../../packages/pdf-lib/pdf-lib.esm.js');
+                        const tempDoc = await PDFDocument.load(this.#pdfBuffer, { updateMetadata: false });
+                        await this.#extractOutputProfile(tempDoc);
+                    } catch {
+                        // Profile extraction is best-effort — don't fail the validation
+                    }
+                }
             } else {
                 console.error(`${CONTEXT_PREFIX} [PDFValidatorApp] Validation returned no report`);
                 alert('Validation failed — check console for details.');
@@ -628,6 +723,7 @@ export class PDFValidatorAppElement extends HTMLElement {
 
         this.querySelector('#fix-all-button')?.addEventListener('click', () => this.#handleFixAll());
         this.querySelector('#fix-selected-button')?.addEventListener('click', () => this.#handleFixSelected());
+        this.querySelector('#download-profile-button')?.addEventListener('click', () => this.#handleDownloadProfile());
         this.querySelector('#download-button')?.addEventListener('click', () => this.#handleDownload());
 
         // Reset button — clear report, re-enable input, keep file loaded
@@ -673,6 +769,9 @@ export class PDFValidatorAppElement extends HTMLElement {
                 const { PDFDocument } = await import('../../packages/pdf-lib/pdf-lib.esm.js');
                 this.#document = await PDFDocument.load(this.#pdfBuffer, { updateMetadata: false });
                 console.log(`${CONTEXT_PREFIX} [PDFValidatorApp] Document loaded: ${this.#document.getPageCount()} pages`);
+
+                // Extract profile now that we have the document (worker path loads on-demand)
+                if (!this.#extractedProfile) await this.#extractOutputProfile(this.#document);
             }
 
             if (!this.#document) {
@@ -746,6 +845,141 @@ export class PDFValidatorAppElement extends HTMLElement {
 
         console.log(`${CONTEXT_PREFIX} [PDFValidatorApp] Download filename: ${filename}`);
         await downloadArrayBufferAs(this.#fixedPdfBuffer, filename, 'application/pdf');
+    }
+
+    async #handleDownloadProfile() {
+        if (!this.#extractedProfile) return;
+        console.log(`${CONTEXT_PREFIX} [PDFValidatorApp] Downloading ICC profile: ${this.#extractedProfile.name}`);
+        await downloadArrayBufferAs(
+            this.#extractedProfile.bytes.buffer,
+            this.#extractedProfile.name,
+            'application/vnd.icc',
+        );
+    }
+
+    /**
+     * Extract the ICC output profile from the PDF's OutputIntent.
+     * Sets #extractedProfile and enables the Download Profile button.
+     *
+     * @param {import('pdf-lib').PDFDocument} doc
+     */
+    async #extractOutputProfile(doc) {
+        this.#extractedProfile = null;
+        /** @type {HTMLButtonElement} */ (this.querySelector('#download-profile-button')).disabled = true;
+
+        try {
+            const { PDFArray, PDFDict, PDFName, PDFRef, PDFRawStream, PDFString } = await import('../../packages/pdf-lib/pdf-lib.esm.js');
+
+            const outputIntents = doc.catalog.lookup(PDFName.of('OutputIntents'));
+            if (!(outputIntents instanceof PDFArray) || outputIntents.size() === 0) return;
+
+            const intent = outputIntents.lookup(0);
+            if (!(intent instanceof PDFDict)) return;
+
+            // Get profile name — priority: /AF filename > ICC desc tag > OutputConditionIdentifier
+            /** @type {string | null} */
+            let profileName = null;
+
+            // Try /AF (PDF 2.0 Associated Files) on the OutputIntent for original filename
+            const afArray = intent.lookup(PDFName.of('AF'));
+            if (afArray instanceof PDFArray && afArray.size() > 0) {
+                const fileSpec = afArray.lookup(0);
+                if (fileSpec instanceof PDFDict) {
+                    const uf = fileSpec.lookup(PDFName.of('UF'));
+                    const f = fileSpec.lookup(PDFName.of('F'));
+                    if (uf instanceof PDFString) profileName = uf.value;
+                    else if (uf && typeof uf.decodeText === 'function') profileName = uf.decodeText();
+                    else if (f instanceof PDFString) profileName = f.value;
+                }
+            }
+
+            // Fallback: OutputConditionIdentifier
+            if (!profileName) {
+                const idVal = intent.lookup(PDFName.of('OutputConditionIdentifier'));
+                if (idVal instanceof PDFString) profileName = idVal.value;
+                else if (idVal && typeof idVal.decodeText === 'function') profileName = idVal.decodeText();
+            }
+
+            // Get the profile stream
+            const profileRef = intent.get(PDFName.of('DestOutputProfile'));
+            if (!(profileRef instanceof PDFRef)) return;
+
+            const profileStream = doc.context.lookup(profileRef);
+            if (!(profileStream instanceof PDFRawStream)) return;
+
+            // Get raw stream bytes — may or may not be compressed
+            const rawBytes = profileStream.getContents();
+
+            // Determine if compressed by checking magic bytes:
+            // - ICC profile starts with a 4-byte big-endian size, then at offset 36: 'acsp' (0x61637370)
+            // - zlib-wrapped deflate starts with 0x78 (CMF byte: CM=8 deflate, CINFO varies)
+            // - Raw deflate starts with various bit patterns but never 'acsp' at offset 36
+            const isICC = rawBytes.length >= 40
+                && rawBytes[36] === 0x61   // 'a'
+                && rawBytes[37] === 0x63   // 'c'
+                && rawBytes[38] === 0x73   // 's'
+                && rawBytes[39] === 0x70;  // 'p'
+
+            let profileBytes;
+            if (isICC) {
+                // Already decompressed — raw ICC data
+                profileBytes = rawBytes;
+            } else {
+                // Compressed — try zlib (0x78) then raw deflate
+                try {
+                    const format = (rawBytes[0] === 0x78) ? 'deflate' : 'deflate-raw';
+                    const ds = new DecompressionStream(format);
+                    const writer = ds.writable.getWriter();
+                    writer.write(rawBytes);
+                    writer.close();
+                    const chunks = [];
+                    const reader = ds.readable.getReader();
+                    for (;;) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        chunks.push(value);
+                    }
+                    const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
+                    profileBytes = new Uint8Array(totalLength);
+                    let offset = 0;
+                    for (const chunk of chunks) {
+                        profileBytes.set(chunk, offset);
+                        offset += chunk.length;
+                    }
+                    // Verify decompressed result is valid ICC
+                    if (profileBytes.length < 40 || profileBytes[36] !== 0x61 || profileBytes[37] !== 0x63) {
+                        console.warn(`${CONTEXT_PREFIX} [PDFValidatorApp] Decompressed data is not a valid ICC profile`);
+                        return;
+                    }
+                } catch (e) {
+                    console.warn(`${CONTEXT_PREFIX} [PDFValidatorApp] Failed to decompress ICC profile:`, e);
+                    return;
+                }
+            }
+
+            // Read profile name from ICC desc tag as fallback
+            // (If /AF gave us the original filename, keep that — it preserves the user's naming)
+            if (!profileName) {
+                const iccDescName = readICCDescTag(profileBytes);
+                if (iccDescName) profileName = iccDescName;
+            }
+
+            // Last resort
+            if (!profileName) profileName = 'Output Profile';
+
+            // Sanitize filename — add .icc if not already present
+            const sanitized = profileName.replace(/[<>:"/\\|?*]/g, '-').trim();
+            const hasExtension = /\.(icc|icm)$/i.test(sanitized);
+            this.#extractedProfile = {
+                bytes: profileBytes,
+                name: hasExtension ? sanitized : `${sanitized}.icc`,
+            };
+
+            /** @type {HTMLButtonElement} */ (this.querySelector('#download-profile-button')).disabled = false;
+            console.log(`${CONTEXT_PREFIX} [PDFValidatorApp] ICC profile extracted: ${this.#extractedProfile.name} (${profileBytes.length} bytes)`);
+        } catch (e) {
+            console.warn(`${CONTEXT_PREFIX} [PDFValidatorApp] Could not extract ICC profile:`, e);
+        }
     }
 
     // ========================================================================
