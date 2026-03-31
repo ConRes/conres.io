@@ -1185,20 +1185,21 @@ export class TestFormPDFDocumentGenerator {
      * @param {ArrayBuffer} iccProfileBuffer
      * @param {ArrayBuffer} manifestBuffer
      */
-    async #postProcessDocument(document, iccProfileHeader, iccProfileBuffer, manifestBuffer) {
+    async #postProcessDocument(document, iccProfileHeader, iccProfileBuffer, manifestBuffer, attachmentName = 'test-form.manifest.json') {
         // Always use the user's destination ICC profile for the output intent
         // (not a source profile extracted from the document)
         await PDFService.setOutputIntentForPDFDocument(document, {
             iccProfile: new Uint8Array(iccProfileBuffer),
             identifier: iccProfileHeader.description || `ICCBased_${iccProfileHeader.colorSpace}`,
             subType: 'GTS_PDFX',
+            profileFilename: this.#outputProfileName,
         });
 
         // Attach manifest to output PDF
         await PDFService.attachManifestToPDFDocument(
             document,
             manifestBuffer,
-            'test-form.manifest.json',
+            attachmentName,
         );
 
         // Add Document ID if missing (required by PDF/X standards)
@@ -1964,7 +1965,7 @@ export class TestFormPDFDocumentGenerator {
             }
         } // end per-page loop
 
-        // Post-process: decalibrate and set output intent
+        // Post-process: decalibrate, blending space, geometry, doc ID, OCG, XMP
         await this.#postProcessPages(docketDocument, iccProfileHeader);
 
         // Build stripped metadata (exclude profile base64 contents)
@@ -1976,13 +1977,10 @@ export class TestFormPDFDocumentGenerator {
             JSON.stringify(strippedMetadata, null, 2),
         ).buffer;
 
-        await PDFService.setOutputIntentForPDFDocument(docketDocument, {
-            iccProfile: new Uint8Array(iccProfileBuffer),
-            identifier: iccProfileHeader.description || `ICCBased_${iccProfileHeader.colorSpace}`,
-            subType: 'GTS_PDFX',
-        });
-        await PDFService.attachManifestToPDFDocument(
-            docketDocument, strippedMetadataBuffer, 'metadata.json',
+        // Reuse the same post-processing as the test form — output intent,
+        // document ID, OCG registration, OCCD name, XMP metadata
+        await this.#postProcessDocument(
+            docketDocument, iccProfileHeader, iccProfileBuffer, strippedMetadataBuffer, 'metadata.json',
         );
 
         return /** @type {ArrayBuffer} */ (

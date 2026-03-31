@@ -8,6 +8,7 @@ import {
     PDFRef,
     PDFName,
     PDFString,
+    PDFHexString,
     PDFPageLeaf,
     decodePDFRawStream,
 } from "../packages/pdf-lib/pdf-lib.esm.js";
@@ -1941,9 +1942,9 @@ export class PDFService {
      * @param {string} options.subType eg. GTS_PDFA1, GTS_PDFX
      * @param {string} [options.info] info about the profile
      * @param {Uint8Array | PDFRawStream | PDFRef} options.iccProfile icc profile buffer content
-     * @param icc icc profile buffer content
+     * @param {string} [options.profileFilename] original ICC profile filename (stored via /AF per PDF 2.0)
      */
-    static async setOutputIntentForPDFDocument(pdfDocument, { subType, iccProfile, info, identifier }) {
+    static async setOutputIntentForPDFDocument(pdfDocument, { subType, iccProfile, info, identifier, profileFilename }) {
         if (!(pdfDocument instanceof PDFDocument))
             throw new Error('Unexpected pdfDocument argument type.');
 
@@ -1978,6 +1979,19 @@ export class PDFService {
             Info: info ? PDFString.of(info) : PDFString.of(identifier),
             DestOutputProfile: iccStreamRef,
         });
+        // Associate the profile filename via /AF (PDF 2.0 Associated Files) on the OutputIntent dict
+        if (profileFilename) {
+            const fileSpecDict = pdfDocument.context.obj({
+                Type: 'Filespec',
+                F: PDFString.of(profileFilename),
+                UF: PDFHexString.fromText(profileFilename),
+                EF: pdfDocument.context.obj({ F: iccStreamRef }),
+                AFRelationship: 'Source',
+            });
+            const fileSpecRef = pdfDocument.context.register(fileSpecDict);
+            outputIntent.set(PDFName.of('AF'), pdfDocument.context.obj([fileSpecRef]));
+        }
+
         const outputIntentRef = pdfDocument.context.register(outputIntent);
         pdfDocument.catalog.set(PDFName.of('OutputIntents'), pdfDocument.context.obj([outputIntentRef]));
     }
