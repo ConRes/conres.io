@@ -129,7 +129,7 @@ In addition, the target is also used in tests conducted to see how much JPEG can
 
 <figure clear:=both>
 <img width=100% src="./assets/ConRes283_Uni_Stuttgart_F.png" background-color:=#FFF />
-<figcaption align=center>Figure 17 — A very compact version —/figcaption>
+<figcaption align=center>Figure 17 — A very compact version —</figcaption>
 </figure>
 
 Figure 17 shows a very compact version that was used in a gravure testing investigation at the Hochschule der Medien in Stuttgart, 2013. There was only a stripe of 35mm available. Columns are offset at lower contrast to reduce the number of required patches. Therefore separate labels are required for each patch.
