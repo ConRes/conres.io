@@ -11,12 +11,12 @@
 	"license": "MIT",
 	"type": "module",
 	"scripts": {
-		"test": "node 2025/tests/run-tests.js",
-		"test:legacy": "TESTS_ONLY_LEGACY=true node 2025/tests/run-tests.js",
-		"test:classes": "TESTS_SKIP_LEGACY=true node 2025/tests/run-tests.js",
-		"test:legacy-intact": "node 2025/tests/run-tests.js --legacy-intact",
-		"test:generator": "TESTS_MEMORY=true node 2025/tests/run-tests.js --generator",
-		"convert-pdf-color": "node 2025/scripts/convert-pdf-color.js",
+		"test": "node 2026/tests/run-tests.js",
+		"test:2025:legacy": "TESTS_ONLY_LEGACY=true node 2025/tests/run-tests.js",
+		"test:2025:classes": "TESTS_SKIP_LEGACY=true node 2025/tests/run-tests.js",
+		"test:2025:legacy-intact": "node 2025/tests/run-tests.js --legacy-intact",
+		"test:2025:generator": "TESTS_MEMORY=true node 2025/tests/run-tests.js --generator",
+		"convert-pdf-color": "node 2026/experiments/convert-pdf-color.js",
 		"doc:classes": "cd 2025/classes && typedoc"
 	},
 	"devDependencies": {

@@ -14,10 +14,10 @@
 		"local:cache": "http-server -d false --cors -s -p 80",
 		"local": "http-server -d false --cors -s -c-1 -p 80",
 		"local:test": "http-server -d false --cors -s -c-1 -p 8080",
-		"test": "node testing/iso/ptf/2025/tests/run-tests.js",
-		"test:generator": "TESTS_MEMORY=true node testing/iso/ptf/2025/tests/run-tests.js --generator",
-		"test:PDFService": "node --test testing/iso/ptf/2025/tests/PDFService.test.js",
-		"convert-pdf-color": "node testing/iso/ptf/2025/scripts/convert-pdf-color.js"
+		"test": "node testing/iso/ptf/2026/tests/run-tests.js",
+		"test:generator": "TESTS_MEMORY=true node testing/iso/ptf/2026/tests/run-tests.js --generator",
+		"test:PDFService": "node --test testing/iso/ptf/2026/tests/PDFService.test.js",
+		"convert-pdf-color": "node testing/iso/ptf/2026/scripts/convert-pdf-color.js"
 	},
 	"devDependencies": {
 		"@smotaal/esm": "SMotaal/esm",

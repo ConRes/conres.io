@@ -565,7 +565,14 @@ describe('ColorConversionPolicy', () => {
         });
 
         test('K-Only GCR with non-CMYK output triggers renderingIntent override', () => {
-            const result = policy.evaluateConversion({
+            // The k-only-gcr-to-relative-colorimetric-fallback rule applies to
+            // engines up to color-engine-2026-02-14 but NOT color-engine-2026-03-27.
+            // Use a specific engine version where this rule is active.
+            const policyForOlderEngine = new ColorConversionPolicy({
+                engineVersion: 'color-engine-2026-02-14',
+            });
+
+            const result = policyForOlderEngine.evaluateConversion({
                 sourceColorSpace: 'RGB',
                 destinationColorSpace: 'RGB',
                 renderingIntent: 'preserve-k-only-relative-colorimetric-gcr',
@@ -577,7 +584,12 @@ describe('ColorConversionPolicy', () => {
         });
 
         test('getEffectiveRenderingIntent returns overridden intent', () => {
-            const effectiveIntent = policy.getEffectiveRenderingIntent({
+            // Same engine version constraint as above
+            const policyForOlderEngine = new ColorConversionPolicy({
+                engineVersion: 'color-engine-2026-02-14',
+            });
+
+            const effectiveIntent = policyForOlderEngine.getEffectiveRenderingIntent({
                 sourceColorSpace: 'RGB',
                 destinationColorSpace: 'RGB',
                 renderingIntent: 'preserve-k-only-relative-colorimetric-gcr',
@@ -752,7 +764,13 @@ describe('ColorConversionPolicy', () => {
         });
 
         test('trace appliedOverrides lists the override keys', () => {
-            const result = policy.evaluateConversion({
+            // The k-only-gcr-to-relative-colorimetric-fallback rule (which overrides
+            // renderingIntent) applies to engines up to color-engine-2026-02-14.
+            const policyForOlderEngine = new ColorConversionPolicy({
+                engineVersion: 'color-engine-2026-02-14',
+            });
+
+            const result = policyForOlderEngine.evaluateConversion({
                 sourceColorSpace: 'RGB',
                 destinationColorSpace: 'RGB',
                 renderingIntent: 'preserve-k-only-relative-colorimetric-gcr',
