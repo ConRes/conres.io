@@ -557,6 +557,11 @@ export class WorkerPool {
             transferables.push(message.inputArray.buffer);
         }
 
+        // Content stream streaming task: transfer compressed contents
+        if (message.compressedContents instanceof Uint8Array && message.compressedContents.buffer instanceof ArrayBuffer) {
+            transferables.push(message.compressedContents.buffer);
+        }
+
         return transferables;
     }
 

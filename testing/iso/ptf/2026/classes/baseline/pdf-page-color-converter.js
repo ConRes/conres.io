@@ -29,6 +29,13 @@ import { PDFName, PDFDict, PDFRef, decodePDFRawStream } from '../../packages/pdf
  *   sourceGrayProfile?: ArrayBuffer,
  *   bufferRegistry?: import('./buffer-registry.js').BufferRegistry,
  *   interConversionDelay?: number,
+ *   defaultSourceProfileForDeviceRGB?: ArrayBuffer | null,
+ *   defaultSourceProfileForDeviceCMYK?: ArrayBuffer | null,
+ *   defaultSourceProfileForDeviceGray?: ArrayBuffer | null,
+ *   useLegacyContentStreamParsing?: boolean,
+ *   convertDeviceRGB?: boolean,
+ *   convertDeviceCMYK?: boolean,
+ *   convertDeviceGray?: boolean,
  * }} PDFPageColorConverterConfiguration
  */
 
@@ -243,6 +250,13 @@ export class PDFPageColorConverter extends CompositeColorConverter {
             useLookupTable: true,
             sourceRGBProfile: base.sourceRGBProfile,
             sourceGrayProfile: base.sourceGrayProfile,
+            useLegacyContentStreamParsing: base.useLegacyContentStreamParsing,
+            defaultSourceProfileForDeviceRGB: base.defaultSourceProfileForDeviceRGB,
+            defaultSourceProfileForDeviceCMYK: base.defaultSourceProfileForDeviceCMYK,
+            defaultSourceProfileForDeviceGray: base.defaultSourceProfileForDeviceGray,
+            convertDeviceRGB: base.convertDeviceRGB,
+            convertDeviceCMYK: base.convertDeviceCMYK,
+            convertDeviceGray: base.convertDeviceGray,
 
             // Shared BufferRegistry for cross-instance caching
             bufferRegistry: base.bufferRegistry,
@@ -570,6 +584,9 @@ export class PDFPageColorConverter extends CompositeColorConverter {
         // set in one stream carries over to subsequent streams.
         /** @type {Array<import('./pdf-content-stream-color-converter.js').PDFContentStreamColorConverterResult>} */
         const streamResults = [];
+        if (config.verbose) {
+            console.log(`${CONTEXT_PREFIX} [PDFPageColorConverter] Content stream check: convertContentStreams=${config.convertContentStreams}, inputStreams=${input.contentStreams?.length ?? 'none'}, hasConverter=${!!this.#contentStreamConverter}`);
+        }
         if (config.convertContentStreams && input.contentStreams && this.#contentStreamConverter) {
             const streamCount = input.contentStreams.length;
             const streamBatchSpan = this.diagnostics.startSpan('stream-batch', {
@@ -588,16 +605,133 @@ export class PDFPageColorConverter extends CompositeColorConverter {
                     });
 
                     try {
+                        const { useLegacyContentStreamParsing } = config;
+                        if (config.verbose) {
+                            console.log(`${CONTEXT_PREFIX} [PDFPageColorConverter] Content stream ${streamData.ref}: ${useLegacyContentStreamParsing ? 'legacy' : 'streaming'} parser${this.workerPool ? ' (worker)' : ''}`);
+                        }
                         // Check for per-stream configuration override
                         const streamOverride = this.getConfigurationFor(streamData.ref);
-                        /** @type {import('./pdf-content-stream-color-converter.js').PDFContentStreamColorConverterResult} */
-                        let streamResult;
-                        if (streamOverride) {
-                            const overrideConfig = this.deriveContentStreamConfiguration(streamData.ref);
-                            const tempConverter = this.createChildConverter(PDFContentStreamColorConverter, overrideConfig);
-                            try {
+
+                        if (this.workerPool && !useLegacyContentStreamParsing && !streamOverride) {
+                            // ── Worker mode: dispatch streaming conversion to pool worker ──
+                            // Compressed bytes go to the worker, compressed bytes come back.
+                            // The WASM work happens in the worker isolate, not on this thread.
+                            // When the worker pool is terminated, the WASM memory is freed.
+                            const workerPool = this.workerPool;
+                            const workerResult = await workerPool.submitTask({
+                                type: 'content-stream-streaming',
+                                compressedContents: streamData.stream.contents,
+                                colorSpaceDefinitions: streamData.colorSpaceDefinitions,
+                                initialColorSpaceState: currentColorSpaceState,
+                                renderingIntent: config.renderingIntent,
+                                blackPointCompensation: config.blackPointCompensation,
+                                destinationProfile: workerPool.hasSharedProfiles ? undefined : config.destinationProfile,
+                                destinationColorSpace: config.destinationColorSpace,
+                                verbose: config.verbose,
+                                intermediateProfiles: workerPool.hasSharedProfiles ? undefined : config.intermediateProfiles,
+                                useLegacyContentStreamParsing,
+                                convertDeviceRGB: config.convertDeviceRGB,
+                                convertDeviceCMYK: config.convertDeviceCMYK,
+                                convertDeviceGray: config.convertDeviceGray,
+                                defaultSourceProfileForDeviceRGB: config.defaultSourceProfileForDeviceRGB,
+                                defaultSourceProfileForDeviceCMYK: config.defaultSourceProfileForDeviceCMYK,
+                                defaultSourceProfileForDeviceGray: config.defaultSourceProfileForDeviceGray,
+                            });
+
+                            if (!workerResult.success) {
+                                throw new Error(`Worker content stream conversion failed: ${workerResult.error}`);
+                            }
+
+                            // Update color space state for next stream
+                            if (workerResult.finalColorSpaceState) {
+                                currentColorSpaceState = workerResult.finalColorSpaceState;
+                            }
+
+                            // Apply compressed output
+                            if (workerResult.replacementCount > 0) {
+                                // @ts-ignore - Accessing internal property
+                                streamData.stream.contents = workerResult.compressedOutput;
+                                streamData.stream.dict.set(PDFName.of('Filter'), PDFName.of('FlateDecode'));
+                                streamData.stream.dict.delete(PDFName.of('DecodeParms'));
+                                streamData.stream.dict.set(
+                                    PDFName.of('Length'),
+                                    streamData.stream.dict.context.obj(workerResult.compressedOutput.length),
+                                );
+
+                                contentStreamsConverted++;
+                                this.diagnostics.updateSpan(streamSpan, {
+                                    ops: workerResult.colorConversions,
+                                    replacements: workerResult.replacementCount,
+                                });
+                            }
+
+                            streamResults.push(/** @type {any} */ (workerResult));
+                        } else if (!useLegacyContentStreamParsing) {
+                            // ── Local streaming mode: compressed → tokenize → substitute → compressed ──
+                            // No full decompressed string is materialized.
+                            const converter = streamOverride
+                                ? this.createChildConverter(PDFContentStreamColorConverter, this.deriveContentStreamConfiguration(streamData.ref))
+                                : this.#contentStreamConverter;
+
+                            const streamingResult = await converter.convertColorStreaming({
+                                streamRef: streamData.ref,
+                                compressedContents: streamData.stream.contents,
+                                colorSpaceDefinitions: streamData.colorSpaceDefinitions,
+                                initialColorSpaceState: currentColorSpaceState,
+                            }, context);
+
+                            if (streamOverride && converter !== this.#contentStreamConverter) {
+                                converter.dispose();
+                            }
+
+                            // Update color space state for next stream
+                            if (streamingResult.finalColorSpaceState) {
+                                currentColorSpaceState = streamingResult.finalColorSpaceState;
+                            }
+
+                            // Apply compressed output directly to the PDF stream
+                            if (streamingResult.replacementCount > 0) {
+                                // @ts-ignore - Accessing internal property
+                                streamData.stream.contents = streamingResult.compressedOutput;
+                                // Ensure FlateDecode filter is set
+                                streamData.stream.dict.set(PDFName.of('Filter'), PDFName.of('FlateDecode'));
+                                streamData.stream.dict.delete(PDFName.of('DecodeParms'));
+                                streamData.stream.dict.set(
+                                    PDFName.of('Length'),
+                                    streamData.stream.dict.context.obj(streamingResult.compressedOutput.length),
+                                );
+
+                                contentStreamsConverted++;
+                                this.diagnostics.updateSpan(streamSpan, {
+                                    ops: streamingResult.colorConversions,
+                                    replacements: streamingResult.replacementCount,
+                                });
+                            }
+
+                            streamResults.push(/** @type {any} */ (streamingResult));
+                        } else {
+                            // ── Legacy mode: decompress → full string → parse → convert → compress ──
+                            /** @type {import('./pdf-content-stream-color-converter.js').PDFContentStreamColorConverterResult} */
+                            let streamResult;
+                            if (streamOverride) {
+                                const overrideConfig = this.deriveContentStreamConfiguration(streamData.ref);
+                                const tempConverter = this.createChildConverter(PDFContentStreamColorConverter, overrideConfig);
+                                try {
+                                    streamResult = /** @type {import('./pdf-content-stream-color-converter.js').PDFContentStreamColorConverterResult} */ (
+                                        await tempConverter.convertColor({
+                                            streamRef: streamData.ref,
+                                            streamText: this.#getStreamText(streamData.stream),
+                                            colorSpaceDefinitions: streamData.colorSpaceDefinitions,
+                                            initialColorSpaceState: currentColorSpaceState,
+                                            labColorSpaceName,
+                                        }, context)
+                                    );
+                                } finally {
+                                    tempConverter.dispose();
+                                }
+                            } else {
                                 streamResult = /** @type {import('./pdf-content-stream-color-converter.js').PDFContentStreamColorConverterResult} */ (
-                                    await tempConverter.convertColor({
+                                    await this.#contentStreamConverter.convertColor({
                                         streamRef: streamData.ref,
                                         streamText: this.#getStreamText(streamData.stream),
                                         colorSpaceDefinitions: streamData.colorSpaceDefinitions,
@@ -605,46 +739,35 @@ export class PDFPageColorConverter extends CompositeColorConverter {
                                         labColorSpaceName,
                                     }, context)
                                 );
-                            } finally {
-                                tempConverter.dispose();
                             }
-                        } else {
-                            streamResult = /** @type {import('./pdf-content-stream-color-converter.js').PDFContentStreamColorConverterResult} */ (
-                                await this.#contentStreamConverter.convertColor({
-                                    streamRef: streamData.ref,
-                                    streamText: this.#getStreamText(streamData.stream),
-                                    colorSpaceDefinitions: streamData.colorSpaceDefinitions,
-                                    initialColorSpaceState: currentColorSpaceState,
-                                    labColorSpaceName,
-                                }, context)
-                            );
-                        }
 
-                        // Update color space state for next stream
-                        if (streamResult.finalColorSpaceState) {
-                            currentColorSpaceState = streamResult.finalColorSpaceState;
-                        }
+                            // Update color space state for next stream
+                            if (streamResult.finalColorSpaceState) {
+                                currentColorSpaceState = streamResult.finalColorSpaceState;
+                            }
 
-                        // Apply converted content stream back to the PDF
-                        if (streamResult && streamResult.replacementCount > 0) {
-                            await this.#applyContentStreamResult(streamData.stream, streamResult);
+                            // Apply converted content stream back to the PDF
+                            if (streamResult && streamResult.replacementCount > 0) {
+                                await this.#applyContentStreamResult(streamData.stream, streamResult);
 
-                            // Release references to large strings for GC.
-                            // The segments generator has been consumed and the stream
-                            // has been compressed — these are no longer needed.
-                            streamResult.originalText = null;
-                            streamResult.newTextSegments = null;
+                                // Release references to large strings for GC.
+                                // The segments generator has been consumed and the stream
+                                // has been compressed — these are no longer needed.
+                                streamResult.originalText = null;
+                                streamResult.newTextSegments = null;
 
-                            streamResults.push(streamResult);
-                            contentStreamsConverted++;
-                            this.diagnostics.updateSpan(streamSpan, {
-                                ops: streamResult.colorConversions || 0,
-                                bytes: streamResult.newTextLength,
-                            });
-                        } else {
-                            this.diagnostics.updateSpan(streamSpan, { skipped: true });
-                        }
+                                streamResults.push(streamResult);
+                                contentStreamsConverted++;
+                                this.diagnostics.updateSpan(streamSpan, {
+                                    ops: streamResult.colorConversions || 0,
+                                    bytes: streamResult.newTextLength,
+                                });
+                            } else {
+                                this.diagnostics.updateSpan(streamSpan, { skipped: true });
+                            }
+                        } // end legacy mode
                     } catch (error) {
+                        console.error(`${CONTEXT_PREFIX} [PDFPageColorConverter] Content stream ${streamData.ref.toString()} FAILED: ${error}`);
                         errors.push(`Content stream ${streamData.ref.toString()}: ${error}`);
                         this.diagnostics.abortSpan(streamSpan, { reason: `${error}` });
                     } finally {
