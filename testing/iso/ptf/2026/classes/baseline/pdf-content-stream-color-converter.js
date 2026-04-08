@@ -11,6 +11,8 @@
 
 import { LookupTableColorConverter } from './lookup-table-color-converter.js';
 import { CONTEXT_PREFIX } from '../../services/helpers/runtime.js';
+import { tokenize, tokenizeFromAsync, transformFromAsync, OE, OPERATOR_PATTERN } from './pdf-content-stream-parser.js';
+import { createInterpreter, collectOperations } from './pdf-content-stream-interpreter.js';
 
 // ============================================================================
 // Type Definitions
@@ -32,6 +34,13 @@ import { CONTEXT_PREFIX } from '../../services/helpers/runtime.js';
  *   sourceGrayProfile?: ArrayBuffer,
  *   colorSpaceDefinitions?: Record<string, import('./pdf-document-color-converter.js').PDFColorSpaceDefinition>,
  *   labColorSpaceName?: string,
+ *   useLegacyContentStreamParsing?: boolean,
+ *   defaultSourceProfileForDeviceRGB?: ArrayBuffer | null,
+ *   defaultSourceProfileForDeviceCMYK?: ArrayBuffer | null,
+ *   defaultSourceProfileForDeviceGray?: ArrayBuffer | null,
+ *   convertDeviceRGB?: boolean,
+ *   convertDeviceCMYK?: boolean,
+ *   convertDeviceGray?: boolean,
  * }} PDFContentStreamColorConverterConfiguration
  */
 
@@ -76,6 +85,20 @@ import { CONTEXT_PREFIX } from '../../services/helpers/runtime.js';
  */
 
 /**
+ * Result of streaming content stream conversion.
+ * Returns compressed output bytes directly — no intermediate full string.
+ *
+ * @typedef {{
+ *   streamRef: any,
+ *   compressedOutput: Uint8Array,
+ *   replacementCount: number,
+ *   colorConversions: number,
+ *   deviceColorCount: number,
+ *   finalColorSpaceState: ColorSpaceState,
+ * }} PDFContentStreamStreamingResult
+ */
+
+/**
  * Parsed color operation from content stream.
  * @typedef {{
  *   type: 'gray' | 'rgb' | 'cmyk' | 'colorspace' | 'indexed' | 'string' | 'head',
@@ -93,18 +116,35 @@ import { CONTEXT_PREFIX } from '../../services/helpers/runtime.js';
 // Constants
 // ============================================================================
 
-/**
- * Regular expression for matching PDF content stream color operators.
- * Exported for reuse by verification tools.
- * @type {RegExp}
- */
-export const COLOR_OPERATOR_REGEX = /(?<head>[^(]*?)(?:(?:(?<=[\s\n]|^)(?<name>\/\w+)\s+(?<csOp>CS|cs)\b)|(?:(?<=[\s\n]|^)(?<name2>\/\w+)\s+(?<scnOp>SCN|scn)\b)|(?:(?<=[\s\n]|^)(?<gray>(?:\d+\.?\d*|\.\d+))\s+(?<gOp>G|g)\b)|(?:(?<=[\s\n]|^)(?<cmyk>(?:\d+\.?\d*|\.\d+)\s+(?:\d+\.?\d*|\.\d+)\s+(?:\d+\.?\d*|\.\d+)\s+(?:\d+\.?\d*|\.\d+))\s+(?<kOp>K|k)\b)|(?:(?<=[\s\n]|^)(?<rgb>(?:\d+\.?\d*|\.\d+)\s+(?:\d+\.?\d*|\.\d+)\s+(?:\d+\.?\d*|\.\d+))\s+(?<rgOp>RG|rg)\b)|(?:(?<=[\s\n]|^)(?<n>(?:\d+\.?\d*|\.\d+)(?:\s+(?:\d+\.?\d*|\.\d+))*)\s+(?<scOp>SC|sc|SCN|scn)\b)|(?:\((?<string>[^)]*)\))|\s*$)/ug;
+// Content stream processing modes (controlled by `useLegacyContentStreamParsing` option):
+//
+// Default (useLegacyContentStreamParsing=false):
+//   Uses the streaming pipeline — compressed content stream bytes flow through
+//   DecompressionStream → tokenize transform (regex on chunks) → substitute
+//   operators → CompressionStream. No full decompressed string is materialized.
+//   This prevents Safari/JSC OOM on large content streams (125+ MB decompressed)
+//   where contiguous string allocation fails.
+//
+//   Tokenizer: pdf-content-stream-parser.js (Layer 1)
+//   Interpreter: pdf-content-stream-interpreter.js (Layer 2)
+//
+// Legacy (useLegacyContentStreamParsing=true):
+//   Original monolithic regex with chunked matchAll. Decompresses to full string,
+//   parses, converts, and recompresses. Preserved for diagnostic comparison.
+//   Uses LEGACY_COLOR_OPERATOR_REGEX and legacyMatchAll below.
 
 /**
- * Chunked matchAll generator for large content stream strings.
+ * Legacy regex for matching PDF content stream color operators.
+ * Used when `useLegacyContentStreamParsing` is true.
+ * @type {RegExp}
+ */
+const LEGACY_COLOR_OPERATOR_REGEX = /(?<head>[^(]*?)(?:(?:(?<=[\s\n]|^)(?<name>\/\w+)\s+(?<csOp>CS|cs)\b)|(?:(?<=[\s\n]|^)(?<name2>\/\w+)\s+(?<scnOp>SCN|scn)\b)|(?:(?<=[\s\n]|^)(?<gray>(?:\d+\.?\d*|\.\d+))\s+(?<gOp>G|g)\b)|(?:(?<=[\s\n]|^)(?<cmyk>(?:\d+\.?\d*|\.\d+)\s+(?:\d+\.?\d*|\.\d+)\s+(?:\d+\.?\d*|\.\d+)\s+(?:\d+\.?\d*|\.\d+))\s+(?<kOp>K|k)\b)|(?:(?<=[\s\n]|^)(?<rgb>(?:\d+\.?\d*|\.\d+)\s+(?:\d+\.?\d*|\.\d+)\s+(?:\d+\.?\d*|\.\d+))\s+(?<rgOp>RG|rg)\b)|(?:(?<=[\s\n]|^)(?<n>(?:\d+\.?\d*|\.\d+)(?:\s+(?:\d+\.?\d*|\.\d+))*)\s+(?<scOp>SC|sc|SCN|scn)\b)|(?:\((?<string>[^)]*)\))|\s*$)/ug;
+
+/**
+ * Legacy chunked matchAll generator for large content stream strings.
  *
  * Firefox's regex engine returns null on strings exceeding ~128 MB.
- * This generator splits the input into ~50 MB chunks at space boundaries
+ * This generator splits the input into ~5 MB chunks at space boundaries
  * and yields matches with indices adjusted to original string positions.
  * For strings under the limit, delegates directly to `String.prototype.matchAll`.
  *
@@ -112,7 +152,7 @@ export const COLOR_OPERATOR_REGEX = /(?<head>[^(]*?)(?:(?:(?<=[\s\n]|^)(?<name>\
  * @param {RegExp} regex - The regex pattern (must have the `g` flag)
  * @yields {RegExpMatchArray} Match objects with corrected `index` values
  */
-function* matchAll(string, regex) {
+function* legacyMatchAll(string, regex) {
     const CHUNK_LIMIT = 5 * 1024 * 1024;
 
     if (string.length <= CHUNK_LIMIT) {
@@ -171,8 +211,8 @@ function* matchAll(string, regex) {
  *     destinationProfile: cmykProfileBuffer,
  *     destinationColorSpace: 'CMYK',
  *     useLookupTable: true,
- *     sourceRGBProfile: 'sRGB',
- *     sourceGrayProfile: 'sGray',
+ *     sourceRGBProfile: sRGBProfileBuffer,
+ *     sourceGrayProfile: sGrayProfileBuffer,
  *     verbose: false,
  * });
  *
@@ -302,11 +342,11 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
         // ICCBased and Lab colors use named color spaces (via SC/sc/SCN/scn)
         const toConvert = operations.filter((/** @type {ParsedColorOperation} */ op) => {
             if (op.type === 'indexed' && op.values && op.colorSpaceName) {
-                // Check if the color space is convertible (ICCBased: sGray, sRGB, or Lab)
+                // Check if the color space is convertible (ICCBased or Lab)
                 const csDef = colorSpaceDefinitions?.[op.colorSpaceName];
                 if (csDef) {
                     const csType = csDef.colorSpaceType;
-                    return csType === 'sGray' || csType === 'sRGB' || csType === 'Lab';
+                    return csType === 'ICCBasedGray' || csType === 'ICCBasedRGB' || csType === 'Lab';
                 }
             }
             return false;
@@ -331,17 +371,17 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
         }
 
         // Build lookup inputs from operations
-        // All operations in toConvert are 'indexed' type with validated color space (sRGB, sGray, or Lab)
+        // All operations in toConvert are 'indexed' type with validated color space (ICCBased or Lab)
         const lookupInputs = toConvert.map(op => {
-            // Determine color space from color space definition
+            // Map PDF color space type to non-PDF color model for the super class
             const csDef = colorSpaceDefinitions?.[/** @type {string} */ (op.colorSpaceName)];
             const csType = csDef?.colorSpaceType;
 
             /** @type {'RGB' | 'Gray' | 'Lab'} */
             let colorSpace;
-            if (csType === 'sRGB') {
+            if (csType === 'ICCBasedRGB') {
                 colorSpace = 'RGB';
-            } else if (csType === 'sGray') {
+            } else if (csType === 'ICCBasedGray') {
                 colorSpace = 'Gray';
             } else if (csType === 'Lab') {
                 colorSpace = 'Lab';
@@ -430,6 +470,326 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
             // Use ORIGINAL final state from parsing for passing to next stream
             // (not the converted state which would have Lab as the current color space)
             finalColorSpaceState: finalState,
+        };
+    }
+
+    // ========================================
+    // Streaming Conversion (compressed → compressed)
+    // ========================================
+
+    /**
+     * Converts colors in a PDF content stream using a single-pass streaming pipeline.
+     *
+     * Input: compressed content stream bytes (FlateDecode Uint8Array)
+     * Output: compressed content stream bytes with color operators substituted
+     *
+     * The decompressed string never exists as a single allocation. The pipeline:
+     *   DecompressionStream → Latin-1 decode chunks →
+     *   tokenizeFromAsync (markup parser Layer 1) →
+     *   interpretGraphicsState (Layer 2) →
+     *   convert operators on-the-fly (single pass, no batch) →
+     *   Latin-1 encode → CompressionStream
+     *
+     * Single-pass was chosen over two-pass because benchmarks on real data show
+     * it is 2x faster — the second decompression pass dominates cost, while
+     * per-operator ICC conversion is microseconds (transforms are cached).
+     *
+     * Uses tokenizeFromAsync and createInterpreter from the parser/interpreter
+     * modules — no duplicated regex logic.
+     *
+     * @param {{
+     *   streamRef: any,
+     *   compressedContents: Uint8Array,
+     *   colorSpaceDefinitions?: Record<string, import('./pdf-document-color-converter.js').PDFColorSpaceDefinition>,
+     *   initialColorSpaceState?: ColorSpaceState,
+     * }} input
+     * @param {import('./color-converter.js').ColorConverterContext} [context={}]
+     * @returns {Promise<PDFContentStreamStreamingResult>}
+     */
+    async convertColorStreaming(input, context = {}) {
+        await this.ensureReady();
+
+        const { streamRef, compressedContents, colorSpaceDefinitions, initialColorSpaceState = {} } = input;
+
+        // ── Early exit: check if any conversion is needed ──
+        // Skip the decompress/tokenize/recompress pipeline if:
+        // 1. No named color spaces are convertible (no ICCBased or Lab), AND
+        // 2. No Device color conversion is enabled (convertDevice* flags)
+        //
+        // Device colors (g/G, rg/RG, k/K) are direct operators with no named
+        // color space entry. The convertDevice* flags (not the profile fields)
+        // determine whether they need conversion. The profile fields determine
+        // the conversion method (ICC via profile or PostScript math if null).
+        {
+            const config = /** @type {PDFContentStreamColorConverterConfiguration} */ (this.configuration);
+
+            const hasConvertibleNamedColorSpaces = colorSpaceDefinitions
+                ? Object.values(colorSpaceDefinitions).some(def => {
+                    const csType = def.colorSpaceType;
+                    return csType === 'ICCBasedGray' || csType === 'ICCBasedRGB' || csType === 'ICCBasedCMYK' || csType === 'Lab';
+                })
+                : false;
+
+            const hasDeviceColorConversion =
+                config.convertDeviceRGB === true ||
+                config.convertDeviceCMYK === true ||
+                config.convertDeviceGray === true;
+
+            if (!hasConvertibleNamedColorSpaces && !hasDeviceColorConversion) {
+                if (config.verbose) {
+                    console.log(`${CONTEXT_PREFIX} [PDFContentStreamColorConverter] Streaming early exit for ${streamRef}: no convertible color spaces, no device conversion`);
+                }
+                return {
+                    streamRef,
+                    compressedOutput: compressedContents,
+                    replacementCount: 0,
+                    colorConversions: 0,
+                    deviceColorCount: 0,
+                    finalColorSpaceState: initialColorSpaceState,
+                };
+            }
+        }
+
+        // ── Single-pass streaming pipeline ──
+        //
+        // DecompressionStream → transformFromAsync (parser Layer 1) →
+        // interpreter (Layer 2) → substitute operators → CompressionStream
+        //
+        // The decompressed content never exists as a single string. The parser's
+        // transformFromAsync yields TransformTokens:
+        //   - passthrough: bytes to write to output unchanged
+        //   - operator: color operator token for interpretation and possible substitution
+        //
+        // The interpreter enriches operator tokens with colorSpaceName from
+        // graphics state tracking (CS/cs, q/Q, implicit Device shortcuts).
+
+        const { collectUint8ArrayChunks } = await import('../../helpers/buffers.js');
+        const { readableStreamAsyncIterable } = await import('../../helpers/streams.js');
+
+        const interpreter = createInterpreter(initialColorSpaceState);
+
+        let replacementCount = 0;
+        let colorConversions = 0;
+        let deviceColorCount = 0;
+
+        // Decompress to async Uint8Array chunks
+        const inputStream = new ReadableStream({
+            start(controller) {
+                controller.enqueue(compressedContents);
+                controller.close();
+            },
+        });
+        const decompressedChunks = readableStreamAsyncIterable(
+            inputStream.pipeThrough(new DecompressionStream('deflate')),
+        );
+
+        // Stream: decompress → tokenize → interpret → substitute → compress
+        const compressor = new CompressionStream('deflate');
+        const compressWriter = compressor.writable.getWriter();
+
+        // Process tokens from the parser's streaming transform.
+        //
+        // Tokens arrive as a mix of passthrough (Uint8Array views into the
+        // shared Latin1Buffer) and operator tokens. We collect all tokens
+        // from each yielded batch, group convertible operators by color space,
+        // batch-convert each group in one convertColorsBuffer call, then
+        // output the entire sequence as interleaved Uint8Array bands:
+        //   [passthrough view] [replacement] [passthrough view] [operator unchanged] ...
+        //
+        // Passthrough views are into the shared buffer and must be written
+        // before the next yield from transformFromAsync (which reuses the buffer).
+        // Operator replacements are small independent allocations.
+
+        const config = /** @type {PDFContentStreamColorConverterConfiguration} */ (this.configuration);
+
+        const processTokens = (async () => {
+            // Accumulate ALL tokens (passthrough + operator) across decompression
+            // chunks. Batching is decoupled from chunk boundaries — we flush only
+            // when accumulated input bytes reach the memory threshold or at stream
+            // end. This gives the batch converter ALL operators in one call instead
+            // of 1 per decompression chunk.
+            //
+            // On flush, batch-convert all operators, then resolve every token to
+            // its output Uint8Array in original interleaved order and write the
+            // array of Uint8Arrays to the compressor.
+            //
+            // This preserves:
+            // 1. Correct ordering — color operators appear before their drawing ops
+            // 2. Maximal batching — all operators across chunks in one buildLookupTable call
+            // 3. Bounded memory — flush at threshold prevents OOM on large streams
+
+            const FLUSH_THRESHOLD = 100 * 1024 * 1024; // 100 MB
+
+            /** @type {Array<{ kind: 'passthrough', bytes: Uint8Array } | { kind: 'operator', token: any, enriched: any }>} */
+            let tokens = [];
+            let accumulatedBytes = 0;
+
+            /**
+             * Batch-convert all accumulated operator tokens, then write all
+             * tokens to the compressor in original interleaved order.
+             */
+            const flush = async () => {
+                if (tokens.length === 0) return;
+
+                // ── Build lookup inputs from convertible operators ──
+                /** @type {import('./lookup-table-color-converter.js').LookupTableColorConverterInput[]} */
+                const lookupInputs = [];
+                /** @type {number[]} */
+                const lookupTokenIndices = [];
+
+                for (let i = 0; i < tokens.length; i++) {
+                    const item = tokens[i];
+                    if (item.kind !== 'operator') continue;
+
+                    const enriched = item.enriched;
+                    if (!enriched || enriched.operation !== 'setColor') continue;
+
+                    const csName = enriched.colorSpaceName;
+                    if (!csName || !colorSpaceDefinitions) continue;
+
+                    const csDef = colorSpaceDefinitions[csName];
+                    if (!csDef) continue;
+
+                    const csType = csDef.colorSpaceType;
+                    /** @type {'RGB' | 'Gray' | 'Lab' | null} */
+                    let inputColorSpace = null;
+                    switch (csType) {
+                        case 'ICCBasedRGB': inputColorSpace = 'RGB'; break;
+                        case 'ICCBasedGray': inputColorSpace = 'Gray'; break;
+                        case 'Lab': inputColorSpace = 'Lab'; break;
+                    }
+                    if (!inputColorSpace) continue;
+
+                    const vals = enriched.values;
+                    if (!vals || vals.length === 0) continue;
+
+                    lookupInputs.push({ colorSpace: inputColorSpace, values: vals, sourceProfile: csDef.sourceProfile });
+                    lookupTokenIndices.push(i);
+                }
+
+                // ── Batch-convert all convertible operators at once ──
+                /** @type {Map<number, number[]>} token index → converted values */
+                const conversions = new Map();
+
+                if (lookupInputs.length > 0) {
+                    try {
+                        const uniqueInputs = this.#deduplicateInputs(lookupInputs);
+                        const lookupTable = await this.buildLookupTable(uniqueInputs, context);
+
+                        for (let j = 0; j < lookupInputs.length; j++) {
+                            const converted = this.applyLookupTable(lookupTable, lookupInputs[j]);
+                            if (converted) {
+                                conversions.set(lookupTokenIndices[j], converted);
+                            }
+                        }
+                    } catch (error) {
+                        if (config.verbose) {
+                            console.warn(`${CONTEXT_PREFIX} [PDFContentStreamColorConverter] Batch conversion failed: ${error}`);
+                        }
+                    }
+                }
+
+                // ── Resolve ALL tokens to output Uint8Arrays in original order ──
+                /** @type {Uint8Array[]} */
+                const outputChunks = [];
+
+                for (let i = 0; i < tokens.length; i++) {
+                    const item = tokens[i];
+                    if (item.kind === 'passthrough') {
+                        outputChunks.push(item.bytes);
+                    } else {
+                        const converted = conversions.get(i);
+                        if (converted) {
+                            const enriched = item.enriched;
+                            const newOperator = this.#getOutputOperator(enriched.operator);
+                            const valuesStr = Array.from(converted).map(v => {
+                                const rounded = Math.abs(v) < 0.0001 ? 0 : v;
+                                const formatted = rounded.toFixed(6).replace(/\.?0+$/, '');
+                                return formatted === '' ? '0' : formatted;
+                            }).join(' ');
+
+                            const replacement = `${valuesStr} ${newOperator}`;
+
+                            if (replacementCount < 3 && config.verbose) {
+                                console.log(`${CONTEXT_PREFIX} [PDFContentStreamColorConverter] Replacement #${replacementCount}: "${replacement}" (from operator ${enriched.operator}, converted=${Array.from(converted)})`);
+                            }
+                            const bytes = new Uint8Array(replacement.length);
+                            for (let j = 0; j < replacement.length; j++) bytes[j] = replacement.charCodeAt(j);
+                            outputChunks.push(bytes);
+
+                            replacementCount++;
+                            colorConversions++;
+                        } else {
+                            outputChunks.push(item.token.bytes);
+                        }
+                    }
+                }
+
+                // ── Write all output chunks to compressor ──
+                for (const chunk of outputChunks) {
+                    await compressWriter.write(chunk);
+                }
+
+                tokens = [];
+                accumulatedBytes = 0;
+            };
+
+            for await (const token of transformFromAsync(decompressedChunks)) {
+                switch (token.type) {
+                    case 'operator': {
+                        let enrichedOp = token;
+                        for (const enriched of interpreter.interpret([/** @type {any} */ (token)])) {
+                            switch (enriched.operation) {
+                                case 'setGray': case 'setRGB': case 'setCMYK':
+                                    deviceColorCount++;
+                                    break;
+                            }
+                            enrichedOp = enriched;
+                        }
+                        const opToken = /** @type {any} */ (token);
+                        tokens.push({ kind: /** @type {const} */ ('operator'), token: opToken, enriched: enrichedOp });
+                        accumulatedBytes += opToken.bytes.length;
+                        break;
+                    }
+
+                    case 'passthrough':
+                        tokens.push({ kind: /** @type {const} */ ('passthrough'), bytes: token.bytes });
+                        accumulatedBytes += token.bytes.length;
+                        break;
+
+                    case 'flush':
+                        // Ignore chunk boundaries — batch across all chunks.
+                        // Flush only when accumulated bytes reach the threshold.
+                        if (accumulatedBytes >= FLUSH_THRESHOLD) {
+                            await flush();
+                        }
+                        break;
+                }
+            }
+
+            // Final flush for remaining tokens
+            await flush();
+            await compressWriter.close();
+
+        })();
+
+        // Collect compressed output concurrently
+        const [compressedOutput] = await Promise.all([
+            collectUint8ArrayChunks(readableStreamAsyncIterable(compressor.readable)),
+            processTokens,
+        ]);
+
+        if (config.verbose) {
+            console.log(`${CONTEXT_PREFIX} [PDFContentStreamColorConverter] Streaming result for ${streamRef}: replacements=${replacementCount}, conversions=${colorConversions}, deviceColors=${deviceColorCount}, outputSize=${compressedOutput.length}`);
+        }
+
+        return {
+            streamRef,
+            compressedOutput,
+            replacementCount,
+            colorConversions,
+            deviceColorCount,
+            finalColorSpaceState: interpreter.state,
         };
     }
 
@@ -589,21 +949,85 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
      * @returns {{operations: ParsedColorOperation[], finalState: ColorSpaceState}} Parsed operations and final state
      */
     parseContentStream(streamText, initialState = {}) {
+        const config = /** @type {PDFContentStreamColorConverterConfiguration} */ (this.configuration);
+
+        if (config.useLegacyContentStreamParsing) {
+            return this.#parseContentStreamLegacy(streamText, initialState);
+        }
+
+        // Delegate to the new tokenizer + interpreter pipeline
+        const { operations: enrichedOps, finalState } = collectOperations(
+            tokenize(streamText),
+            initialState,
+        );
+
+        // Map enriched operations back to the ParsedColorOperation shape
+        // expected by convertColor and rebuildContentStream.
+        // This bridge layer preserves backward compatibility during refactor.
+        /** @type {ParsedColorOperation[]} */
+        const operations = enrichedOps.map(op => {
+            // Map new operation names to old type names
+            /** @type {ParsedColorOperation['type']} */
+            let type;
+            switch (op.operation) {
+                case 'setGray': type = 'gray'; break;
+                case 'setRGB': type = 'rgb'; break;
+                case 'setCMYK': type = 'cmyk'; break;
+                case 'setColorSpace': type = 'colorspace'; break;
+                case 'setColor': type = 'indexed'; break;
+                case 'saveState':
+                case 'restoreState': type = 'colorspace'; break;
+                default: type = 'colorspace'; break;
+            }
+
+            // Normalize gray's single value to values array for backward compat
+            const values = /** @type {any} */ (op).values
+                ?? (/** @type {any} */ (op).value !== undefined ? [/** @type {any} */ (op).value] : undefined);
+
+            return {
+                type,
+                operator: op.operator,
+                values,
+                name: /** @type {any} */ (op).name,
+                colorSpaceName: /** @type {any} */ (op).colorSpaceName,
+                index: op.offset,
+                length: op.length,
+                raw: undefined,
+            };
+        });
+
+        return {
+            operations,
+            finalState: {
+                strokeColorSpace: finalState.strokeColorSpace,
+                fillColorSpace: finalState.fillColorSpace,
+            },
+        };
+    }
+
+    /**
+     * Legacy parseContentStream implementation using the original monolithic
+     * regex with chunked matchAll. Used when `useLegacyContentStreamParsing` is true.
+     *
+     * This implementation is preserved for compatibility while the new
+     * streaming pipeline is being developed.
+     *
+     * @param {string} streamText
+     * @param {ColorSpaceState} initialState
+     * @returns {{operations: ParsedColorOperation[], finalState: ColorSpaceState}}
+     */
+    #parseContentStreamLegacy(streamText, initialState) {
         /** @type {ParsedColorOperation[]} */
         const operations = [];
 
-        // Track separate stroke/fill color space contexts
-        // Stroke: set by CS (uppercase), used by SC/SCN (uppercase)
-        // Fill: set by cs (lowercase), used by sc/scn (lowercase)
-        // Initialize from previous stream's state if provided
         /** @type {string | undefined} */
         let currentStrokeColorSpace = initialState.strokeColorSpace;
         /** @type {string | undefined} */
         let currentFillColorSpace = initialState.fillColorSpace;
 
-        const regex = new RegExp(COLOR_OPERATOR_REGEX.source, 'ug');
+        const regex = new RegExp(LEGACY_COLOR_OPERATOR_REGEX.source, 'ug');
 
-        for (const match of matchAll(streamText, regex)) {
+        for (const match of legacyMatchAll(streamText, regex)) {
             const groups = match.groups ?? {};
             const matchIndex = match.index ?? 0;
             const headLength = groups.head?.length ?? 0;
@@ -611,12 +1035,10 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
             const fullMatchLength = match[0].length;
             const colorOpLength = fullMatchLength - headLength;
 
-            // Color space operator (CS/cs) - sets the context
+            // Color space operator (CS/cs)
             if (groups.csOp && groups.name) {
                 const isStroke = groups.csOp === 'CS';
-                // Strip leading slash for consistency with colorSpaceDefinitions keys
                 const name = groups.name.replace(/^\//, '');
-                // Update the appropriate context
                 if (isStroke) {
                     currentStrokeColorSpace = name;
                 } else {
@@ -625,7 +1047,7 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
                 operations.push({
                     type: 'colorspace',
                     operator: groups.csOp,
-                    name: groups.name, // Keep original with slash for raw text
+                    name: groups.name,
                     index: colorIndex,
                     length: colorOpLength,
                     raw: match[0].slice(headLength),
@@ -648,11 +1070,10 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
 
             // RGB color (RG/rg)
             if (groups.rgb && groups.rgOp) {
-                const rgbValues = groups.rgb.trim().split(/\s+/).map(parseFloat);
                 operations.push({
                     type: 'rgb',
                     operator: groups.rgOp,
-                    values: rgbValues,
+                    values: groups.rgb.trim().split(/\s+/).map(parseFloat),
                     index: colorIndex,
                     length: colorOpLength,
                     raw: match[0].slice(headLength),
@@ -660,13 +1081,12 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
                 continue;
             }
 
-            // CMYK color (K/k) - pass through
+            // CMYK color (K/k)
             if (groups.cmyk && groups.kOp) {
-                const cmykValues = groups.cmyk.trim().split(/\s+/).map(parseFloat);
                 operations.push({
                     type: 'cmyk',
                     operator: groups.kOp,
-                    values: cmykValues,
+                    values: groups.cmyk.trim().split(/\s+/).map(parseFloat),
                     index: colorIndex,
                     length: colorOpLength,
                     raw: match[0].slice(headLength),
@@ -674,7 +1094,7 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
                 continue;
             }
 
-            // Named color space with SCN/scn (e.g., "/CS0 scn")
+            // Named color space with SCN/scn
             if (groups.scnOp && groups.name2) {
                 operations.push({
                     type: 'colorspace',
@@ -687,19 +1107,17 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
                 continue;
             }
 
-            // Numeric color values with SC/sc/SCN/scn (e.g., "1 scn", "0.5 0.3 0.2 sc")
-            // These use the current color space context
+            // Numeric SC/sc/SCN/scn
             if (groups.scOp && groups.n) {
                 const operator = groups.scOp;
                 const isStroke = operator === 'SC' || operator === 'SCN';
                 const colorSpaceName = isStroke ? currentStrokeColorSpace : currentFillColorSpace;
-                const values = groups.n.trim().split(/\s+/).map(parseFloat);
 
                 operations.push({
                     type: 'indexed',
-                    operator: operator,
-                    values: values,
-                    colorSpaceName: colorSpaceName,
+                    operator,
+                    values: groups.n.trim().split(/\s+/).map(parseFloat),
+                    colorSpaceName,
                     index: colorIndex,
                     length: colorOpLength,
                     raw: match[0].slice(headLength),
