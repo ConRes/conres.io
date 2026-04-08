@@ -1,0 +1,105 @@
+{
+  "metadata": {
+    "fixture": "color-conversion-matrix.pdf",
+    "generated": "2026-04-08T14:22:07.807Z",
+    "destinationProfile": "eciCMYK v2",
+    "renderingIntent": "relative-colorimetric",
+    "blackPointCompensation": true
+  },
+  "pages": [
+    {
+      "pageIndex": 0,
+      "streams": [
+        {
+          "ref": "11 0 R",
+          "hash": "9dd936f4c8bc8abd",
+          "operatorCounts": {
+            "cs/CS": 6,
+            "sc/SC/scn/SCN": 0,
+            "g/G": 2,
+            "rg/RG": 3,
+            "k/K": 8
+          },
+          "sampleValues": [
+            [
+              0.14497600495815277,
+              0.8945599794387817,
+              0.9524530172348022,
+              0
+            ],
+            [
+              0.9697409868240356,
+              0.7724419832229614,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              1
+            ],
+            [
+              0.6924999952316284,
+              0.3131150007247925,
+              0,
+              0
+            ],
+            [
+              0.11982899904251099,
+              1,
+              0.2684209942817688,
+              0
+            ],
+            [
+              0.567300021648407,
+              0.4627299904823303,
+              0.46033400297164917,
+              0
+            ],
+            [
+              0.30563798546791077,
+              0.6683760285377502,
+              0.8385900259017944,
+              0
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "pageIndex": 1,
+      "streams": []
+    },
+    {
+      "pageIndex": 2,
+      "streams": [
+        {
+          "ref": "16 0 R",
+          "hash": "e6ef4e0975f421c7",
+          "operatorCounts": {
+            "cs/CS": 0,
+            "sc/SC/scn/SCN": 0,
+            "g/G": 2,
+            "rg/RG": 2,
+            "k/K": 2
+          },
+          "sampleValues": [
+            [
+              0,
+              0,
+              0,
+              1
+            ],
+            [
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}
