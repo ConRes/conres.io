@@ -181,6 +181,53 @@
       ]
     },
     {
+      "categoryId": "color-space-compatibility",
+      "displayName": "Color Space Compatibility",
+      "description": "Device color spaces must be compatible with the PDF/X output intent profile.",
+      "rules": [
+        {
+          "ruleId": "color-space-cmyk-incompatible-with-output-intent",
+          "pdfxReference": "RUL102",
+          "displayName": "CMYK used but PDF/X OutputIntent not CMYK",
+          "description": "DeviceCMYK color spaces or operators found in document content, but the output intent profile is not CMYK. PDF/X-4 requires that Device color spaces match the output intent.",
+          "scope": "document",
+          "severity": { "default": "error" },
+          "conditions": [
+            { "property": "OUTPUTINTENT::ProfileColorSpace", "expected": "CMYK" }
+          ],
+          "guard": { "property": "DOC::HasDeviceCMYK", "expected": true },
+          "logic": "and"
+        },
+        {
+          "ruleId": "color-space-rgb-incompatible-with-output-intent",
+          "pdfxReference": "RUL115",
+          "displayName": "RGB used but PDF/X OutputIntent not RGB",
+          "description": "DeviceRGB color spaces or operators found in document content, but the output intent profile is not RGB. PDF/X-4 requires that Device color spaces match the output intent.",
+          "scope": "document",
+          "severity": { "default": "error" },
+          "conditions": [
+            { "property": "OUTPUTINTENT::ProfileColorSpace", "expected": "RGB" }
+          ],
+          "guard": { "property": "DOC::HasDeviceRGB", "expected": true },
+          "logic": "and"
+        },
+        {
+          "ruleId": "color-space-gray-incompatible-with-output-intent",
+          "pdfxReference": "RUL84",
+          "displayName": "DeviceGray used but OutputIntent not Gray or CMYK",
+          "description": "DeviceGray color spaces or operators found in document content, but the output intent profile is neither Gray nor CMYK. PDF/X-4 permits DeviceGray in CMYK and Gray output intents, but not in RGB-only output intents.",
+          "scope": "document",
+          "severity": { "default": "error" },
+          "conditions": [
+            { "property": "OUTPUTINTENT::ProfileColorSpace", "expected": "Gray" },
+            { "property": "OUTPUTINTENT::ProfileColorSpace", "expected": "CMYK" }
+          ],
+          "guard": { "property": "DOC::HasDeviceGray", "expected": true },
+          "logic": "or"
+        }
+      ]
+    },
+    {
       "categoryId": "font",
       "displayName": "Font Embedding",
       "description": "PDF/X-4 requires all fonts used for visible text to be embedded.",
