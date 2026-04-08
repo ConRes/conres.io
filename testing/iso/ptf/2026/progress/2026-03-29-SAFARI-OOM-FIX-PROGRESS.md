@@ -1,8 +1,8 @@
 # Safari OOM Fix — PROGRESS
 
 **Created:** 2026-03-29  
-**Last Updated:** 2026-03-29  
-**Status:** Investigation Needed
+**Last Updated:** 2026-04-07  
+**Status:** In Progress
 
 ---
 
@@ -143,13 +143,78 @@ Time (s)   JS Heap (MB)   Page (MB)   Total (GB)
 
 - [ ] **Step 1** — Bisect: test with ONLY committed changes (stash WIP) to isolate regression
 - [ ] **Step 2** — Profile: compare Safari timeline before and after the commits
-- [ ] **Step 3** — Reduce concurrency: test with 1 concurrent subset on Safari
+- N/A **Step 3** — ~~Reduce concurrency: test with 1 concurrent subset on Safari~~ (rejected — user chose worker dispatch approach instead)
 - [ ] **Step 4** — Measure: quantify memory savings from Compression Streams transition
-- [ ] **Step 5** — Fix: implement the most impactful change
+- [ ] **Step 5** — Fix: implement the most impactful change `IN-PROGRESS`
+- [ ] **Step 6** — Stabilize: validate WebKit completes both passes without OOM consistently
+- [ ] **Step 7** — Optimize: tune inter-page delay and pool recreation overhead
+- [ ] **Step 8** — Regression test: automated Playwright WebKit verification against Chromium baseline
 
 ---
 
 ## Activity Log
+
+### 2026-04-07
+
+**Memory Profiling Infrastructure Built:**
+
+- `generator-run.mjs` — shared Playwright UI driver with `top -l 1 -stats pid,command,mem,compress` memory polling at 250ms, matching Activity Monitor exactly
+- `generate-baseline.mjs` — Chromium baseline via actual generator UI
+- `webkit-verification.mjs` — WebKit verification against baseline with OOM detection via page reload
+- `memory-profile-isolated.mjs` — isolated mode profiling (`--mode=images-only|content-streams-only|both`, `--legacy`, `--delay=N`)
+- Uses `launchPersistentContext` for Safari-equivalent Cache API quotas
+- Downloads caught via Playwright download event, PDFs saved incrementally per chain
+
+**Cross-Browser Memory Comparison (content-streams-only):**
+
+| Browser | Peak Footprint | Compressed | GC Behavior | OOM? |
+| --- | --- | --- | --- | --- |
+| Chromium | 4,705 MB | 11 MB (<1%) | Sawtooth — V8 reclaims between pages | No |
+| WebKit (500ms delay) | 17,609 MB | 14,336 MB (87%) | Monotonic climb | Yes |
+| WebKit (30s delay) | ~5,000 MB | Low | Sawtooth — JSC GC kicks in with long idle | No |
+| WebKit (legacy parser) | 21,711 MB | ~15,360 MB | Monotonic climb | Yes |
+
+Key finding: Parser choice irrelevant. Both legacy and streaming show same growth. The OOM is from WASM instances + TypedArray accumulation in JSC.
+
+**Mitigations Tested:**
+
+| Approach | Peak | Effect |
+| --- | --- | --- |
+| Original (500ms, 3 WASM instances) | 17-21 GB | OOM |
+| 30s delay between pages | ~5 GB sawtooth | TypedArrays collected, WASM stays |
+| GC scare trick (256 MB allocate+null) | ~16 GB | Helps early, overwhelmed later |
+| Shared ColorEngineProvider (1 WASM) | ~15 GB | Lower initial peak, same climb |
+| Eager converter disposal | ~16 GB | dispose() doesn't free WASM |
+| Worker pool termination between subsets | No effect | Pool workers != bootstrap thread WASM |
+| **Content stream dispatch to pool workers** | ~10 GB | WASM moves to pool, freed on termination |
+| **Worker dispatch + 3s delay** | ~10 GB | **Both passes COMPLETED** (724s) |
+
+**Architecture Changes:**
+
+- Content streams now dispatched to `WorkerPool` via new `content-stream-streaming` task type
+- Sequential subsets: when `concurrentSubsets=false` (new default), subsets run one at a time with pool recreation between them
+- Pool terminated between subsets AND between chains — WASM freed each time
+- `requestAnimationFrame` not available in workers — confirmed
+- `WebAssembly.Memory` cannot be freed by dispose() — only `worker.terminate()` works
+- Nested workers confirmed working in Safari 26 (contrary to planning agent's claim)
+
+**UI Toggles Added (debugging fieldset):**
+
+- Content Streams checkbox (`#content-streams-checkbox`)
+- Images checkbox (`#images-checkbox`)
+- Legacy Content Stream Parsing checkbox (`#legacy-content-stream-parsing-checkbox`)
+- Concurrent Subsets checkbox (`#concurrent-subsets-checkbox`, unchecked = sequential)
+- Inter-page delay input (`#inter-conversion-delay-input`, default 500ms)
+- All persist via localStorage, all flow through generator -> bootstrap worker -> AssetPagePreConverter
+- All render in docket PDF metadata
+
+**Google AI Mode References (provided by user):**
+
+1. setTimeout + Safari GC: https://share.google/aimode/KmLWR2fuI0tOL4qYn
+2. Float32Array OOM in Safari: https://share.google/aimode/QRylTT5e4swKKdKFB
+3. WebAssembly.Memory + worker.terminate(): https://share.google/aimode/VcXkHbkR6G25MosLV
+4. Activity Monitor columns via top -stats: https://share.google/aimode/vVcv9EgMx9bMGen9d
+5. Safari nested worker support: https://share.google/aimode/J4KUthG9wr6F7WYQ0
 
 ### 2026-03-29
 
