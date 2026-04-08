@@ -70,6 +70,42 @@ export class AssetPagePreConverter {
     /** @type {number} */
     #interConversionDelay;
 
+    /** @type {ArrayBuffer | null | undefined} */
+    #defaultSourceProfileForDeviceRGB;
+
+    /** @type {ArrayBuffer | null | undefined} */
+    #defaultSourceProfileForDeviceCMYK;
+
+    /** @type {ArrayBuffer | null | undefined} */
+    #defaultSourceProfileForDeviceGray;
+
+    /** @type {string[] | undefined} */
+    #includedColorSpaceTypes;
+
+    /** @type {string[] | undefined} */
+    #excludedColorSpaceTypes;
+
+    /** @type {boolean | undefined} */
+    #useLegacyContentStreamParsing;
+
+    /** @type {boolean | undefined} */
+    #convertDeviceRGB;
+
+    /** @type {boolean | undefined} */
+    #convertDeviceCMYK;
+
+    /** @type {boolean | undefined} */
+    #convertDeviceGray;
+
+    /** @type {boolean} */
+    #convertImages;
+
+    /** @type {boolean} */
+    #convertContentStreams;
+
+    /** @type {boolean} */
+    #concurrentSubsets;
+
     /** @type {import('../../classes/baseline/worker-pool.js').WorkerPool | null} */
     #workerPool = null;
 
@@ -90,8 +126,17 @@ export class AssetPagePreConverter {
      * @param {boolean} [options.debugging=false]
      * @param {boolean} [options.useWorkers=false] - Enable worker-based color conversion (limited to 2 workers)
      * @param {number} [options.interConversionDelay=0] - Milliseconds to yield between conversion steps (browser responsiveness)
+     * @param {ArrayBuffer | null} [options.defaultSourceProfileForDeviceRGB] - Default source profile for DeviceRGB
+     * @param {ArrayBuffer | null} [options.defaultSourceProfileForDeviceCMYK] - Default source profile for DeviceCMYK
+     * @param {ArrayBuffer | null} [options.defaultSourceProfileForDeviceGray] - Default source profile for DeviceGray
+     * @param {string[]} [options.includedColorSpaceTypes] - PDF color space types to include for conversion
+     * @param {string[]} [options.excludedColorSpaceTypes] - PDF color space types to exclude from conversion
+     * @param {boolean} [options.useLegacyContentStreamParsing] - Use legacy regex-based content stream parsing (default: false)
+     * @param {boolean} [options.convertDeviceRGB] - Convert DeviceRGB colors in content streams
+     * @param {boolean} [options.convertDeviceCMYK] - Convert DeviceCMYK colors in content streams
+     * @param {boolean} [options.convertDeviceGray] - Convert DeviceGray colors in content streams
      */
-    constructor({ outputProfile, outputColorSpace, outputBitsPerComponent, colorSpaceResolver, renderingIntent = 'relative-colorimetric', blackPointCompensation = true, debugging = false, useWorkers = false, interConversionDelay = 0 }) {
+    constructor({ outputProfile, outputColorSpace, outputBitsPerComponent, colorSpaceResolver, renderingIntent = 'relative-colorimetric', blackPointCompensation = true, debugging = false, useWorkers = false, interConversionDelay = 0, defaultSourceProfileForDeviceRGB, defaultSourceProfileForDeviceCMYK, defaultSourceProfileForDeviceGray, includedColorSpaceTypes, excludedColorSpaceTypes, useLegacyContentStreamParsing, convertDeviceRGB, convertDeviceCMYK, convertDeviceGray, convertImages = true, convertContentStreams = true, concurrentSubsets = false }) {
         this.#outputProfile = outputProfile;
         this.#outputColorSpace = outputColorSpace;
         this.#outputBitsPerComponent = outputBitsPerComponent;
@@ -101,6 +146,30 @@ export class AssetPagePreConverter {
         this.#debugging = debugging;
         this.#useWorkers = useWorkers;
         this.#interConversionDelay = interConversionDelay;
+        /** @type {ArrayBuffer | null | undefined} */
+        this.#defaultSourceProfileForDeviceRGB = defaultSourceProfileForDeviceRGB;
+        /** @type {ArrayBuffer | null | undefined} */
+        this.#defaultSourceProfileForDeviceCMYK = defaultSourceProfileForDeviceCMYK;
+        /** @type {ArrayBuffer | null | undefined} */
+        this.#defaultSourceProfileForDeviceGray = defaultSourceProfileForDeviceGray;
+        /** @type {string[] | undefined} */
+        this.#includedColorSpaceTypes = includedColorSpaceTypes;
+        /** @type {string[] | undefined} */
+        this.#excludedColorSpaceTypes = excludedColorSpaceTypes;
+        /** @type {boolean | undefined} */
+        this.#useLegacyContentStreamParsing = useLegacyContentStreamParsing;
+        /** @type {boolean | undefined} */
+        this.#convertDeviceRGB = convertDeviceRGB;
+        /** @type {boolean | undefined} */
+        this.#convertDeviceCMYK = convertDeviceCMYK;
+        /** @type {boolean | undefined} */
+        this.#convertDeviceGray = convertDeviceGray;
+        /** @type {boolean} */
+        this.#convertImages = convertImages;
+        /** @type {boolean} */
+        this.#convertContentStreams = convertContentStreams;
+        /** @type {boolean} */
+        this.#concurrentSubsets = concurrentSubsets;
     }
 
     /**
@@ -334,7 +403,8 @@ export class AssetPagePreConverter {
         // All chain converters reuse this pool (passed via `workerPool` config).
         if (this.#useWorkers && !this.#workerPool) {
             const { WorkerPool } = await import('../../classes/baseline/worker-pool.js');
-            this.#workerPool = new WorkerPool({ workerCount: 2 });
+            const workerCount = this.#concurrentSubsets ? 2 : 4;
+            this.#workerPool = new WorkerPool({ workerCount });
             await this.#workerPool.initialize();
         }
 
@@ -365,8 +435,14 @@ export class AssetPagePreConverter {
             // Each subset gets its own PDFDocumentColorConverter; all share
             // the worker pool so images from different subsets fill idle workers.
             // Without workers, fall back to a single sequential converter.
+            // Sequential mode (concurrentSubsets=false): 4 lanes — subsets run one
+            // at a time with worker pool termination between them, so more lanes
+            // means smaller subsets and more frequent WASM memory reclamation.
+            // Concurrent mode (concurrentSubsets=true): 2 lanes — all subsets run
+            // simultaneously, so fewer lanes reduces peak WASM instances.
+            const maxLanes = this.#concurrentSubsets ? 2 : 4;
             const concurrency = this.#useWorkers
-                ? Math.min(3, pageIndices.length)
+                ? Math.min(maxLanes, pageIndices.length)
                 : 1;
             const subsets = concurrency > 1
                 ? splitIntoSubsets(pageIndices, concurrency)
@@ -379,6 +455,15 @@ export class AssetPagePreConverter {
                 );
             }
 
+            // Create a single shared ColorEngineProvider for all subsets in this
+            // chain. This avoids 3 concurrent WASM instances (each ~877 MB) —
+            // instead one WASM instance is shared. The provider is disposed
+            // after the chain completes, and a fresh one is created for the
+            // next chain.
+            const { ColorEngineProvider } = await import('../../classes/baseline/color-engine-provider.js');
+            const sharedProvider = new ColorEngineProvider();
+            await sharedProvider.initialize();
+
             /** @type {import('../../classes/baseline/pdf-document-color-converter.js').PDFDocumentColorConverter[]} */
             const converters = subsets.map(subset =>
                 new PDFDocumentColorConverterClass({
@@ -388,15 +473,24 @@ export class AssetPagePreConverter {
                     destinationProfile: this.#outputProfile,
                     destinationColorSpace: /** @type {ColorType} */ (this.#outputColorSpace),
                     outputBitsPerComponent: this.#outputBitsPerComponent,
-                    convertImages: true,
-                    convertContentStreams: true,
+                    convertImages: this.#convertImages,
+                    convertContentStreams: this.#convertContentStreams,
                     useWorkers: this.#useWorkers,
                     workerPool: this.#workerPool ?? undefined,
                     verbose: this.#debugging,
                     intermediateProfiles: group.intermediateProfiles,
                     pages: subset,
                     interConversionDelay: this.#interConversionDelay,
-                })
+                    defaultSourceProfileForDeviceRGB: this.#defaultSourceProfileForDeviceRGB,
+                    defaultSourceProfileForDeviceCMYK: this.#defaultSourceProfileForDeviceCMYK,
+                    defaultSourceProfileForDeviceGray: this.#defaultSourceProfileForDeviceGray,
+                    includedColorSpaceTypes: this.#includedColorSpaceTypes,
+                    excludedColorSpaceTypes: this.#excludedColorSpaceTypes,
+                    useLegacyContentStreamParsing: this.#useLegacyContentStreamParsing,
+                    convertDeviceRGB: this.#convertDeviceRGB,
+                    convertDeviceCMYK: this.#convertDeviceCMYK,
+                    convertDeviceGray: this.#convertDeviceGray,
+                }, { colorEngineProvider: sharedProvider })
             );
 
             // Track progress across concurrent converters.
@@ -406,22 +500,92 @@ export class AssetPagePreConverter {
             const chainTotalPages = group.tuples.length;
 
             try {
-                await Promise.all(converters.map(c => c.ensureReady()));
+                /** @type {import('../../classes/baseline/pdf-document-color-converter.js').PDFDocumentColorConverterResult[]} */
+                let results;
 
-                const results = await Promise.all(
-                    converters.map(c => c.convertColor({ pdfDocument: document }, {
-                        onPageConverted: async () => {
-                            chainPagesCompleted++;
-                            const cumulativePages = processedPages + chainPagesCompleted;
-                            await onProgress?.(
-                                totalConvertiblePages > 0
-                                    ? Math.floor(cumulativePages / totalConvertiblePages * 100)
-                                    : 100,
-                                `Converting "${chainKey}" \u2014 page ${chainPagesCompleted}/${chainTotalPages}`,
-                            );
-                        },
-                    }))
-                );
+                /** @param {typeof converters[0]} c */
+                const convertSubset = async (c) => {
+                    try {
+                        return await c.convertColor({ pdfDocument: document }, {
+                            onPageConverted: async () => {
+                                chainPagesCompleted++;
+                                const cumulativePages = processedPages + chainPagesCompleted;
+                                await onProgress?.(
+                                    totalConvertiblePages > 0
+                                        ? Math.floor(cumulativePages / totalConvertiblePages * 100)
+                                        : 100,
+                                    `Converting "${chainKey}" \u2014 page ${chainPagesCompleted}/${chainTotalPages}`,
+                                );
+                            },
+                        });
+                    } finally {
+                        c.dispose();
+                    }
+                };
+
+                if (this.#concurrentSubsets) {
+                    // Concurrent: all subsets run in parallel (current behavior).
+                    // Higher peak memory — all WASM instances alive simultaneously.
+                    await Promise.all(converters.map(c => c.ensureReady()));
+                    results = await Promise.all(converters.map(convertSubset));
+                } else {
+                    // Sequential: subsets run one at a time. Each subset gets
+                    // a fresh converter and worker pool. After each subset, the
+                    // pool is terminated to free WASM memory, and a fresh pool
+                    // is created for the next subset.
+                    results = [];
+                    for (let si = 0; si < subsets.length; si++) {
+                        // Recreate pool for each subset (destroyed after previous)
+                        if (this.#useWorkers && !this.#workerPool) {
+                            const { WorkerPool } = await import('../../classes/baseline/worker-pool.js');
+                            const workerCount = this.#concurrentSubsets ? 2 : 4;
+                            this.#workerPool = new WorkerPool({ workerCount });
+                            await this.#workerPool.initialize();
+                        }
+
+                        // Create a fresh converter with the live pool
+                        const subsetConverter = new PDFDocumentColorConverterClass({
+                            renderingIntent: this.#renderingIntent,
+                            blackPointCompensation: this.#blackPointCompensation,
+                            useAdaptiveBPCClamping: true,
+                            destinationProfile: this.#outputProfile,
+                            destinationColorSpace: /** @type {ColorType} */ (this.#outputColorSpace),
+                            outputBitsPerComponent: this.#outputBitsPerComponent,
+                            convertImages: this.#convertImages,
+                            convertContentStreams: this.#convertContentStreams,
+                            useWorkers: this.#useWorkers,
+                            workerPool: this.#workerPool ?? undefined,
+                            verbose: this.#debugging,
+                            intermediateProfiles: group.intermediateProfiles,
+                            pages: subsets[si],
+                            interConversionDelay: this.#interConversionDelay,
+                            defaultSourceProfileForDeviceRGB: this.#defaultSourceProfileForDeviceRGB,
+                            defaultSourceProfileForDeviceCMYK: this.#defaultSourceProfileForDeviceCMYK,
+                            defaultSourceProfileForDeviceGray: this.#defaultSourceProfileForDeviceGray,
+                            includedColorSpaceTypes: this.#includedColorSpaceTypes,
+                            excludedColorSpaceTypes: this.#excludedColorSpaceTypes,
+                            useLegacyContentStreamParsing: this.#useLegacyContentStreamParsing,
+                            convertDeviceRGB: this.#convertDeviceRGB,
+                            convertDeviceCMYK: this.#convertDeviceCMYK,
+                            convertDeviceGray: this.#convertDeviceGray,
+                        }, { colorEngineProvider: sharedProvider });
+
+                        results.push(await convertSubset(subsetConverter));
+
+                        // Terminate workers between subsets to free WASM memory
+                        if (this.#workerPool) {
+                            this.#workerPool.terminate();
+                            this.#workerPool = null;
+                        }
+
+                        // GC pressure + yield between subsets
+                        {
+                            let gcPressure = new ArrayBuffer(256 * 1024 * 1024);
+                            gcPressure = /** @type {any} */ (null);
+                        }
+                        await new Promise(resolve => setTimeout(resolve, this.#interConversionDelay));
+                    }
+                }
 
                 processedPages += chainTotalPages;
 
@@ -438,7 +602,32 @@ export class AssetPagePreConverter {
                     });
                 }
             } finally {
+                // Converters are disposed eagerly in the Promise.all callbacks above.
+                // This is a safety net for error paths where convertColor throws
+                // before reaching the finally in the per-converter wrapper.
                 converters.forEach(c => c.dispose());
+
+                // Dispose the shared ColorEngineProvider for this chain.
+                // The next chain creates a fresh one with clean WASM memory.
+                sharedProvider.dispose();
+
+                // Terminate workers between chains to reclaim WASM memory.
+                // Each worker's LittleCMS WASM instance grows to ~877 MB and
+                // WebAssembly.Memory never shrinks. Terminating the workers
+                // destroys their isolates and frees the WASM allocations.
+                // The next chain creates a fresh pool with clean 32 MB instances.
+                if (this.#workerPool) {
+                    this.#workerPool.terminate();
+                    this.#workerPool = null;
+                }
+
+                // GC pressure: allocate + release a large buffer to nudge JSC
+                // into collecting the disposed WASM and TypedArray allocations.
+                {
+                    let gcPressure = new ArrayBuffer(256 * 1024 * 1024);
+                    gcPressure = /** @type {any} */ (null);
+                }
+                await new Promise(resolve => setTimeout(resolve, this.#interConversionDelay));
             }
         }
 

@@ -32,6 +32,15 @@ import {
  *   pageOverrides?: Map<import('pdf-lib').PDFRef, Partial<import('./pdf-page-color-converter.js').PDFPageColorConverterConfiguration>>,
  *   engineVersion?: string,
  *   pages?: number[],
+ *   includedColorSpaceTypes?: string[],
+ *   excludedColorSpaceTypes?: string[],
+ *   defaultSourceProfileForDeviceRGB?: ArrayBuffer | null,
+ *   defaultSourceProfileForDeviceCMYK?: ArrayBuffer | null,
+ *   defaultSourceProfileForDeviceGray?: ArrayBuffer | null,
+ *   useLegacyContentStreamParsing?: boolean,
+ *   convertDeviceRGB?: boolean,
+ *   convertDeviceCMYK?: boolean,
+ *   convertDeviceGray?: boolean,
  * }} PDFDocumentColorConverterConfiguration
  */
 
@@ -155,11 +164,11 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
      *
      * @param {PDFDocumentColorConverterConfiguration} configuration
      */
-    constructor(configuration) {
-        // Pass engineVersion and colorEnginePath through options
+    constructor(configuration, options = {}) {
         super(configuration, {
             engineVersion: configuration.engineVersion,
             colorEnginePath: configuration.colorEnginePath,
+            colorEngineProvider: options.colorEngineProvider,
         });
         this.#ready = this.#initialize();
     }
@@ -306,6 +315,19 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
             // Nested configurations
             imageConfiguration: base.imageConfiguration,
             contentStreamConfiguration: base.contentStreamConfiguration,
+
+            // Default source profiles for Device color spaces (PDF-layer settings)
+            defaultSourceProfileForDeviceRGB: base.defaultSourceProfileForDeviceRGB,
+            defaultSourceProfileForDeviceCMYK: base.defaultSourceProfileForDeviceCMYK,
+            defaultSourceProfileForDeviceGray: base.defaultSourceProfileForDeviceGray,
+
+            // Content stream parsing mode
+            useLegacyContentStreamParsing: base.useLegacyContentStreamParsing,
+
+            // Device color conversion flags
+            convertDeviceRGB: base.convertDeviceRGB,
+            convertDeviceCMYK: base.convertDeviceCMYK,
+            convertDeviceGray: base.convertDeviceGray,
 
             // Apply per-page overrides (Map takes precedence)
             ...override,
@@ -460,8 +482,31 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
                     pagesCompleted++;
                     await context?.onPageConverted?.(pagesCompleted, totalPages);
 
+                    // Yield to event loop between pages — gives GC a window.
+                    //
+                    // Two-phase yield: requestAnimationFrame clears the current
+                    // execution stack and triggers JSC's idle-time GC scheduling,
+                    // then setTimeout gives it the actual idle window to collect.
+                    //
+                    // The "scare" allocation pressures JSC's conservative GC into
+                    // collecting unreachable TypedArrays from the completed page.
                     const yieldMs = /** @type {PDFDocumentColorConverterConfiguration} */ (this.configuration).interConversionDelay;
-                    if (yieldMs > 0) await new Promise(resolve => setTimeout(resolve, yieldMs));
+                    if (yieldMs > 0) {
+                        // Explicit null — help JSC see these as unreachable
+                        result = undefined;
+
+                        // GC pressure trick: allocate + release a large buffer
+                        // to trigger JSC's lazy TypedArray collection
+                        let gcPressure = new ArrayBuffer(256 * 1024 * 1024); // 256 MB
+                        gcPressure = /** @type {any} */ (null);
+
+                        // Phase 1: yield to rendering pipeline (triggers idle-time GC scheduling)
+                        if (typeof requestAnimationFrame === 'function') {
+                            await new Promise(resolve => requestAnimationFrame(resolve));
+                        }
+                        // Phase 2: actual idle window for GC to run
+                        await new Promise(resolve => setTimeout(resolve, yieldMs));
+                    }
                 }
             }
         } finally {
@@ -556,7 +601,7 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
                                     const subtype = obj.dict.get(PDFName.of('Subtype'));
                                     if (subtype instanceof PDFName && subtype.asString() === '/Image') {
                                         const colorSpaceInfo = await this.#getImageColorSpaceInfo(obj.dict, context);
-                                        if (colorSpaceInfo && !colorSpaceInfo.type.includes('CMYK')) {
+                                        if (colorSpaceInfo && this.#isColorSpaceIncluded(colorSpaceInfo.type)) {
                                             images.push({
                                                 ref,
                                                 stream: obj,
@@ -635,8 +680,8 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
                         if (iccStream instanceof PDFRawStream) {
                             const profileData = await this.#getDecompressedStreamContents(iccStream);
                             const iccColorSpace = this.#getICCColorSpace(profileData);
-                            // Map to normalized type (sGray, sRGB, etc.)
-                            def.colorSpaceType = this.#normalizeColorSpaceType(iccColorSpace);
+                            // Map ICC color model to ICCBased* PDF color space type
+                            def.colorSpaceType = this.#normalizeColorSpaceType(iccColorSpace, { isICCBased: true });
 
                             // Store profile ref for potential use
                             if (iccRef instanceof PDFRef) {
@@ -699,27 +744,92 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
     }
 
     /**
-     * Normalizes color space type names for consistent handling.
+     * Maps an ICC profile color model or PDF color space name to a proper
+     * PDF color space type name for content stream color space definitions.
      *
-     * @param {string} typeName - Raw color space type name
-     * @returns {string} Normalized type (sGray, sRGB, Lab, CMYK, etc.)
+     * For ICCBased entries, the caller passes the ICC header color model
+     * ('Gray', 'RGB', 'CMYK') and `isICCBased: true`.
+     *
+     * For Device entries, the caller passes the PDF name ('DeviceGray',
+     * 'DeviceRGB', 'DeviceCMYK') and `isICCBased: false` (default).
+     *
+     * @param {string} typeName - ICC color model or PDF color space name
+     * @param {{ isICCBased?: boolean }} [options]
+     * @returns {string} PDF color space type name
      */
-    #normalizeColorSpaceType(typeName) {
+    #normalizeColorSpaceType(typeName, { isICCBased = false } = {}) {
+        if (isICCBased) {
+            switch (typeName) {
+                case 'Gray': return 'ICCBasedGray';
+                case 'RGB': return 'ICCBasedRGB';
+                case 'CMYK': return 'ICCBasedCMYK';
+                case 'Lab': return 'Lab';
+                default: return typeName;
+            }
+        }
+
         switch (typeName) {
-            case 'Gray':
             case 'DeviceGray':
-                return 'sGray';
-            case 'RGB':
+            case 'Gray':
+                return 'DeviceGray';
             case 'DeviceRGB':
-                return 'sRGB';
-            case 'CMYK':
+            case 'RGB':
+                return 'DeviceRGB';
             case 'DeviceCMYK':
-                return 'CMYK';
+            case 'CMYK':
+                return 'DeviceCMYK';
             case 'Lab':
                 return 'Lab';
             default:
                 return typeName;
         }
+    }
+
+    /**
+     * Checks whether a PDF color space type should be included for conversion,
+     * based on the configured includedColorSpaceTypes/excludedColorSpaceTypes.
+     *
+     * Shorthand resolution: 'RGB' matches both 'DeviceRGB' and 'ICCBasedRGB',
+     * unless either is explicitly in the other list.
+     *
+     * When no includedColorSpaceTypes is configured, falls back to the legacy
+     * behavior: exclude CMYK (both DeviceCMYK and ICCBasedCMYK), include all else.
+     *
+     * @param {string} pdfColorSpaceType - e.g., 'DeviceRGB', 'ICCBasedCMYK', 'Lab', 'Indexed'
+     * @returns {boolean}
+     */
+    #isColorSpaceIncluded(pdfColorSpaceType) {
+        const config = /** @type {PDFDocumentColorConverterConfiguration} */ (this.configuration);
+        const included = config.includedColorSpaceTypes;
+        const excluded = config.excludedColorSpaceTypes;
+
+        // Indexed delegates to baseType — always include at collection level;
+        // the page converter handles indexed conversion based on the base type
+        if (pdfColorSpaceType === 'Indexed') return true;
+
+        // Legacy fallback when no configuration is provided
+        if (!included && !excluded) {
+            return !pdfColorSpaceType.includes('CMYK');
+        }
+
+        // Map PDF color space type to its shorthand
+        const shorthand = PDFDocumentColorConverter.COLOR_SPACE_TYPES[pdfColorSpaceType];
+
+        // Check excluded first (explicit exclusion wins)
+        if (excluded && excluded.length > 0) {
+            if (excluded.includes(pdfColorSpaceType)) return false;
+            if (shorthand && excluded.includes(shorthand)) return false;
+        }
+
+        // Check included
+        if (included && included.length > 0) {
+            if (included.includes(pdfColorSpaceType)) return true;
+            if (shorthand && included.includes(shorthand)) return true;
+            return false;
+        }
+
+        // No include list — include by default (only exclusion was checked)
+        return true;
     }
 
     /**
@@ -766,13 +876,13 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
         if (cs instanceof PDFName) {
             const name = cs.asString();
             if (name === '/DeviceRGB') {
-                return { type: 'DeviceRGB', components: 3, inputFormat: TYPE_RGB_8, sourceProfile: 'sRGB' };
+                return { type: 'DeviceRGB', components: 3, inputFormat: TYPE_RGB_8 };
             }
             if (name === '/DeviceCMYK') {
                 return { type: 'DeviceCMYK', components: 4, inputFormat: TYPE_CMYK_8 };
             }
             if (name === '/DeviceGray') {
-                return { type: 'DeviceGray', components: 1, inputFormat: TYPE_GRAY_8, sourceProfile: 'sGray' };
+                return { type: 'DeviceGray', components: 1, inputFormat: TYPE_GRAY_8 };
             }
         }
 
@@ -794,7 +904,7 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
                                 // Get profile data (may need decompression)
                                 const profileData = await this.#getDecompressedStreamContents(profileStream);
                                 return {
-                                    type: 'ICCBased-RGB',
+                                    type: 'ICCBasedRGB',
                                     components: 3,
                                     inputFormat: TYPE_RGB_8,
                                     sourceProfile: profileData,
@@ -803,7 +913,7 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
                                 // Get profile data (may need decompression)
                                 const profileData = await this.#getDecompressedStreamContents(profileStream);
                                 return {
-                                    type: 'ICCBased-CMYK',
+                                    type: 'ICCBasedCMYK',
                                     components: 4,
                                     inputFormat: TYPE_CMYK_8,
                                     sourceProfile: profileData,
@@ -812,7 +922,7 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
                                 // Grayscale ICC profile
                                 const profileData = await this.#getDecompressedStreamContents(profileStream);
                                 return {
-                                    type: 'ICCBased-Gray',
+                                    type: 'ICCBasedGray',
                                     components: 1,
                                     inputFormat: TYPE_GRAY_8,
                                     sourceProfile: profileData,
@@ -851,11 +961,11 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
                     if (baseCs instanceof PDFName) {
                         const baseName = baseCs.asString();
                         if (baseName === '/DeviceRGB') {
-                            baseInfo = { type: 'DeviceRGB', components: 3, inputFormat: TYPE_RGB_8, sourceProfile: 'sRGB' };
+                            baseInfo = { type: 'DeviceRGB', components: 3, inputFormat: TYPE_RGB_8 };
                         } else if (baseName === '/DeviceCMYK') {
                             baseInfo = { type: 'DeviceCMYK', components: 4, inputFormat: TYPE_CMYK_8 };
                         } else if (baseName === '/DeviceGray') {
-                            baseInfo = { type: 'DeviceGray', components: 1, inputFormat: TYPE_GRAY_8, sourceProfile: 'sGray' };
+                            baseInfo = { type: 'DeviceGray', components: 1, inputFormat: TYPE_GRAY_8 };
                         }
                     } else if (baseCs instanceof PDFArray) {
                         const baseItems = baseCs.asArray();
@@ -878,11 +988,11 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
                                         const n = nItem instanceof PDFNumber ? nItem.asNumber() : 0;
                                         const profileData = await this.#getDecompressedStreamContents(profileStream);
                                         if (n === 3) {
-                                            baseInfo = { type: 'ICCBased-RGB', components: 3, inputFormat: TYPE_RGB_8, sourceProfile: profileData };
+                                            baseInfo = { type: 'ICCBasedRGB', components: 3, inputFormat: TYPE_RGB_8, sourceProfile: profileData };
                                         } else if (n === 4) {
-                                            baseInfo = { type: 'ICCBased-CMYK', components: 4, inputFormat: TYPE_CMYK_8, sourceProfile: profileData };
+                                            baseInfo = { type: 'ICCBasedCMYK', components: 4, inputFormat: TYPE_CMYK_8, sourceProfile: profileData };
                                         } else if (n === 1) {
-                                            baseInfo = { type: 'ICCBased-Gray', components: 1, inputFormat: TYPE_GRAY_8, sourceProfile: profileData };
+                                            baseInfo = { type: 'ICCBasedGray', components: 1, inputFormat: TYPE_GRAY_8, sourceProfile: profileData };
                                         }
                                     }
                                 }
@@ -1258,14 +1368,27 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
         super.dispose();
     }
 
-    static COLOR_SPACE_TYPES = {
-        'DeviceRGB': /** @type {'RGB'} */ 'RGB',
-        'DeviceGray': /** @type {'Gray'} */ 'Gray',
-        'DeviceCMYK': /** @type {'CMYK'} */ 'CMYK',
-        'ICCBased-RGB': /** @type {'RGB'} */ 'RGB',
-        'ICCBased-CMYK': /** @type {'CMYK'} */ 'CMYK',
-        'ICCBased-Gray': /** @type {'Gray'} */ 'Gray',
-        'Lab':  /** @type {'Lab'} */ 'Lab',
-        'Indexed': 'Indexed',
-    };
+    /**
+     * Maps PDF color space types to non-PDF color models.
+     *
+     * This mapping is used ONLY at the boundary when the PDF layer
+     * invokes non-PDF super class methods. The PDF layer tracks
+     * `sourcePDFColorSpace` using the keys (e.g., 'DeviceRGB',
+     * 'ICCBasedRGB'); the values are what the super class receives.
+     *
+     * 'Indexed' is NOT a color model — the base color space's type
+     * determines the mapping.
+     *
+     * @type {Readonly<Record<string, import('./color-converter.js').ColorType | 'Indexed'>>}
+     */
+    static COLOR_SPACE_TYPES = Object.freeze({
+        'DeviceRGB': /** @type {'RGB'} */ ('RGB'),
+        'DeviceGray': /** @type {'Gray'} */ ('Gray'),
+        'DeviceCMYK': /** @type {'CMYK'} */ ('CMYK'),
+        'ICCBasedRGB': /** @type {'RGB'} */ ('RGB'),
+        'ICCBasedCMYK': /** @type {'CMYK'} */ ('CMYK'),
+        'ICCBasedGray': /** @type {'Gray'} */ ('Gray'),
+        'Lab': /** @type {'Lab'} */ ('Lab'),
+        'Indexed': /** @type {'Indexed'} */ ('Indexed'),
+    });
 }

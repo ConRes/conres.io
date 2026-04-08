@@ -665,6 +665,14 @@ export class ColorConverter {
             provider.transformArray(cached.transform, effectiveInputBuffer, outputPixels, pixelCount);
         }
 
+        // Track WASM memory growth for large transforms
+        if (pixelCount >= 1000000) {
+            const wasmBytes = provider.getWASMMemoryBytes();
+            if (wasmBytes) {
+                console.log(`${CONTEXT_PREFIX} [ColorConverter] WASM memory after ${pixelCount} pixels: ${(wasmBytes / 1024 / 1024).toFixed(1)}MB`);
+            }
+        }
+
         return {
             outputPixels,
             pixelCount,
