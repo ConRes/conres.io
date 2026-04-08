@@ -490,6 +490,10 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                 this.#updateRequiredState();
                 this.#persistState();
             });
+            // Persist when any input inside debugging details changes
+            debuggingDetails.addEventListener('change', () => {
+                this.#persistState();
+            });
         }
         this.#updateRequiredState();
 
@@ -620,8 +624,8 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             state[`checkbox:${checkbox.id}`] = checkbox.checked;
         }
 
-        // Text and email inputs
-        for (const input of /** @type {NodeListOf<HTMLInputElement>} */ (this.querySelectorAll('input[type="text"][id], input[type="email"][id]'))) {
+        // Text, email, and number inputs
+        for (const input of /** @type {NodeListOf<HTMLInputElement>} */ (this.querySelectorAll('input[type="text"][id], input[type="email"][id], input[type="number"][id]'))) {
             if (input.value) state[`text:${input.id}`] = input.value;
         }
 
@@ -1076,6 +1080,26 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         const processingStrategy = isDebugging
             ? /** @type {any} */ (/** @type {HTMLInputElement | null} */ (this.querySelector('input[name="processing-strategy"]:checked'))?.value ?? 'in-place')
             : 'in-place';
+
+        const convertContentStreams = isDebugging
+            ? (/** @type {HTMLInputElement | null} */ (this.querySelector('#content-streams-checkbox'))?.checked ?? true)
+            : true;
+
+        const convertImages = isDebugging
+            ? (/** @type {HTMLInputElement | null} */ (this.querySelector('#images-checkbox'))?.checked ?? true)
+            : true;
+
+        const useLegacyContentStreamParsing = isDebugging
+            ? (/** @type {HTMLInputElement | null} */ (this.querySelector('#legacy-content-stream-parsing-checkbox'))?.checked ?? false)
+            : false;
+
+        const concurrentSubsets = isDebugging
+            ? (/** @type {HTMLInputElement | null} */ (this.querySelector('#concurrent-subsets-checkbox'))?.checked ?? false)
+            : false;
+
+        const interConversionDelay = isDebugging
+            ? parseInt(/** @type {HTMLInputElement | null} */ (this.querySelector('#inter-conversion-delay-input'))?.value ?? '500', 10) || 500
+            : 500;
 
         const includeOutputProfile = false;
 
@@ -1543,6 +1567,11 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                     testFormName,
                     outputProfileBasename,
                     environmentSuffix,
+                    convertImages,
+                    convertContentStreams,
+                    useLegacyContentStreamParsing,
+                    interConversionDelay,
+                    concurrentSubsets,
                     handleProgress,
                     setCancelHandler: (handler) => { this.#cancelGeneration = handler; },
                     onDownloadProgress: (state) => {
@@ -1573,6 +1602,11 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                     testFormName,
                     outputProfileBasename,
                     environmentSuffix,
+                    convertImages,
+                    convertContentStreams,
+                    useLegacyContentStreamParsing,
+                    interConversionDelay,
+                    concurrentSubsets,
                     handleProgress,
                     setCancelHandler: (handler) => { this.#cancelGeneration = handler; },
                     onDownloadProgress: (state) => {
@@ -1712,7 +1746,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         testFormVersion, resources, iccProfileBuffer, userMetadata,
         debugging, outputBitsPerComponent, useWorkers, processingStrategy,
         assemblyOverrides, includeOutputProfile, testFormName, outputProfileBasename, handleProgress, setCancelHandler, onDownloadProgress,
-        environmentSuffix,
+        environmentSuffix, convertImages, convertContentStreams, useLegacyContentStreamParsing, interConversionDelay, concurrentSubsets,
     }) {
         const generator = new TestFormPDFDocumentGenerator({
             testFormVersion,
@@ -1723,6 +1757,11 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             processingStrategy,
             assemblyOverrides,
             outputProfileName: outputProfileBasename,
+            convertImages,
+            convertContentStreams,
+            useLegacyContentStreamParsing,
+            interConversionDelay,
+            concurrentSubsets,
         });
 
         setCancelHandler?.(() => generator.abort?.());
@@ -1801,7 +1840,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         testFormVersion, resources, iccProfileBuffer, userMetadata,
         debugging, outputBitsPerComponent, useWorkers, processingStrategy,
         assemblyOverrides, includeOutputProfile, testFormName, outputProfileBasename, handleProgress, setCancelHandler, onDownloadProgress,
-        environmentSuffix,
+        environmentSuffix, convertImages, convertContentStreams, useLegacyContentStreamParsing, interConversionDelay, concurrentSubsets,
     }) {
         const workerURL = new URL('../bootstrap-worker-entrypoint.js', import.meta.url).href;
 
@@ -1927,6 +1966,11 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                         processingStrategy,
                         assemblyOverrides,
                         outputProfileName: outputProfileBasename,
+                        convertImages,
+                        convertContentStreams,
+                        useLegacyContentStreamParsing,
+                        interConversionDelay,
+                        concurrentSubsets,
                     },
                     [iccProfileCopy],
                 );

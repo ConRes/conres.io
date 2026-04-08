@@ -200,6 +200,30 @@ export class TestFormPDFDocumentGenerator {
     /** @type {'in-place' | 'separate-chains' | 'recombined-chains'} */
     #processingStrategy;
 
+    /** @type {ArrayBuffer | null | undefined} Resolved from manifest settings.colorManagement during generate() */
+    #defaultSourceProfileForDeviceRGB;
+
+    /** @type {ArrayBuffer | null | undefined} */
+    #defaultSourceProfileForDeviceCMYK;
+
+    /** @type {ArrayBuffer | null | undefined} */
+    #defaultSourceProfileForDeviceGray;
+
+    /** @type {boolean} */
+    #convertImages;
+
+    /** @type {boolean} */
+    #convertContentStreams;
+
+    /** @type {boolean} */
+    #useLegacyContentStreamParsing;
+
+    /** @type {number} */
+    #interConversionDelay;
+
+    /** @type {boolean} */
+    #concurrentSubsets;
+
     /** @type {import('./assembly-policy-resolver.js').AssemblyUserOverrides | undefined} */
     #assemblyOverrides;
 
@@ -226,7 +250,7 @@ export class TestFormPDFDocumentGenerator {
      * @param {import('./assembly-policy-resolver.js').AssemblyUserOverrides} [options.assemblyOverrides] - User overrides for layout/colorSpace/intent filtering
      * @param {string} [options.outputProfileName] - ICC profile filename (for slug metadata)
      */
-    constructor({ testFormVersion, resources, debugging = false, outputBitsPerComponent, useWorkers = false, processingStrategy = 'in-place', assemblyOverrides, outputProfileName }) {
+    constructor({ testFormVersion, resources, debugging = false, outputBitsPerComponent, useWorkers = false, processingStrategy = 'in-place', assemblyOverrides, outputProfileName, convertImages = true, convertContentStreams = true, useLegacyContentStreamParsing = false, interConversionDelay = 500, concurrentSubsets = false }) {
         this.#testFormVersion = testFormVersion;
         this.#debugging = debugging;
         this.#outputBitsPerComponent = outputBitsPerComponent;
@@ -234,6 +258,11 @@ export class TestFormPDFDocumentGenerator {
         this.#processingStrategy = processingStrategy;
         this.#assemblyOverrides = assemblyOverrides;
         this.#outputProfileName = outputProfileName;
+        this.#convertImages = convertImages;
+        this.#convertContentStreams = convertContentStreams;
+        this.#useLegacyContentStreamParsing = useLegacyContentStreamParsing;
+        this.#interConversionDelay = interConversionDelay;
+        this.#concurrentSubsets = concurrentSubsets;
         this.#cache = globalThis.caches?.open?.('conres-testforms');
 
         if (resources) {
@@ -349,6 +378,40 @@ export class TestFormPDFDocumentGenerator {
         );
 
         // ----------------------------------------------------------------
+        // 3c-ii. Resolve default source profiles for Device color spaces
+        // ----------------------------------------------------------------
+        const colorManagement = manifest.settings?.colorManagement;
+
+        /**
+         * Resolves a defaultSourceProfileForDevice* value from manifest JSON
+         * to the converter's expected type: ArrayBuffer | null | undefined.
+         *
+         * @param {string | null | undefined} profilePath
+         * @returns {Promise<ArrayBuffer | null | undefined>}
+         */
+        const resolveDefaultSourceProfile = async (profilePath) => {
+            if (profilePath === null) return null;
+            if (profilePath === undefined) return undefined;
+            const url = resolveProfileURL(profilePath);
+            const response = await fetch(url);
+            if (!response.ok) {
+                console.warn(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Failed to fetch default source profile: ${url} (${response.status})`);
+                return undefined;
+            }
+            return response.arrayBuffer();
+        };
+
+        this.#defaultSourceProfileForDeviceRGB = await resolveDefaultSourceProfile(
+            colorManagement?.defaultSourceProfileForDeviceRGB,
+        );
+        this.#defaultSourceProfileForDeviceCMYK = await resolveDefaultSourceProfile(
+            colorManagement?.defaultSourceProfileForDeviceCMYK,
+        );
+        this.#defaultSourceProfileForDeviceGray = await resolveDefaultSourceProfile(
+            colorManagement?.defaultSourceProfileForDeviceGray,
+        );
+
+        // ----------------------------------------------------------------
         // 3d. Generate docket PDF (litmus test — must succeed before main job)
         // ----------------------------------------------------------------
         /** @type {ArrayBuffer | null} */
@@ -425,7 +488,14 @@ export class TestFormPDFDocumentGenerator {
             blackPointCompensation: singlePass.intentPass.blackPointCompensation,
             debugging: this.#debugging,
             useWorkers: this.#useWorkers,
-            interConversionDelay: 500,
+            interConversionDelay: this.#interConversionDelay,
+            defaultSourceProfileForDeviceRGB: this.#defaultSourceProfileForDeviceRGB,
+            defaultSourceProfileForDeviceCMYK: this.#defaultSourceProfileForDeviceCMYK,
+            defaultSourceProfileForDeviceGray: this.#defaultSourceProfileForDeviceGray,
+            convertImages: this.#convertImages,
+            convertContentStreams: this.#convertContentStreams,
+            useLegacyContentStreamParsing: this.#useLegacyContentStreamParsing,
+            concurrentSubsets: this.#concurrentSubsets,
         });
 
         // Use filtered manifest from assembly plan
@@ -724,7 +794,14 @@ export class TestFormPDFDocumentGenerator {
                     blackPointCompensation: pass.intentPass.blackPointCompensation,
                     debugging: this.#debugging,
                     useWorkers: this.#useWorkers,
-                    interConversionDelay: 500,
+                    interConversionDelay: this.#interConversionDelay,
+                    defaultSourceProfileForDeviceRGB: this.#defaultSourceProfileForDeviceRGB,
+                    defaultSourceProfileForDeviceCMYK: this.#defaultSourceProfileForDeviceCMYK,
+                    defaultSourceProfileForDeviceGray: this.#defaultSourceProfileForDeviceGray,
+                    convertImages: this.#convertImages,
+                    convertContentStreams: this.#convertContentStreams,
+                    useLegacyContentStreamParsing: this.#useLegacyContentStreamParsing,
+                    concurrentSubsets: this.#concurrentSubsets,
                 });
 
                 try {
@@ -908,7 +985,14 @@ export class TestFormPDFDocumentGenerator {
                 colorSpaceResolver,
                 debugging: this.#debugging,
                 useWorkers: this.#useWorkers,
-                interConversionDelay: 500,
+                interConversionDelay: this.#interConversionDelay,
+                defaultSourceProfileForDeviceRGB: this.#defaultSourceProfileForDeviceRGB,
+                defaultSourceProfileForDeviceCMYK: this.#defaultSourceProfileForDeviceCMYK,
+                defaultSourceProfileForDeviceGray: this.#defaultSourceProfileForDeviceGray,
+                convertImages: this.#convertImages,
+                convertContentStreams: this.#convertContentStreams,
+                useLegacyContentStreamParsing: this.#useLegacyContentStreamParsing,
+                concurrentSubsets: this.#concurrentSubsets,
             });
 
             try {
@@ -1526,7 +1610,14 @@ export class TestFormPDFDocumentGenerator {
                 blackPointCompensation: pass.blackPointCompensation,
                 debugging: this.#debugging,
                 useWorkers: false,
-                interConversionDelay: 0,
+                interConversionDelay: this.#interConversionDelay,
+                defaultSourceProfileForDeviceRGB: this.#defaultSourceProfileForDeviceRGB,
+                defaultSourceProfileForDeviceCMYK: this.#defaultSourceProfileForDeviceCMYK,
+                defaultSourceProfileForDeviceGray: this.#defaultSourceProfileForDeviceGray,
+                convertImages: this.#convertImages,
+                convertContentStreams: this.#convertContentStreams,
+                useLegacyContentStreamParsing: this.#useLegacyContentStreamParsing,
+                concurrentSubsets: this.#concurrentSubsets,
             });
 
             try {
@@ -1703,17 +1794,26 @@ export class TestFormPDFDocumentGenerator {
             if (settings) {
                 fields.push({ label: 'Debugging', value: settings.debugging ? 'Enabled' : 'Disabled' });
                 fields.push({
-                    label: 'Workers', inline: [
+                    label: 'Workflow', inline: [
                         { checkbox: true, checked: settings.useWorkers, value: 'Bootstrap' },
                         { checkbox: true, checked: settings.useWorkers, value: 'Parallel' },
+                        { checkbox: true, checked: settings.concurrentSubsets === true, value: 'Concurrent' },
+                        { value: `${settings.interConversionDelay ?? 500}ms delay` },
                     ]
                 });
                 const strategy = settings.processingStrategy ?? 'in-place';
                 fields.push({
-                    label: 'Strategy', inline: [
+                    label: 'Assembly', inline: [
                         { radio: true, selected: strategy === 'in-place', value: 'In-Place' },
                         { radio: true, selected: strategy === 'recombined-chains', value: 'Recombined' },
                         { radio: true, selected: strategy === 'separate-chains', value: 'Separate' },
+                    ]
+                });
+                fields.push({
+                    label: 'Contents', inline: [
+                        { checkbox: true, checked: settings.convertContentStreams !== false, value: 'Streams' },
+                        { checkbox: true, checked: settings.convertImages !== false, value: 'Images' },
+                        { checkbox: true, checked: settings.useLegacyContentStreamParsing === true, value: 'Legacy Parser' },
                     ]
                 });
             }
@@ -1920,6 +2020,10 @@ export class TestFormPDFDocumentGenerator {
                             }
                             page.drawText(item.value, { x: inlineX + controlSize + 2, y, size: fontSize, font, color: kBlack });
                             inlineX += controlSize + 2 + font.widthOfTextAtSize(item.value, fontSize) + 6;
+                        } else if ('value' in item) {
+                            // Plain text inline item
+                            page.drawText(item.value, { x: inlineX, y, size: fontSize, font, color: kBlack });
+                            inlineX += font.widthOfTextAtSize(item.value, fontSize) + 6;
                         }
                     }
                 } else {
@@ -2080,6 +2184,11 @@ export class TestFormPDFDocumentGenerator {
                 useWorkers: this.#useWorkers,
                 processingStrategy: this.#processingStrategy,
                 assemblyOverrides: this.#assemblyOverrides ?? null,
+                convertImages: this.#convertImages,
+                convertContentStreams: this.#convertContentStreams,
+                useLegacyContentStreamParsing: this.#useLegacyContentStreamParsing,
+                interConversionDelay: this.#interConversionDelay,
+                concurrentSubsets: this.#concurrentSubsets,
             },
             assembly: assemblyPlan ? {
                 profileCategory: assemblyPlan.profileCategory,
@@ -2216,16 +2325,29 @@ export class TestFormPDFDocumentGenerator {
             }
         }
 
+        // Consume the response body BEFORE attempting cache storage.
+        // response.clone() for cache.put() would duplicate the entire body
+        // in memory — for a 1.5 GB PDF, this causes Safari to double its
+        // memory usage and triggers QuotaExceededError anyway.
+        const responseBuffer = await response.arrayBuffer();
+        resolve(responseBuffer);
+
         if (cache) {
-            // Delete stale entry first to free disk space before writing the new one.
-            // Chrome's Cache backend can throw UnknownError when it must hold both
-            // the old and new entry simultaneously on a constrained disk.
-            if (cachedResponse) await cache.delete(url);
-            await cache.put(url, response.clone()).catch(cacheStorageError => {
+            // Attempt to cache the response for future reuse.
+            // Construct a new Response from the already-consumed buffer —
+            // this avoids cloning the original response stream.
+            try {
+                if (cachedResponse) await cache.delete(url);
+                await cache.put(url, new Response(responseBuffer, {
+                    headers: response.headers,
+                    status: response.status,
+                    statusText: response.statusText,
+                }));
+            } catch (cacheStorageError) {
+                // QuotaExceededError in Safari, UnknownError in Chrome on constrained disk
                 console.warn(CONTEXT_PREFIX, cacheStorageError);
-            });
+            }
         }
-        resolve(await response.arrayBuffer());
 
         return promise;
     }

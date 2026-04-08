@@ -424,10 +424,10 @@
                 </details>
                 <details class="full-row" id="debugging-details" style="width: 100%;">
                     <summary><b>Debugging</b> — Enable or disable debugging features</summary>
-                    <fieldset name="workers-fieldset" class="full-row"
+                    <fieldset name="workflow-fieldset" class="full-row"
                         style="display: block; padding: 0.5em; width: 100%;">
                         <legend style="display: flex; gap: 0.5em; width: 100%; align-items: center;">
-                            <div style="flex: auto;"><b>Workers</b></div>
+                            <div style="flex: auto;"><b>Workflow</b></div>
                         </legend>
                         <small class="full-row">
                             <label class="full-row" for="bootstrap-worker-checkbox"><input type="checkbox"
@@ -436,12 +436,21 @@
                             <label class="full-row" for="parallel-workers-checkbox"><input type="checkbox"
                                     id="parallel-workers-checkbox" name="parallel-workers" checked />Parallel
                                 Workers</label>
+                            <label class="full-row" for="concurrent-subsets-checkbox"><input type="checkbox"
+                                    id="concurrent-subsets-checkbox" name="concurrent-subsets" />Concurrent
+                                Subsets</label>
+                        </small>
+                        <small class="full-row" style="margin-top: 1em; display: block; width: 100%;">
+                            <label class="full-row" for="inter-conversion-delay-input">Inter-page delay:
+                                <input type="number" id="inter-conversion-delay-input" name="inter-conversion-delay"
+                                    value="500" min="0" max="60000" step="100"
+                                    style="width: 6em; text-align: end;" /><span>&nbsp;ms</span></label>
                         </small>
                     </fieldset>
-                    <fieldset name="assembler-strategy-fieldset" class="full-row"
+                    <fieldset name="assembly-fieldset" class="full-row"
                         style="display: block; padding: 0.5em; width: 100%;">
                         <legend style="display: flex; gap: 0.5em; width: 100%; align-items: center;">
-                            <div style="flex: auto;"><b>Assembler Strategy</b></div>
+                            <div style="flex: auto;"><b>Assembly</b></div>
                         </legend>
                         <small class="full-row">
                             <label for="in-place-strategy"><input type="radio" name="processing-strategy"
@@ -453,6 +462,22 @@
                                     id="separate-chains-strategy" value="separate-chains" />Separate Chains
                                 (multiple
                                 PDFs)</label>
+                        </small>
+                    </fieldset>
+                    <fieldset name="contents-fieldset" class="full-row"
+                        style="display: block; padding: 0.5em; width: 100%;">
+                        <legend style="display: flex; gap: 0.5em; width: 100%; align-items: center;">
+                            <div style="flex: auto;"><b>Contents</b></div>
+                        </legend>
+                        <small class="full-row">
+                            <label class="full-row" for="content-streams-checkbox"><input type="checkbox"
+                                    id="content-streams-checkbox" name="content-streams" checked />Content
+                                Streams</label>
+                            <label class="full-row" for="images-checkbox"><input type="checkbox" id="images-checkbox"
+                                    name="images" checked />Images</label>
+                            <label class="full-row" for="legacy-content-stream-parsing-checkbox"><input type="checkbox"
+                                    id="legacy-content-stream-parsing-checkbox"
+                                    name="legacy-content-stream-parsing" />Legacy Content Stream Parsing</label>
                         </small>
                     </fieldset>
                 </details>
@@ -467,7 +492,8 @@
     <dialog id="documentation-modal" style="background: Canvas;">
         <h2 id="documentation-modal-title" tabindex="-1" autofocus></h2>
         <div id="documentation-modal-content"></div>
-        <div style="text-align: center; margin-block: 1.5em -2em; padding: 1em; position:sticky; bottom: -2em; background: linear-gradient(to bottom, color-mix(in srgb, Canvas 75%, transparent), Canvas 2em, Canvas);">
+        <div
+            style="text-align: center; margin-block: 1.5em -2em; padding: 1em; position:sticky; bottom: -2em; background: linear-gradient(to bottom, color-mix(in srgb, Canvas 75%, transparent), Canvas 2em, Canvas);">
             <button type="button" onclick="this.closest('dialog').close()" style="cursor: pointer;">Close</button>
         </div>
     </dialog>
