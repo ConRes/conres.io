@@ -554,11 +554,9 @@ export class PDFPageColorConverter extends CompositeColorConverter {
                     );
                 } else {
                     // Main thread mode: convert sequentially
-                    const yieldMs = /** @type {PDFPageColorConverterConfiguration} */ (this.configuration).interConversionDelay;
                     for (const imageData of input.images) {
                         await this.#convertImage({ imageData, imageBatchSpan, context, errors });
                         imagesConverted++;
-                        if (yieldMs > 0) await new Promise(resolve => setTimeout(resolve, yieldMs));
                     }
                 }
             } finally {
@@ -651,8 +649,6 @@ export class PDFPageColorConverter extends CompositeColorConverter {
                         this.diagnostics.abortSpan(streamSpan, { reason: `${error}` });
                     } finally {
                         this.diagnostics.endSpan(streamSpan);
-                        const yieldMs = /** @type {PDFPageColorConverterConfiguration} */ (this.configuration).interConversionDelay;
-                        if (yieldMs > 0) await new Promise(resolve => setTimeout(resolve, yieldMs));
                     }
                 }
             } finally {
