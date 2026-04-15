@@ -35,7 +35,7 @@ describe('PDFPreflightFixer', () => {
         const bytes = await readFile(join(SUITE_DIR, 'pg-01-no-trimbox.pdf'));
         const doc = await pdfLib.PDFDocument.load(bytes, { updateMetadata: false });
         const fixer = new PDFPreflightFixer(doc);
-        const changelog = fixer.applyFix('set-geometry-from-mediabox');
+        const changelog = await fixer.applyFix('set-geometry-from-mediabox');
         assert.ok(changelog.length > 0, 'Should have changelog entries');
 
         const page = doc.getPages()[0].node;
@@ -48,7 +48,7 @@ describe('PDFPreflightFixer', () => {
         const bytes = await readFile(join(SUITE_DIR, 'pg-02-both-trimbox-artbox.pdf'));
         const doc = await pdfLib.PDFDocument.load(bytes, { updateMetadata: false });
         const fixer = new PDFPreflightFixer(doc);
-        const changelog = fixer.applyFix('set-geometry-from-mediabox');
+        const changelog = await fixer.applyFix('set-geometry-from-mediabox');
         // TrimBox already existed — should not be in changelog
         const trimChanges = changelog.filter(c => c.description.includes('TrimBox'));
         assert.strictEqual(trimChanges.length, 0, 'Should not overwrite existing TrimBox');
@@ -60,7 +60,7 @@ describe('PDFPreflightFixer', () => {
         assert.ok(!doc.context.trailerInfo.ID, 'Should start without ID');
 
         const fixer = new PDFPreflightFixer(doc);
-        const changelog = fixer.applyFix('add-document-id');
+        const changelog = await fixer.applyFix('add-document-id');
         assert.ok(changelog.length > 0);
         assert.ok(doc.context.trailerInfo.ID, 'Should have ID after fix');
     });
@@ -71,11 +71,11 @@ describe('PDFPreflightFixer', () => {
         const fixer = new PDFPreflightFixer(doc);
 
         // Apply once
-        fixer.applyFix('add-document-id');
+        await fixer.applyFix('add-document-id');
         const firstID = doc.context.trailerInfo.ID;
 
         // Apply again
-        const changelog2 = fixer.applyFix('add-document-id');
+        const changelog2 = await fixer.applyFix('add-document-id');
         assert.strictEqual(changelog2.length, 0, 'Should not overwrite existing ID');
         assert.strictEqual(doc.context.trailerInfo.ID, firstID, 'ID should be unchanged');
     });
@@ -84,7 +84,7 @@ describe('PDFPreflightFixer', () => {
         const bytes = await readFile(join(SUITE_DIR, 'oi-02-bare-icc-stream.pdf'));
         const doc = await pdfLib.PDFDocument.load(bytes, { updateMetadata: false });
         const fixer = new PDFPreflightFixer(doc);
-        const changelog = fixer.applyFix('fix-output-intent-profile');
+        const changelog = await fixer.applyFix('fix-output-intent-profile');
         assert.ok(changelog.length > 0);
 
         const outputIntents = doc.catalog.lookup(pdfLib.PDFName.of('OutputIntents'));
@@ -100,7 +100,7 @@ describe('PDFPreflightFixer', () => {
         const bytes = await readFile(join(SUITE_DIR, 'oc-02-occd-no-name.pdf'));
         const doc = await pdfLib.PDFDocument.load(bytes, { updateMetadata: false });
         const fixer = new PDFPreflightFixer(doc);
-        const changelog = fixer.applyFix('add-occd-name');
+        const changelog = await fixer.applyFix('add-occd-name');
         assert.ok(changelog.length > 0);
 
         const ocProps = doc.catalog.lookup(pdfLib.PDFName.of('OCProperties'));
@@ -114,7 +114,7 @@ describe('PDFPreflightFixer', () => {
         assert.ok(!doc.catalog.get(pdfLib.PDFName.of('Metadata')), 'Should start without XMP');
 
         const fixer = new PDFPreflightFixer(doc);
-        const changelog = fixer.applyFix('generate-minimal-xmp');
+        const changelog = await fixer.applyFix('generate-minimal-xmp');
         assert.ok(changelog.length > 0);
         assert.ok(doc.catalog.get(pdfLib.PDFName.of('Metadata')), 'Should have Metadata after fix');
     });
@@ -123,7 +123,7 @@ describe('PDFPreflightFixer', () => {
         const bytes = await readFile(join(SUITE_DIR, 'pg-01-no-trimbox.pdf'));
         const doc = await pdfLib.PDFDocument.load(bytes, { updateMetadata: false });
         const fixer = new PDFPreflightFixer(doc);
-        const changelog = fixer.applyFixes([
+        const changelog = await fixer.applyFixes([
             'set-geometry-from-mediabox',
             'add-document-id',
             'generate-minimal-xmp',
@@ -140,8 +140,8 @@ describe('PDFPreflightFixer', () => {
         const bytes = await readFile(join(SUITE_DIR, 'pg-01-no-trimbox.pdf'));
         const doc = await pdfLib.PDFDocument.load(bytes, { updateMetadata: false });
         const fixer = new PDFPreflightFixer(doc);
-        fixer.applyFix('set-geometry-from-mediabox');
-        fixer.applyFix('add-document-id');
+        await fixer.applyFix('set-geometry-from-mediabox');
+        await fixer.applyFix('add-document-id');
 
         const savedBytes = await doc.save({ addDefaultPage: false, updateFieldAppearances: false });
         const reloaded = await pdfLib.PDFDocument.load(savedBytes, { updateMetadata: false });

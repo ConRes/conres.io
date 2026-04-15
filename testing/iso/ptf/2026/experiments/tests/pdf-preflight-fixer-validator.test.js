@@ -55,7 +55,7 @@ describe('PDFPreflightFixerValidator', () => {
         assert.ok(fixableErrors.length > 0, 'Should have fixable errors');
 
         const fixIds = [...new Set(fixableErrors.map(f => f.fixId))];
-        const changelog = fv.fix(fixIds);
+        const changelog = await fv.fix(fixIds);
         assert.ok(changelog.length > 0, 'Should have changelog entries');
 
         const report2 = fv.validate();
