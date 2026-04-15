@@ -1,0 +1,315 @@
+{
+  "deltaEUnit": "ab",
+  "tolerances": [
+    {
+      "label": "exact",
+      "tolerance": 0.0001
+    },
+    {
+      "label": "excellent",
+      "tolerance": 0.1
+    },
+    {
+      "label": "good",
+      "tolerance": 1
+    },
+    {
+      "label": "fair",
+      "tolerance": 5
+    },
+    {
+      "label": "poor",
+      "tolerance": 10
+    }
+  ],
+  "generatedFrom": "/Users/daflair/Projects/conres/color-engine/packages/color-engine/tests/references/baseline-lists-x16e-2026-04-20-full-r2",
+  "entries": {
+    "Canon iPR C10000VP series Coated MGCR v1.2": {
+      "rowMaxDeltaE": 6.2641955574468415,
+      "rowMeanDeltaE": 1.722002622230154,
+      "rowMaxDeltaL": 6.190116882324219,
+      "worstLabel": "fair",
+      "worstSampleIndex": 18
+    },
+    "Canon iPR C10000VP series Uncoated MGCR v1.2": {
+      "rowMaxDeltaE": 8.05596589473509,
+      "rowMeanDeltaE": 2.7950712222914498,
+      "rowMaxDeltaL": 6.860252141952515,
+      "worstLabel": "fair",
+      "worstSampleIndex": 20
+    },
+    "Canon imagePRESS V1000 series Coated M1 v1.1": {
+      "rowMaxDeltaE": 7.694547804493026,
+      "rowMeanDeltaE": 1.4973065210617338,
+      "rowMaxDeltaL": 7.504057884216309,
+      "worstLabel": "fair",
+      "worstSampleIndex": 20
+    },
+    "Canon iPR V1000 series 6 20250926115401 (Created by PRISMAsync)": {
+      "rowMaxDeltaE": 9.184611286215205,
+      "rowMeanDeltaE": 2.057057390161975,
+      "rowMaxDeltaL": 9.01902723312378,
+      "worstLabel": "fair",
+      "worstSampleIndex": 20
+    },
+    "Canon iPR V1000 series 7 20251114120057 (Created by PRISMAsync)": {
+      "rowMaxDeltaE": 15.722320539386363,
+      "rowMeanDeltaE": 4.928482128941,
+      "rowMaxDeltaL": 15.316197395324707,
+      "worstLabel": "poor",
+      "worstSampleIndex": 21
+    },
+    "Canon imagePRESS V1000 series Uncoated M1 v1.1": {
+      "rowMaxDeltaE": 13.19607731795555,
+      "rowMeanDeltaE": 4.2814827452404955,
+      "rowMaxDeltaL": 12.287424087524414,
+      "worstLabel": "poor",
+      "worstSampleIndex": 20
+    },
+    "Coated FOGRA27 (ISO 12647-2:2004)": {
+      "rowMaxDeltaE": 12.041542886651847,
+      "rowMeanDeltaE": 3.405794936293496,
+      "rowMaxDeltaL": 11.790964126586914,
+      "worstLabel": "poor",
+      "worstSampleIndex": 20
+    },
+    "Coated FOGRA39 (ISO 12647-2:2004)": {
+      "rowMaxDeltaE": 12.517731599770736,
+      "rowMeanDeltaE": 3.0881916564764396,
+      "rowMaxDeltaL": 12.492862701416016,
+      "worstLabel": "poor",
+      "worstSampleIndex": 20
+    },
+    "Coated GRACoL 2006 (ISO 12647-2:2004)": {
+      "rowMaxDeltaE": 11.305810814105428,
+      "rowMeanDeltaE": 3.0596130850315153,
+      "rowMaxDeltaL": 11.288878440856934,
+      "worstLabel": "poor",
+      "worstSampleIndex": 20
+    },
+    "Euroscale Coated v2": {
+      "rowMaxDeltaE": 10.732240927051448,
+      "rowMeanDeltaE": 4.0162822749584794,
+      "rowMaxDeltaL": 10.135776996612549,
+      "worstLabel": "poor",
+      "worstSampleIndex": 20
+    },
+    "Euroscale Uncoated v2": {
+      "rowMaxDeltaE": 22.013528336217604,
+      "rowMeanDeltaE": 8.074130967631465,
+      "rowMaxDeltaL": 21.86008620262146,
+      "worstLabel": "poor",
+      "worstSampleIndex": 22
+    },
+    "Eurostandard (Coated), 9%, GCR, Maximum": {
+      "rowMaxDeltaE": 0,
+      "rowMeanDeltaE": 0,
+      "rowMaxDeltaL": 0,
+      "worstLabel": "exact",
+      "worstSampleIndex": 0
+    },
+    "FOGRA39, 100% GCR": {
+      "rowMaxDeltaE": 0,
+      "rowMeanDeltaE": 0,
+      "rowMaxDeltaL": 0,
+      "worstLabel": "exact",
+      "worstSampleIndex": 0
+    },
+    "GRACoL2006_Coated1v2.icc": {
+      "rowMaxDeltaE": 11.33891979464503,
+      "rowMeanDeltaE": 2.862973589994294,
+      "rowMaxDeltaL": 11.335378170013428,
+      "worstLabel": "poor",
+      "worstSampleIndex": 20
+    },
+    "Generic CMYK Profile": {
+      "rowMaxDeltaE": 5.931184979214448,
+      "rowMeanDeltaE": 1.6400744044670277,
+      "rowMaxDeltaL": 5.897918224334717,
+      "worstLabel": "fair",
+      "worstSampleIndex": 20
+    },
+    "Indigo_ArtoSilk_matte-4C_neu.icc": {
+      "rowMaxDeltaE": 10.50040325569065,
+      "rowMeanDeltaE": 1.9074151294017427,
+      "rowMaxDeltaL": 10.48695421218872,
+      "worstLabel": "poor",
+      "worstSampleIndex": 20
+    },
+    "ISO Coated": {
+      "rowMaxDeltaE": 11.094249828534513,
+      "rowMeanDeltaE": 2.788297561363554,
+      "rowMaxDeltaL": 11.021516799926758,
+      "worstLabel": "poor",
+      "worstSampleIndex": 20
+    },
+    "ISO Coated v2 (ECI)": {
+      "rowMaxDeltaE": 11.534635678967115,
+      "rowMeanDeltaE": 2.649677481935865,
+      "rowMaxDeltaL": 11.503091812133789,
+      "worstLabel": "poor",
+      "worstSampleIndex": 20
+    },
+    "Japan Color 2001 Coated": {
+      "rowMaxDeltaE": 10.938529842063904,
+      "rowMeanDeltaE": 3.1173977152107653,
+      "rowMaxDeltaL": 10.437428951263428,
+      "worstLabel": "poor",
+      "worstSampleIndex": 20
+    },
+    "Japan Color 2001 Uncoated": {
+      "rowMaxDeltaE": 24.787251858786803,
+      "rowMeanDeltaE": 8.46504304775711,
+      "rowMaxDeltaL": 24.100544929504395,
+      "worstLabel": "poor",
+      "worstSampleIndex": 21
+    },
+    "Japan Color 2002 Newspaper": {
+      "rowMaxDeltaE": 21.95104000319686,
+      "rowMeanDeltaE": 5.137699842272869,
+      "rowMaxDeltaL": 5.351904392242432,
+      "worstLabel": "poor",
+      "worstSampleIndex": 22
+    },
+    "Japan Color 2003 Web Coated": {
+      "rowMaxDeltaE": 8.456507550609908,
+      "rowMeanDeltaE": 2.6160696833074466,
+      "rowMaxDeltaL": 8.150497436523438,
+      "worstLabel": "fair",
+      "worstSampleIndex": 20
+    },
+    "Japan Color 2011 Coated": {
+      "rowMaxDeltaE": 11.575885355749557,
+      "rowMeanDeltaE": 2.5673792548096617,
+      "rowMaxDeltaL": 10.753114700317383,
+      "worstLabel": "poor",
+      "worstSampleIndex": 20
+    },
+    "Japan Web Coated (Ad)": {
+      "rowMaxDeltaE": 12.020913266878853,
+      "rowMeanDeltaE": 3.918454802430452,
+      "rowMaxDeltaL": 11.835258960723877,
+      "worstLabel": "poor",
+      "worstSampleIndex": 20
+    },
+    "Photoshop AM175 R5 FOGRA59": {
+      "rowMaxDeltaE": 10.624694436868092,
+      "rowMeanDeltaE": 2.8426549224002686,
+      "rowMaxDeltaL": 10.572429656982422,
+      "worstLabel": "poor",
+      "worstSampleIndex": 20
+    },
+    "Photoshop AM175 R5 eciCMYKv2": {
+      "rowMaxDeltaE": 8.479317676547483,
+      "rowMeanDeltaE": 3.691256785449221,
+      "rowMaxDeltaL": 7.8761889934539795,
+      "worstLabel": "fair",
+      "worstSampleIndex": 20
+    },
+    "Photoshop FM1200 R5 FOGRA59": {
+      "rowMaxDeltaE": 10.611281708895861,
+      "rowMeanDeltaE": 2.9259486504997114,
+      "rowMaxDeltaL": 10.539203643798828,
+      "worstLabel": "poor",
+      "worstSampleIndex": 20
+    },
+    "Photoshop FM1200 R5 eciCMYKv2": {
+      "rowMaxDeltaE": 8.182496972973615,
+      "rowMeanDeltaE": 3.485617129142082,
+      "rowMaxDeltaL": 7.516748905181885,
+      "worstLabel": "fair",
+      "worstSampleIndex": 20
+    },
+    "Photoshop 4 Default CMYK": {
+      "rowMaxDeltaE": 7.067984511358487,
+      "rowMeanDeltaE": 1.051796462269052,
+      "rowMaxDeltaL": 7.055758476257324,
+      "worstLabel": "fair",
+      "worstSampleIndex": 17
+    },
+    "Photoshop 5 Default CMYK": {
+      "rowMaxDeltaE": 5.326032007045652,
+      "rowMeanDeltaE": 0.8241924543497359,
+      "rowMaxDeltaL": 5.321690797805786,
+      "worstLabel": "fair",
+      "worstSampleIndex": 19
+    },
+    "SWOP (Coated), 20%, GCR, Maximum": {
+      "rowMaxDeltaE": 0,
+      "rowMeanDeltaE": 0,
+      "rowMaxDeltaL": 0,
+      "worstLabel": "exact",
+      "worstSampleIndex": 0
+    },
+    "SWOP2006_Coated3v2": {
+      "rowMaxDeltaE": 14.804598443950551,
+      "rowMeanDeltaE": 4.790930346319146,
+      "rowMaxDeltaL": 14.804450422525406,
+      "worstLabel": "poor",
+      "worstSampleIndex": 21
+    },
+    "SWOP2006_Coated5v2": {
+      "rowMaxDeltaE": 15.929945024122674,
+      "rowMeanDeltaE": 4.752574397046482,
+      "rowMaxDeltaL": 15.907484382390976,
+      "worstLabel": "poor",
+      "worstSampleIndex": 21
+    },
+    "US Newsprint (SNAP 2007)": {
+      "rowMaxDeltaE": 23.356119967395358,
+      "rowMeanDeltaE": 6.1707832747484455,
+      "rowMaxDeltaL": 7.18804931640625,
+      "worstLabel": "poor",
+      "worstSampleIndex": 22
+    },
+    "U.S. Sheetfed Coated v2": {
+      "rowMaxDeltaE": 11.183491471545036,
+      "rowMeanDeltaE": 3.0974144868514975,
+      "rowMaxDeltaL": 11.150020122528076,
+      "worstLabel": "poor",
+      "worstSampleIndex": 20
+    },
+    "U.S. Sheetfed Uncoated v2": {
+      "rowMaxDeltaE": 15.7223452994629,
+      "rowMeanDeltaE": 5.078748632481382,
+      "rowMaxDeltaL": 15.264957904815674,
+      "worstLabel": "poor",
+      "worstSampleIndex": 20
+    },
+    "U.S. Web Coated (SWOP) v2": {
+      "rowMaxDeltaE": 13.147809903056084,
+      "rowMeanDeltaE": 4.0952012336093535,
+      "rowMaxDeltaL": 13.082782745361328,
+      "worstLabel": "poor",
+      "worstSampleIndex": 20
+    },
+    "U.S. Web Uncoated v2": {
+      "rowMaxDeltaE": 15.7223452994629,
+      "rowMeanDeltaE": 5.078748632481382,
+      "rowMaxDeltaL": 15.264957904815674,
+      "worstLabel": "poor",
+      "worstSampleIndex": 20
+    },
+    "Uncoated FOGRA29 (ISO 12647-2:2004)": {
+      "rowMaxDeltaE": 18.290701279867882,
+      "rowMeanDeltaE": 4.817877585055021,
+      "rowMaxDeltaL": 13.5589000582695,
+      "worstLabel": "poor",
+      "worstSampleIndex": 22
+    },
+    "Web Coated FOGRA28 (ISO 12647-2:2004)": {
+      "rowMaxDeltaE": 10.869282786787902,
+      "rowMeanDeltaE": 3.3566775577972834,
+      "rowMaxDeltaL": 10.817975997924805,
+      "worstLabel": "poor",
+      "worstSampleIndex": 20
+    },
+    "eciCMYK v2": {
+      "rowMaxDeltaE": 11.66951449826584,
+      "rowMeanDeltaE": 2.8591207486173515,
+      "rowMaxDeltaL": 11.629127740859985,
+      "worstLabel": "poor",
+      "worstSampleIndex": 20
+    }
+  }
+}
