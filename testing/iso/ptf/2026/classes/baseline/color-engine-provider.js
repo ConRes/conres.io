@@ -12,6 +12,8 @@
  * @module ColorEngineProvider
  */
 
+import { CONTEXT_PREFIX } from '../../services/helpers/runtime.js';
+
 /**
  * @typedef {import('../../packages/color-engine/src/index.js').ColorEngine} ColorEngine
  */
@@ -152,6 +154,15 @@ export class ColorEngineProvider {
     /** @type {Map<string, ArrayBuffer>} */
     #profileBufferCache = new Map();
 
+    /** @type {number} */
+    static #instanceCount = 0;
+
+    /** @type {number} */
+    static #aliveCount = 0;
+
+    /** @type {number} */
+    #instanceId;
+
     /**
      * Creates a new ColorEngineProvider instance.
      *
@@ -160,6 +171,9 @@ export class ColorEngineProvider {
      */
     constructor(options = {}) {
         this.#enginePath = options.enginePath || DEFAULT_ENGINE_PATH;
+        this.#instanceId = ++ColorEngineProvider.#instanceCount;
+        ColorEngineProvider.#aliveCount++;
+        console.log(`${CONTEXT_PREFIX} [ColorEngineProvider] #${this.#instanceId} created (alive: ${ColorEngineProvider.#aliveCount}, total: ${ColorEngineProvider.#instanceCount})`);
     }
 
     /**
@@ -182,10 +196,13 @@ export class ColorEngineProvider {
      * @returns {Promise<void>}
      */
     async #doInitialize() {
-        // Dynamic import for version flexibility
-        // console.trace(`Loading color engine from ${this.#enginePath}...`);
         this.#module = await import(this.#enginePath);
         this.#engine = await this.#module.createEngine();
+
+        // Log WASM memory state after initialization
+        let wasmMemMB = 'unknown';
+        try { wasmMemMB = (this.#engine.HEAPU8.buffer.byteLength / 1024 / 1024).toFixed(1) + 'MB'; } catch {}
+        console.log(`${CONTEXT_PREFIX} [ColorEngineProvider] #${this.#instanceId} initialized (WASM memory: ${wasmMemMB})`);
     }
 
     /**
@@ -441,7 +458,20 @@ export class ColorEngineProvider {
     /**
      * Disposes of the color engine and releases resources.
      */
+    /**
+     * Gets the current WASM heap size in bytes.
+     * WASM memory grows but never shrinks — this tracks cumulative growth.
+     * @returns {number} Current WASM memory size in bytes, or 0 if not initialized
+     */
+    getWASMMemoryBytes() {
+        try { return this.#engine?.HEAPU8?.buffer?.byteLength ?? 0; } catch { return 0; }
+    }
+
     dispose() {
+        ColorEngineProvider.#aliveCount--;
+        let wasmMemMB = 'already released';
+        try { wasmMemMB = (this.#engine.HEAPU8.buffer.byteLength / 1024 / 1024).toFixed(1) + 'MB'; } catch {}
+        console.log(`${CONTEXT_PREFIX} [ColorEngineProvider] #${this.#instanceId} disposed (alive: ${ColorEngineProvider.#aliveCount}, WASM memory was: ${wasmMemMB})`);
         this.#engine = null;
         this.#module = null;
         this.#initPromise = null;
