@@ -16,6 +16,9 @@ The user is autistic and invests significant effort to write explicit, detailed 
 3. When instructions are unclear, ASK — do not assume or fabricate
 4. Update progress documents with what you ACTUALLY did, not what you planned to do
 5. Be methodical, not presumptuous
+6. **Never claim "all tests pass" as proof of correctness** when the test suite does not cover the code paths you changed — state coverage gaps explicitly
+7. **After adding any variable reference**, verify it is in scope at every reference site — grep the file, check which method each reference is in
+8. **When a testing protocol exists**, follow it completely — do not skip steps and then claim the protocol was followed
 
 ---
 

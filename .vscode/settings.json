@@ -67,5 +67,6 @@
 	},
 	"markdown.styles": [
 		// "/Users/daflair/Projects/smotaal.io/pholio/styles/common.css" //
-	]
+	],
+	"svg.preview.background": "transparent"
 }
