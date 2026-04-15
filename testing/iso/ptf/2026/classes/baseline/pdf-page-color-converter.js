@@ -863,9 +863,9 @@ export class PDFPageColorConverter extends CompositeColorConverter {
             'DeviceRGB': 'RGB',
             'DeviceGray': 'Gray',
             'DeviceCMYK': 'CMYK',
-            'ICCBased-RGB': 'RGB',
-            'ICCBased-CMYK': 'CMYK',
-            'ICCBased-Gray': 'Gray',
+            'ICCBasedRGB': 'RGB',
+            'ICCBasedCMYK': 'CMYK',
+            'ICCBasedGray': 'Gray',
             'Lab': 'Lab',
         };
 
@@ -879,9 +879,9 @@ export class PDFPageColorConverter extends CompositeColorConverter {
                 'DeviceRGB': 'RGB',
                 'DeviceGray': 'Gray',
                 'DeviceCMYK': 'CMYK',
-                'ICCBased-RGB': 'RGB',
-                'ICCBased-CMYK': 'CMYK',
-                'ICCBased-Gray': 'Gray',
+                'ICCBasedRGB': 'RGB',
+                'ICCBasedCMYK': 'CMYK',
+                'ICCBasedGray': 'Gray',
                 'Lab': 'Lab',
             };
 
