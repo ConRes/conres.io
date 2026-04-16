@@ -80,10 +80,10 @@ export class AssetPagePreConverter {
     #defaultSourceProfileForDeviceGray;
 
     /** @type {string[] | undefined} */
-    #includedColorSpaceTypes;
+    #includedLayoutColorSpaceTypes;
 
     /** @type {string[] | undefined} */
-    #excludedColorSpaceTypes;
+    #excludedLayoutColorSpaceTypes;
 
     /** @type {boolean | undefined} */
     #useLegacyContentStreamParsing;
@@ -129,14 +129,14 @@ export class AssetPagePreConverter {
      * @param {ArrayBuffer | null} [options.defaultSourceProfileForDeviceRGB] - Default source profile for DeviceRGB
      * @param {ArrayBuffer | null} [options.defaultSourceProfileForDeviceCMYK] - Default source profile for DeviceCMYK
      * @param {ArrayBuffer | null} [options.defaultSourceProfileForDeviceGray] - Default source profile for DeviceGray
-     * @param {string[]} [options.includedColorSpaceTypes] - PDF color space types to include for conversion
-     * @param {string[]} [options.excludedColorSpaceTypes] - PDF color space types to exclude from conversion
+     * @param {string[]} [options.includedLayoutColorSpaceTypes] - PDF color space types to include for conversion
+     * @param {string[]} [options.excludedLayoutColorSpaceTypes] - PDF color space types to exclude from conversion
      * @param {boolean} [options.useLegacyContentStreamParsing] - Use legacy regex-based content stream parsing (default: false)
      * @param {boolean} [options.convertDeviceRGB] - Convert DeviceRGB colors in content streams
      * @param {boolean} [options.convertDeviceCMYK] - Convert DeviceCMYK colors in content streams
      * @param {boolean} [options.convertDeviceGray] - Convert DeviceGray colors in content streams
      */
-    constructor({ outputProfile, outputColorSpace, outputBitsPerComponent, colorSpaceResolver, renderingIntent = 'relative-colorimetric', blackPointCompensation = true, debugging = false, useWorkers = false, interConversionDelay = 0, defaultSourceProfileForDeviceRGB, defaultSourceProfileForDeviceCMYK, defaultSourceProfileForDeviceGray, includedColorSpaceTypes, excludedColorSpaceTypes, useLegacyContentStreamParsing, convertDeviceRGB, convertDeviceCMYK, convertDeviceGray, convertImages = true, convertContentStreams = true, concurrentSubsets = false }) {
+    constructor({ outputProfile, outputColorSpace, outputBitsPerComponent, colorSpaceResolver, renderingIntent = 'relative-colorimetric', blackPointCompensation = true, debugging = false, useWorkers = false, interConversionDelay = 0, defaultSourceProfileForDeviceRGB, defaultSourceProfileForDeviceCMYK, defaultSourceProfileForDeviceGray, includedLayoutColorSpaceTypes, excludedLayoutColorSpaceTypes, useLegacyContentStreamParsing, convertDeviceRGB, convertDeviceCMYK, convertDeviceGray, convertImages = true, convertContentStreams = true, concurrentSubsets = false }) {
         this.#outputProfile = outputProfile;
         this.#outputColorSpace = outputColorSpace;
         this.#outputBitsPerComponent = outputBitsPerComponent;
@@ -153,9 +153,9 @@ export class AssetPagePreConverter {
         /** @type {ArrayBuffer | null | undefined} */
         this.#defaultSourceProfileForDeviceGray = defaultSourceProfileForDeviceGray;
         /** @type {string[] | undefined} */
-        this.#includedColorSpaceTypes = includedColorSpaceTypes;
+        this.#includedLayoutColorSpaceTypes = includedLayoutColorSpaceTypes;
         /** @type {string[] | undefined} */
-        this.#excludedColorSpaceTypes = excludedColorSpaceTypes;
+        this.#excludedLayoutColorSpaceTypes = excludedLayoutColorSpaceTypes;
         /** @type {boolean | undefined} */
         this.#useLegacyContentStreamParsing = useLegacyContentStreamParsing;
         /** @type {boolean | undefined} */
@@ -491,8 +491,8 @@ export class AssetPagePreConverter {
                     defaultSourceProfileForDeviceRGB: this.#defaultSourceProfileForDeviceRGB,
                     defaultSourceProfileForDeviceCMYK: this.#defaultSourceProfileForDeviceCMYK,
                     defaultSourceProfileForDeviceGray: this.#defaultSourceProfileForDeviceGray,
-                    includedColorSpaceTypes: this.#includedColorSpaceTypes,
-                    excludedColorSpaceTypes: this.#excludedColorSpaceTypes,
+                    includedLayoutColorSpaceTypes: this.#includedLayoutColorSpaceTypes,
+                    excludedLayoutColorSpaceTypes: this.#excludedLayoutColorSpaceTypes,
                     useLegacyContentStreamParsing: this.#useLegacyContentStreamParsing,
                     convertDeviceRGB: this.#convertDeviceRGB,
                     convertDeviceCMYK: this.#convertDeviceCMYK,
@@ -570,8 +570,8 @@ export class AssetPagePreConverter {
                             defaultSourceProfileForDeviceRGB: this.#defaultSourceProfileForDeviceRGB,
                             defaultSourceProfileForDeviceCMYK: this.#defaultSourceProfileForDeviceCMYK,
                             defaultSourceProfileForDeviceGray: this.#defaultSourceProfileForDeviceGray,
-                            includedColorSpaceTypes: this.#includedColorSpaceTypes,
-                            excludedColorSpaceTypes: this.#excludedColorSpaceTypes,
+                            includedLayoutColorSpaceTypes: this.#includedLayoutColorSpaceTypes,
+                            excludedLayoutColorSpaceTypes: this.#excludedLayoutColorSpaceTypes,
                             useLegacyContentStreamParsing: this.#useLegacyContentStreamParsing,
                             convertDeviceRGB: this.#convertDeviceRGB,
                             convertDeviceCMYK: this.#convertDeviceCMYK,

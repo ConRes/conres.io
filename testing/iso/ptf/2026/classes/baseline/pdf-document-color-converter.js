@@ -32,8 +32,8 @@ import {
  *   pageOverrides?: Map<import('pdf-lib').PDFRef, Partial<import('./pdf-page-color-converter.js').PDFPageColorConverterConfiguration>>,
  *   engineVersion?: string,
  *   pages?: number[],
- *   includedColorSpaceTypes?: string[],
- *   excludedColorSpaceTypes?: string[],
+ *   includedLayoutColorSpaceTypes?: string[],
+ *   excludedLayoutColorSpaceTypes?: string[],
  *   defaultSourceProfileForDeviceRGB?: ArrayBuffer | null,
  *   defaultSourceProfileForDeviceCMYK?: ArrayBuffer | null,
  *   defaultSourceProfileForDeviceGray?: ArrayBuffer | null,
@@ -812,12 +812,12 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
 
     /**
      * Checks whether a PDF color space type should be included for conversion,
-     * based on the configured includedColorSpaceTypes/excludedColorSpaceTypes.
+     * based on the configured includedLayoutColorSpaceTypes/excludedLayoutColorSpaceTypes.
      *
      * Shorthand resolution: 'RGB' matches both 'DeviceRGB' and 'ICCBasedRGB',
      * unless either is explicitly in the other list.
      *
-     * When no includedColorSpaceTypes is configured, falls back to the legacy
+     * When no includedLayoutColorSpaceTypes is configured, falls back to the legacy
      * behavior: exclude CMYK (both DeviceCMYK and ICCBasedCMYK), include all else.
      *
      * @param {string} pdfColorSpaceType - e.g., 'DeviceRGB', 'ICCBasedCMYK', 'Lab', 'Indexed'
@@ -825,8 +825,8 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
      */
     #isColorSpaceIncluded(pdfColorSpaceType) {
         const config = /** @type {PDFDocumentColorConverterConfiguration} */ (this.configuration);
-        const included = config.includedColorSpaceTypes;
-        const excluded = config.excludedColorSpaceTypes;
+        const included = config.includedLayoutColorSpaceTypes;
+        const excluded = config.excludedLayoutColorSpaceTypes;
 
         // Indexed delegates to baseType — always include at collection level;
         // the page converter handles indexed conversion based on the base type

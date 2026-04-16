@@ -77,8 +77,8 @@ import { safeDynamicImport } from '../../helpers/imports.js';
  * @typedef {{
  *   description: string,
  *   profileColorSpace: string,
- *   includedColorSpaceTypes: string[],
- *   excludedColorSpaceTypes: string[],
+ *   includedLayoutColorSpaceTypes: string[],
+ *   excludedLayoutColorSpaceTypes: string[],
  *   renderingIntentPasses: IntentPass[],
  *   multiPDF: boolean,
  * }} ProfileCategoryDefinition
@@ -181,8 +181,8 @@ export class AssemblyPolicyResolver {
         // ------------------------------------------------------------------
         const filteredManifest = AssemblyPolicyResolver.#filterManifestByColorSpaceType(
             manifest,
-            categoryDefinition.includedColorSpaceTypes,
-            categoryDefinition.excludedColorSpaceTypes,
+            categoryDefinition.includedLayoutColorSpaceTypes,
+            categoryDefinition.excludedLayoutColorSpaceTypes,
         );
 
         // ------------------------------------------------------------------
