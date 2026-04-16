@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en" data-color-mode="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ConRes Test Form Platform</title>
+<style>
+.markdown-body{-ms-text-size-adjust:100%;-webkit-text-size-adjust:100%;margin:0;color:#1f2328;background-color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";font-size:16px;line-height:1.5;word-wrap:break-word}.markdown-body .octicon{display:inline-block;fill:currentColor;vertical-align:text-bottom}.markdown-body h1:hover .anchor .octicon-link:before,.markdown-body h2:hover .anchor .octicon-link:before,.markdown-body h3:hover .anchor .octicon-link:before,.markdown-body h4:hover .anchor .octicon-link:before,.markdown-body h5:hover .anchor .octicon-link:before,.markdown-body h6:hover .anchor .octicon-link:before{width:16px;height:16px;content:' ';display:inline-block;background-color:currentColor;-webkit-mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' version='1.1' aria-hidden='true'><path fill-rule='evenodd' d='M7.775 3.275a.75.75 0 001.06 1.06l1.25-1.25a2 2 0 112.83 2.83l-2.5 2.5a2 2 0 01-2.83 0 .75.75 0 00-1.06 1.06 3.5 3.5 0 004.95 0l2.5-2.5a3.5 3.5 0 00-4.95-4.95l-1.25 1.25zm-4.69 9.64a2 2 0 010-2.83l2.5-2.5a2 2 0 012.83 0 .75.75 0 001.06-1.06 3.5 3.5 0 00-4.95 0l-2.5 2.5a3.5 3.5 0 004.95 4.95l1.25-1.25a.75.75 0 00-1.06-1.06l-1.25 1.25a2 2 0 01-2.83 0z'></path></svg>");mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' version='1.1' aria-hidden='true'><path fill-rule='evenodd' d='M7.775 3.275a.75.75 0 001.06 1.06l1.25-1.25a2 2 0 112.83 2.83l-2.5 2.5a2 2 0 01-2.83 0 .75.75 0 00-1.06 1.06 3.5 3.5 0 004.95 0l2.5-2.5a3.5 3.5 0 00-4.95-4.95l-1.25 1.25zm-4.69 9.64a2 2 0 010-2.83l2.5-2.5a2 2 0 012.83 0 .75.75 0 001.06-1.06 3.5 3.5 0 00-4.95 0l-2.5 2.5a3.5 3.5 0 004.95 4.95l1.25-1.25a.75.75 0 00-1.06-1.06l-1.25 1.25a2 2 0 01-2.83 0z'></path></svg>")}.markdown-body details,.markdown-body figcaption,.markdown-body figure{display:block}.markdown-body summary{display:list-item}.markdown-body [hidden]{display:none!important}.markdown-body a{background-color:transparent;color:#0969da;text-decoration:none}.markdown-body abbr[title]{border-bottom:none;-webkit-text-decoration:underline dotted;text-decoration:underline dotted}.markdown-body b,.markdown-body strong{font-weight:600}.markdown-body dfn{font-style:italic}.markdown-body h1{margin:.67em 0;font-weight:600;padding-bottom:.3em;font-size:2em;border-bottom:1px solid #d7dde3}.markdown-body mark{background-color:#fff8c5;color:#1f2328}.markdown-body small{font-size:90%}.markdown-body sub,.markdown-body sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}.markdown-body sub{bottom:-.25em}.markdown-body sup{top:-.5em}.markdown-body img{border-style:none;max-width:100%;box-sizing:content-box;background-color:#fff}.markdown-body code,.markdown-body kbd,.markdown-body pre,.markdown-body samp{font-family:monospace;font-size:1em}.markdown-body figure{margin:1em 40px}.markdown-body hr{box-sizing:content-box;overflow:hidden;background:0 0;border-bottom:1px solid #d7dde3;height:.25em;padding:0;margin:24px 0;background-color:#d0d7de;border:0}.markdown-body input{font:inherit;margin:0;overflow:visible;font-family:inherit;font-size:inherit;line-height:inherit}.markdown-body [type=button],.markdown-body [type=reset],.markdown-body [type=submit]{-webkit-appearance:button;appearance:button}.markdown-body [type=checkbox],.markdown-body [type=radio]{box-sizing:border-box;padding:0}.markdown-body [type=number]::-webkit-inner-spin-button,.markdown-body [type=number]::-webkit-outer-spin-button{height:auto}.markdown-body [type=search]::-webkit-search-cancel-button,.markdown-body [type=search]::-webkit-search-decoration{-webkit-appearance:none;appearance:none}.markdown-body ::-webkit-input-placeholder{color:inherit;opacity:.54}.markdown-body ::-webkit-file-upload-button{-webkit-appearance:button;appearance:button;font:inherit}.markdown-body a:hover{text-decoration:underline}.markdown-body ::placeholder{color:#6e7781;opacity:1}.markdown-body hr::before{display:table;content:""}.markdown-body hr::after{display:table;clear:both;content:""}.markdown-body table{border-spacing:0;border-collapse:collapse;display:block;width:max-content;max-width:100%;overflow:auto}.markdown-body td,.markdown-body th{padding:0}.markdown-body details summary{cursor:pointer}.markdown-body details:not([open])>:not(summary){display:none!important}.markdown-body [role=button]:focus,.markdown-body a:focus,.markdown-body input[type=checkbox]:focus,.markdown-body input[type=radio]:focus{outline:2px solid #0969da;outline-offset:-2px;box-shadow:none}.markdown-body [role=button]:focus:not(:focus-visible),.markdown-body a:focus:not(:focus-visible),.markdown-body input[type=checkbox]:focus:not(:focus-visible),.markdown-body input[type=radio]:focus:not(:focus-visible){outline:solid 1px transparent}.markdown-body [role=button]:focus-visible,.markdown-body a:focus-visible,.markdown-body input[type=checkbox]:focus-visible,.markdown-body input[type=radio]:focus-visible{outline:2px solid #0969da;outline-offset:-2px;box-shadow:none}.markdown-body a:not([class]):focus,.markdown-body a:not([class]):focus-visible,.markdown-body input[type=checkbox]:focus,.markdown-body input[type=checkbox]:focus-visible,.markdown-body input[type=radio]:focus,.markdown-body input[type=radio]:focus-visible{outline-offset:0}.markdown-body kbd{display:inline-block;padding:3px 5px;font:11px ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;line-height:10px;color:#1f2328;vertical-align:middle;background-color:#f6f8fa;border:solid 1px rgba(175,184,193,.2);border-bottom-color:rgba(175,184,193,.2);border-radius:6px;box-shadow:inset 0 -1px 0 rgba(175,184,193,.2)}.markdown-body h1,.markdown-body h2,.markdown-body h3,.markdown-body h4,.markdown-body h5,.markdown-body h6{margin-top:24px;margin-bottom:16px;font-weight:600;line-height:1.25}.markdown-body h2{font-weight:600;padding-bottom:.3em;font-size:1.5em;border-bottom:1px solid #d7dde3}.markdown-body h3{font-weight:600;font-size:1.25em}.markdown-body h4{font-weight:600;font-size:1em}.markdown-body h5{font-weight:600;font-size:.875em}.markdown-body h6{font-weight:600;font-size:.85em;color:#656d76}.markdown-body p{margin-top:0;margin-bottom:10px}.markdown-body blockquote{margin:0;padding:0 1em;color:#656d76;border-left:.25em solid #d0d7de}.markdown-body ol,.markdown-body ul{margin-top:0;margin-bottom:0;padding-left:2em}.markdown-body ol ol,.markdown-body ul ol{list-style-type:lower-roman}.markdown-body ol ol ol,.markdown-body ol ul ol,.markdown-body ul ol ol,.markdown-body ul ul ol{list-style-type:lower-alpha}.markdown-body dd{margin-left:0}.markdown-body code,.markdown-body samp,.markdown-body tt{font-family:ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;font-size:12px}.markdown-body pre{margin-top:0;margin-bottom:0;font-family:ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;font-size:12px;word-wrap:normal}.markdown-body .octicon{display:inline-block;overflow:visible!important;vertical-align:text-bottom;fill:currentColor}.markdown-body input::-webkit-inner-spin-button,.markdown-body input::-webkit-outer-spin-button{margin:0;-webkit-appearance:none;appearance:none}.markdown-body .mr-2{margin-right:8px!important}.markdown-body::before{display:table;content:""}.markdown-body::after{display:table;clear:both;content:""}.markdown-body>:first-child{margin-top:0!important}.markdown-body>:last-child{margin-bottom:0!important}.markdown-body a:not([href]){color:inherit;text-decoration:none}.markdown-body .absent{color:#d1242f}.markdown-body .anchor{float:left;padding-right:4px;margin-left:-20px;line-height:1}.markdown-body .anchor:focus{outline:0}.markdown-body blockquote,.markdown-body details,.markdown-body dl,.markdown-body ol,.markdown-body p,.markdown-body pre,.markdown-body table,.markdown-body ul{margin-top:0;margin-bottom:16px}.markdown-body blockquote>:first-child{margin-top:0}.markdown-body blockquote>:last-child{margin-bottom:0}.markdown-body h1 .octicon-link,.markdown-body h2 .octicon-link,.markdown-body h3 .octicon-link,.markdown-body h4 .octicon-link,.markdown-body h5 .octicon-link,.markdown-body h6 .octicon-link{color:#1f2328;vertical-align:middle;visibility:hidden}.markdown-body h1:hover .anchor,.markdown-body h2:hover .anchor,.markdown-body h3:hover .anchor,.markdown-body h4:hover .anchor,.markdown-body h5:hover .anchor,.markdown-body h6:hover .anchor{text-decoration:none}.markdown-body h1:hover .anchor .octicon-link,.markdown-body h2:hover .anchor .octicon-link,.markdown-body h3:hover .anchor .octicon-link,.markdown-body h4:hover .anchor .octicon-link,.markdown-body h5:hover .anchor .octicon-link,.markdown-body h6:hover .anchor .octicon-link{visibility:visible}.markdown-body h1 code,.markdown-body h1 tt,.markdown-body h2 code,.markdown-body h2 tt,.markdown-body h3 code,.markdown-body h3 tt,.markdown-body h4 code,.markdown-body h4 tt,.markdown-body h5 code,.markdown-body h5 tt,.markdown-body h6 code,.markdown-body h6 tt{padding:0 .2em;font-size:inherit}.markdown-body summary h1,.markdown-body summary h2,.markdown-body summary h3,.markdown-body summary h4,.markdown-body summary h5,.markdown-body summary h6{display:inline-block}.markdown-body summary h1 .anchor,.markdown-body summary h2 .anchor,.markdown-body summary h3 .anchor,.markdown-body summary h4 .anchor,.markdown-body summary h5 .anchor,.markdown-body summary h6 .anchor{margin-left:-40px}.markdown-body summary h1,.markdown-body summary h2{padding-bottom:0;border-bottom:0}.markdown-body ol.no-list,.markdown-body ul.no-list{padding:0;list-style-type:none}.markdown-body ol[type="a s"]{list-style-type:lower-alpha}.markdown-body ol[type="A s"]{list-style-type:upper-alpha}.markdown-body ol[type="i s"]{list-style-type:lower-roman}.markdown-body ol[type="I s"]{list-style-type:upper-roman}.markdown-body ol[type="1"]{list-style-type:decimal}.markdown-body div>ol:not([type]){list-style-type:decimal}.markdown-body ol ol,.markdown-body ol ul,.markdown-body ul ol,.markdown-body ul ul{margin-top:0;margin-bottom:0}.markdown-body li>p{margin-top:16px}.markdown-body li+li{margin-top:.25em}.markdown-body dl{padding:0}.markdown-body dl dt{padding:0;margin-top:16px;font-size:1em;font-style:italic;font-weight:600}.markdown-body dl dd{padding:0 16px;margin-bottom:16px}.markdown-body table th{font-weight:600}.markdown-body table td,.markdown-body table th{padding:6px 13px;border:1px solid #d0d7de}.markdown-body table td>:last-child{margin-bottom:0}.markdown-body table tr{background-color:#fff;border-top:1px solid #d7dde3}.markdown-body table tr:nth-child(2n){background-color:#f6f8fa}.markdown-body table img{background-color:transparent}.markdown-body img[align=right]{padding-left:20px}.markdown-body img[align=left]{padding-right:20px}.markdown-body .emoji{max-width:none;vertical-align:text-top;background-color:transparent}.markdown-body span.frame{display:block;overflow:hidden}.markdown-body span.frame>span{display:block;float:left;width:auto;padding:7px;margin:13px 0 0;overflow:hidden;border:1px solid #d0d7de}.markdown-body span.frame span img{display:block;float:left}.markdown-body span.frame span span{display:block;padding:5px 0 0;clear:both;color:#1f2328}.markdown-body span.align-center{display:block;overflow:hidden;clear:both}.markdown-body span.align-center>span{display:block;margin:13px auto 0;overflow:hidden;text-align:center}.markdown-body span.align-center span img{margin:0 auto;text-align:center}.markdown-body span.align-right{display:block;overflow:hidden;clear:both}.markdown-body span.align-right>span{display:block;margin:13px 0 0;overflow:hidden;text-align:right}.markdown-body span.align-right span img{margin:0;text-align:right}.markdown-body span.float-left{display:block;float:left;margin-right:13px;overflow:hidden}.markdown-body span.float-left span{margin:13px 0 0}.markdown-body span.float-right{display:block;float:right;margin-left:13px;overflow:hidden}.markdown-body span.float-right>span{display:block;margin:13px auto 0;overflow:hidden;text-align:right}.markdown-body code,.markdown-body tt{padding:.2em .4em;margin:0;font-size:85%;white-space:break-spaces;background-color:rgba(175,184,193,.2);border-radius:6px}.markdown-body code br,.markdown-body tt br{display:none}.markdown-body del code{text-decoration:inherit}.markdown-body samp{font-size:85%}.markdown-body pre code{font-size:100%}.markdown-body pre>code{padding:0;margin:0;word-break:normal;white-space:pre;background:0 0;border:0}.markdown-body .highlight{margin-bottom:16px}.markdown-body .highlight pre{margin-bottom:0;word-break:normal}.markdown-body .highlight pre,.markdown-body pre{padding:16px;overflow:auto;font-size:85%;line-height:1.45;color:#1f2328;background-color:#f6f8fa;border-radius:6px}.markdown-body pre code,.markdown-body pre tt{display:inline;max-width:auto;padding:0;margin:0;overflow:visible;line-height:inherit;word-wrap:normal;background-color:transparent;border:0}.markdown-body .csv-data td,.markdown-body .csv-data th{padding:5px;overflow:hidden;font-size:12px;line-height:1;text-align:left;white-space:nowrap}.markdown-body .csv-data .blob-num{padding:10px 8px 9px;text-align:right;background:#fff;border:0}.markdown-body .csv-data tr{border-top:0}.markdown-body .csv-data th{font-weight:600;background:#f6f8fa;border-top:0}.markdown-body [data-footnote-ref]::before{content:"["}.markdown-body [data-footnote-ref]::after{content:"]"}.markdown-body .footnotes{font-size:12px;color:#656d76;border-top:1px solid #d0d7de}.markdown-body .footnotes ol{padding-left:16px}.markdown-body .footnotes ol ul{display:inline-block;padding-left:16px;margin-top:16px}.markdown-body .footnotes li{position:relative}.markdown-body .footnotes li:target::before{position:absolute;top:-8px;right:-8px;bottom:-8px;left:-24px;pointer-events:none;content:"";border:2px solid #0969da;border-radius:6px}.markdown-body .footnotes li:target{color:#1f2328}.markdown-body .footnotes .data-footnote-backref g-emoji{font-family:monospace}.markdown-body .pl-c{color:#57606a}.markdown-body .pl-c1,.markdown-body .pl-s .pl-v{color:#0550ae}.markdown-body .pl-e,.markdown-body .pl-en{color:#6639ba}.markdown-body .pl-s .pl-s1,.markdown-body .pl-smi{color:#24292f}.markdown-body .pl-ent{color:#116329}.markdown-body .pl-k{color:#cf222e}.markdown-body .pl-pds,.markdown-body .pl-s,.markdown-body .pl-s .pl-pse .pl-s1,.markdown-body .pl-sr,.markdown-body .pl-sr .pl-cce,.markdown-body .pl-sr .pl-sra,.markdown-body .pl-sr .pl-sre{color:#0a3069}.markdown-body .pl-smw,.markdown-body .pl-v{color:#953800}.markdown-body .pl-bu{color:#82071e}.markdown-body .pl-ii{color:#f6f8fa;background-color:#82071e}.markdown-body .pl-c2{color:#f6f8fa;background-color:#cf222e}.markdown-body .pl-sr .pl-cce{font-weight:700;color:#116329}.markdown-body .pl-ml{color:#3b2300}.markdown-body .pl-mh,.markdown-body .pl-mh .pl-en,.markdown-body .pl-ms{font-weight:700;color:#0550ae}.markdown-body .pl-mi{font-style:italic;color:#24292f}.markdown-body .pl-mb{font-weight:700;color:#24292f}.markdown-body .pl-md{color:#82071e;background-color:#ffebe9}.markdown-body .pl-mi1{color:#116329;background-color:#dafbe1}.markdown-body .pl-mc{color:#953800;background-color:#ffd8b5}.markdown-body .pl-mi2{color:#eaeef2;background-color:#0550ae}.markdown-body .pl-mdr{font-weight:700;color:#8250df}.markdown-body .pl-ba{color:#57606a}.markdown-body .pl-sg{color:#8c959f}.markdown-body .pl-corl{text-decoration:underline;color:#0a3069}.markdown-body g-emoji{display:inline-block;min-width:1ch;font-family:"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";font-size:1em;font-style:normal!important;font-weight:400;line-height:1;vertical-align:-.075em}.markdown-body g-emoji img{width:1em;height:1em}.markdown-body .task-list-item{list-style-type:none}.markdown-body .task-list-item label{font-weight:400}.markdown-body .task-list-item.enabled label{cursor:pointer}.markdown-body .task-list-item+.task-list-item{margin-top:4px}.markdown-body .task-list-item .handle{display:none}.markdown-body .task-list-item-checkbox{margin:0 .2em .25em -1.4em;vertical-align:middle}.markdown-body .contains-task-list:dir(rtl) .task-list-item-checkbox{margin:0 -1.6em .25em .2em}.markdown-body .contains-task-list{position:relative}.markdown-body .contains-task-list:focus-within .task-list-item-convert-container,.markdown-body .contains-task-list:hover .task-list-item-convert-container{display:block;width:auto;height:24px;overflow:visible;clip:auto}.markdown-body ::-webkit-calendar-picker-indicator{filter:invert(50%)}.markdown-body .markdown-alert{padding:8px 16px;margin-bottom:16px;color:inherit;border-left:.25em solid #d0d7de}.markdown-body .markdown-alert>:first-child{margin-top:0}.markdown-body .markdown-alert>:last-child{margin-bottom:0}.markdown-body .markdown-alert .markdown-alert-title{display:flex;font-weight:500;align-items:center;line-height:1}.markdown-body .markdown-alert.markdown-alert-note{border-left-color:#0969da}.markdown-body .markdown-alert.markdown-alert-note .markdown-alert-title{color:#0969da}.markdown-body .markdown-alert.markdown-alert-important{border-left-color:#8250df}.markdown-body .markdown-alert.markdown-alert-important .markdown-alert-title{color:#8250df}.markdown-body .markdown-alert.markdown-alert-warning{border-left-color:#9a6700}.markdown-body .markdown-alert.markdown-alert-warning .markdown-alert-title{color:#9a6700}.markdown-body .markdown-alert.markdown-alert-tip{border-left-color:#1f883d}.markdown-body .markdown-alert.markdown-alert-tip .markdown-alert-title{color:#1a7f37}.markdown-body .markdown-alert.markdown-alert-caution{border-left-color:#cf222e}.markdown-body .markdown-alert.markdown-alert-caution .markdown-alert-title{color:#d1242f}
+</style>
+<style>
+/* Layout styles for markdown-body container */
+.markdown-body {
+	box-sizing: border-box;
+	min-width: 200px;
+	max-width: 980px;
+	margin: 0 auto;
+	padding: 45px;
+	font-size-adjust: 0.45;
+}
+
+@media (max-width: 767px) {
+	.markdown-body {
+		padding: 15px;
+	}
+}
+
+</style>
+<style>
+/* Print optimization styles */
+@media print {
+	@page { size: legal; }
+
+	/* Avoid breaking headings from following content */
+	h1, h2, h3, h4, h5, h6 {
+		page-break-after: avoid;
+		break-after: avoid-page;
+	}
+
+	/* Keep these elements together */
+	table, figure, div.no-break, pre {
+		page-break-inside: avoid;
+		break-inside: avoid-page;
+	}
+
+	/* Don't orphan paragraphs before kept-together elements */
+	p:has(+ table, + figure, + div.no-break, + pre) {
+		page-break-after: avoid;
+		break-after: avoid-page;
+	}
+
+	/* Ensure code blocks don't overflow */
+	pre {
+		white-space: pre-wrap;
+		word-wrap: break-word;
+	}
+}
+
+</style>
+<style>
+/* Mermaid diagram styling */
+.mermaid svg {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+	width: auto;
+	max-width: 100%;
+}
+
+/* Style for pre blocks before mermaid upgrade */
+pre.mermaid {
+	background: transparent;
+	border: none;
+	padding: 0;
+}
+
+/* Server-side rendered mermaid container */
+.mermaid-container {
+	position: relative;
+	display: block;
+	margin: 1rem 0;
+}
+
+.mermaid-container .mermaid-diagram {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+	width: auto;
+	max-width: 100%;
+}
+
+/* Show source button - appears on hover */
+.mermaid-show-source {
+	position: absolute;
+	top: 0.5rem;
+	right: 0.5rem;
+	padding: 0.25rem 0.5rem;
+	font-size: 0.75rem;
+	background: var(--bgColor-muted, rgba(175, 184, 193, 0.2));
+	border: 1px solid var(--borderColor-default, rgba(31, 35, 40, 0.15));
+	border-radius: 6px;
+	cursor: pointer;
+	opacity: 0;
+	transition: opacity 0.2s ease-in-out;
+	color: var(--fgColor-muted, #636c76);
+}
+
+.mermaid-container:hover .mermaid-show-source,
+.mermaid-container:focus-within .mermaid-show-source {
+	opacity: 1;
+}
+
+.mermaid-show-source:hover {
+	background: var(--bgColor-accent-muted, rgba(9, 105, 218, 0.1));
+	border-color: var(--borderColor-accent-emphasis, #0969da);
+	color: var(--fgColor-accent, #0969da);
+}
+
+/* Mermaid source dialog (popover) */
+dialog[popover].mermaid-source,
+dialog#[id$="-source"] {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	max-width: 90vw;
+	max-height: 80vh;
+	width: 600px;
+	padding: 0;
+	border: 1px solid var(--borderColor-default, rgba(31, 35, 40, 0.15));
+	border-radius: 12px;
+	box-shadow: 0 8px 24px rgba(140, 149, 159, 0.2);
+	background: var(--bgColor-default, #ffffff);
+	overflow: hidden;
+}
+
+/* Dark mode support */
+[data-color-mode="dark"] dialog[popover],
+[data-color-mode="dark"] dialog#[id$="-source"] {
+	background: var(--bgColor-default, #0d1117);
+	border-color: var(--borderColor-default, #30363d);
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.mermaid-source-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 0.75rem 1rem;
+	background: var(--bgColor-muted, #f6f8fa);
+	border-bottom: 1px solid var(--borderColor-default, rgba(31, 35, 40, 0.15));
+	font-weight: 600;
+}
+
+[data-color-mode="dark"] .mermaid-source-header {
+	background: var(--bgColor-muted, #161b22);
+	border-bottom-color: var(--borderColor-default, #30363d);
+}
+
+.mermaid-source-header button {
+	padding: 0.25rem 0.5rem;
+	font-size: 0.75rem;
+	background: transparent;
+	border: 1px solid var(--borderColor-default, rgba(31, 35, 40, 0.15));
+	border-radius: 6px;
+	cursor: pointer;
+	color: var(--fgColor-muted, #636c76);
+}
+
+.mermaid-source-header button:hover {
+	background: var(--bgColor-danger-muted, rgba(248, 81, 73, 0.1));
+	border-color: var(--borderColor-danger-emphasis, #cf222e);
+	color: var(--fgColor-danger, #cf222e);
+}
+
+/* Dialog pre/code styling */
+dialog[popover] pre,
+dialog#[id$="-source"] pre {
+	margin: 0;
+	padding: 1rem;
+	max-height: calc(80vh - 60px);
+	overflow: auto;
+	background: var(--bgColor-muted, #f6f8fa);
+}
+
+[data-color-mode="dark"] dialog[popover] pre,
+[data-color-mode="dark"] dialog#[id$="-source"] pre {
+	background: var(--bgColor-muted, #161b22);
+}
+
+dialog[popover] code,
+dialog#[id$="-source"] code {
+	font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+	font-size: 0.875rem;
+	line-height: 1.5;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+/* Backdrop styling */
+dialog[popover]::backdrop,
+dialog#[id$="-source"]::backdrop {
+	background: rgba(0, 0, 0, 0.4);
+}
+
+/* Print: hide interactive elements */
+@media print {
+	.mermaid-show-source {
+		display: none;
+	}
+
+	dialog[popover],
+	dialog#[id$="-source"] {
+		display: none;
+	}
+}
+
+</style>
+</head>
+<body>
+<article class="markdown-body">
+<h1 id="conres-test-form-platform">ConRes Test Form Platform</h1>
+<p>This document describes the ConRes Test Form Platform — its scientific foundations, software architecture, and the 27-year collaboration that produced it. It was drafted by Saleh Abdel Motaal using Claude Opus 4.6 for prose generation, drawing on project source code, commit history, Franz Sigg's <code class="notranslate">content/History.md</code>, email archives (Gmail ConRes/Archive label), and ISO meeting records. The document is undergoing revisions and will be shared as a Google Doc with Franz Sigg, Eric Zeise, Auke Nauta, and Thomas Sprinzing for collaborative review. Technical facts, dates, and contributor attributions require scrutiny from all participants before publication.</p>
+<hr>
+<h2 id="overview">Overview</h2>
+<p>The ConRes (Contrast-Resolution) Test Form Platform is an open-source ecosystem for measuring the perceptual print quality of imaging systems. It addresses a long-standing problem in the graphic arts industry: there has been no standardized, automated way to evaluate whether a printing system can reproduce both the fine spatial detail and the subtle tonal differences that a human observer would notice at normal reading distance.</p>
+<p>The platform spans the full measurement lifecycle. The <a href="#color-engine">Color Engine</a> performs ICC profile-based color transformations in WebAssembly, including a <a href="#k-only-gcr-algorithm">custom K-Only GCR rendering intent</a> that guarantees neutral grays convert to black-only ink, which is critical for <a href="#why-k-only-matters">tone reproduction fidelity</a> in test forms. The <a href="#test-form-generator">Test Form Generator</a> assembles individualized PDF test forms in the browser, applying color conversion to match each participant's output device without requiring Adobe Acrobat. The <a href="#iso-analysis-pipeline">ISO Analysis Pipeline</a> implements the ISO 18621-31 measurement procedure in C++/WebAssembly, applying the <a href="#barten-contrast-sensitivity-model">Barten contrast sensitivity model</a> and <a href="#cross-correlation-scoring">cross-correlation scoring</a> to produce quantitative results from scanned prints. The <a href="#test-form-segmenter">Test Form Segmenter</a> extracts regions of interest from high-resolution scans to feed the analysis pipeline.</p>
+<p>The scientific foundation rests on 27 years of collaborative research. The <a href="#contrast-resolution-methodology">Contrast-Resolution methodology</a> was established through Eliot Harper's RIT thesis (2000), originating from a discussion between Franz Sigg and Dr. Ed Granger at RIT in 1999, refined through <a href="#round-robin-testing-workflow">international round-robin testing</a>, and formalized in the <a href="#iso-standards-context">ISO/TS 18621-31 standard</a>. The <a href="#conres-test-targets">ConRes test targets</a>, hand-programmed in PostScript by Franz Sigg across <a href="#target-revision-history">29+ revisions</a>, encode a grid of spatial frequencies and contrast levels that probe the limits of any imaging system. The <a href="#pictorial-assets">pictorial assessment images</a> from professional photographers enable <a href="#perceptual-psychometrics">perceptual psychometrics research</a> using real-world content alongside the scientific patterns.</p>
+<p>The platform is built for distributed participation. Researchers, print shops, and manufacturers anywhere can <a href="#generation-workflow">generate test forms</a> tailored to their specific device, colorants, and substrate, print them, scan them, and submit scans for centralized analysis. The <a href="#assembly-policy">assembly policy system</a> and <a href="#color-conversion-policy">color conversion policy</a> ensure that the right rendering intents and color management rules are applied automatically based on the output ICC profile. The <a href="#specification-metadata">specification validator</a> (in research) will verify that user-provided device and colorant metadata aligns with <a href="#jdf-xjdf-alignment">JDF/XJDF standards</a> and the ICC profile characteristics.</p>
+<p>All code runs in the browser. The platform targets Safari 16.4+, Chrome 80+, and Firefox 115+ with no server-side processing required beyond a static file server. Source code is available in the <a href="https://github.com/ConRes">ConRes GitHub organization</a> and the <a href="https://github.com/SMotaal">SMotaal GitHub account</a>. The project represents over 3,490 workhours of voluntary academic-industry collaboration across the <a href="#team">ConRes team</a>.</p>
+<hr>
+<h2 id="contrast-resolution-methodology">Contrast-Resolution Methodology</h2>
+<h3 id="scientific-basis">Scientific Basis</h3>
+<p>Contrast Resolution measures two fundamental dimensions of imaging system performance:</p>
+<ul>
+<li><strong>Contrast</strong> is the ability to distinguish tonal differences between adjacent areas. A system with poor contrast loses subtle gradations, rendering shadows and highlights as flat fields.</li>
+<li><strong>Resolution</strong> is the ability to render fine spatial detail. A system with poor resolution blurs edges and merges closely-spaced features into uniform tone.</li>
+</ul>
+<p>These two dimensions are not independent. A printing system may resolve fine detail at high contrast but lose it at low contrast, or vice versa. The ConRes methodology captures this interaction by testing a matrix of spatial frequencies against a range of contrast levels, producing a two-dimensional performance surface rather than a single number.</p>
+<p>The test uses circular patch patterns rather than lines or checkerboards. Circles are rotationally symmetric, testing resolution in all angular directions with a single element. They avoid interference with printer addressability grids that plagued earlier line-based targets. The evaluation is a binary perceptual judgment: "Are the circles recognizable?" This simplifies observer decision-making and reduces fatigue compared to continuous rating scales.</p>
+<h3 id="measurement-dimensions">Measurement Dimensions</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Range</th>
+<th>What It Reveals</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Spatial Frequency</td>
+<td>0.625 to 6.250 lp/mm, 10 steps (settable)</td>
+<td>Detail rendering from coarse to fine</td>
+</tr>
+<tr>
+<td>Contrast</td>
+<td>1% to 100%, 10 levels</td>
+<td>Tonal discrimination from subtle to obvious</td>
+</tr>
+<tr>
+<td>Tone Value</td>
+<td>50% (ISO current); 25%, 50%, 75% under exploration</td>
+<td>Performance variation across the tonal range</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 id="quantitative-metrics">Quantitative Metrics</h3>
+<p><strong>CR Index</strong> (Contrast-Resolution Index) is the area under the contrast-versus-resolution curve at a given tone value. It collapses the 10x10 grid into a single figure of merit for quick comparison between systems.</p>
+<p><strong>CRV</strong> (Contrast-Resolution Volume) extends the CR Index to three dimensions by integrating across tone values. It represents the total volume underneath the contrast-resolution-tone surface. The resulting 3D graph functions as a "ConRes Gamut" analogous to a color gamut: different systems produce differently shaped volumes, and overlaying them reveals where one system outperforms another. Coated and uncoated paper on the same press, for instance, produce visibly different gamut shapes that quantify the substrate's contribution to perceptual quality.</p>
+<p><strong>L-Score</strong> is the automated evaluation algorithm developed by Thomas Liensberger at Fogra and refined by Fuji Xerox researchers (Miho Uno, Shinji Sasahara). It replaces subjective visual assessment with objective scanning and algorithmic analysis, producing quantitative scores independent of observer variability.</p>
+<h3 id="round-robin-testing-workflow">Round-Robin Testing Workflow</h3>
+<p>The round-robin workflow enables distributed participants to produce comparable measurements:</p>
+<ol>
+<li>Participant generates an individualized test form PDF using the <a href="#test-form-generator">Test Form Generator</a> with their output ICC profile</li>
+<li>Participant prints the test form on their device</li>
+<li>Participant scans the print at 1200 DPI using a calibrated scanner</li>
+<li>The <a href="#test-form-segmenter">Test Form Segmenter</a> extracts patches from the scan</li>
+<li>The <a href="#iso-analysis-pipeline">ISO Analysis Pipeline</a> applies the Barten model and cross-correlation scoring</li>
+<li>Results are reported in the standardized format defined by ISO/TS 18621-31</li>
+</ol>
+<p>Each test form embeds QR codes linking to the generation metadata (device, colorants, substrate, settings, ICC profile), ensuring full traceability from printed output back to the generation parameters.</p>
+<hr>
+<h2 id="iso-standards-context">ISO Standards Context</h2>
+<p>The platform supports the ISO/TC 130/JWG 14 (Joint Working Group on measurement of visual attributes) standardization of Contrast Resolution measurement:</p>
+<p><strong>ISO/TS 18621-31</strong> ("Graphic technology -- Measurement of visual attributes of printed materials -- Part 31: L-Score method for perceived resolution evaluation utilizing a contrast resolution target") defines the measurement procedure that the platform implements. The standard covers scanner conformance requirements, printer setup and linearization, data path specifications, the L-Score analysis algorithm, and reporting formats. The current edition is being revised as the 3rd edition.</p>
+<p><strong>ISO/TS 18621-32</strong> is a proposed companion standard for perceptual assessment using pictorial content, which the platform's <a href="#pictorial-assets">photographic assets</a> and round-robin infrastructure are designed to support.</p>
+<p>The platform's test targets have been integrated into ISO test pages since 2007, when ConRes targets were first used in ISO/IEC JTC-1 SC28 WG4 evaluation sessions.</p>
+<hr>
+<h2 id="color-engine">Color Engine</h2>
+<p><strong>Repository:</strong> <a href="https://github.com/SMotaal/conres-color-management">SMotaal/conres-color-management</a></p>
+<p>The ConRes Color Engine is a WebAssembly color management system that extends <a href="https://www.littlecms.com/" rel="nofollow">LittleCMS</a> (Marti Maria Saguer, MIT license) with custom rendering intents, multiprofile pipeline support, and precision enhancements for print test form workflows. It runs entirely in the browser via WebAssembly, compiled from C using Emscripten.</p>
+<h3 id="why-k-only-matters">Why K-Only Matters</h3>
+<p>Standard ICC color management rendering intents (Perceptual, Relative Colorimetric, Saturation, Absolute Colorimetric) distribute the reproduction of neutral grays across all four CMYK channels. A 50% gray might become C=48, M=42, Y=38, K=12 depending on the profile and GCR strategy. This is acceptable for general printing but problematic for ConRes test forms, where the tone reproduction of neutral patches must be measured precisely.</p>
+<p>When CMY inks contribute to neutral tones, the measurement is contaminated by:</p>
+<ul>
+<li><strong>Metamerism</strong>: CMY-based grays shift color under different illuminants, while K-only grays remain stable</li>
+<li><strong>Registration sensitivity</strong>: Slight misregistration of C, M, Y plates creates color fringing that is misinterpreted as contrast loss</li>
+<li><strong>Ink interaction</strong>: CMY dot gain curves differ from K dot gain, making tone linearization unreliable</li>
+</ul>
+<p>The K-Only GCR intent guarantees that neutral input colors (R=G=B or L with a=0, b=0) produce CMYK output with C=0, M=0, Y=0, ensuring that the K channel alone carries the tone information. Non-neutral colors are handled with chroma-modulated GCR that smoothly transitions between K-only and standard separation.</p>
+<h3 id="k-only-gcr-algorithm">K-Only GCR Algorithm</h3>
+<p>The algorithm builds a specialized Color Lookup Table (CLUT) with a 9-stage pipeline per grid point:</p>
+<p><strong>Stage 1: Color Space Conversion.</strong> Input RGB, Gray, or Lab values are converted to Lab D50 using the source ICC profile. This normalizes all input color spaces to a device-independent representation.</p>
+<p><strong>Stage 2: Neutral Detection.</strong> The input chroma is calculated as the Euclidean distance from the neutral axis in Lab space: <code class="notranslate">chroma = sqrt(a^2 + b^2)</code>. Colors with chroma below 0.5 are treated as perfectly neutral to avoid floating-point noise. The chroma modulation factor (Stage 5) is a continuous function — lower chroma produces more aggressive GCR, not a binary threshold.</p>
+<p><strong>Stage 3: Black Point Compensation.</strong> The algorithm computes a BPC scale factor by comparing the luminance (Y tristimulus) of two black references: standard black (CMYK 100,100,100,100) and K-only black (CMYK 0,0,0,100). The scale factor <code class="notranslate">(1 - Y_KOnly) / (1 - Y_Black)</code> is applied uniformly to all three XYZ tristimulus channels (after converting from Lab to XYZ) to map the input tonal range to the K-only output range.</p>
+<p><strong>Stage 4: CMYK Conversion.</strong> The BPC-adjusted Lab values are converted to CMYK using the destination profile with Relative Colorimetric intent.</p>
+<p><strong>Stage 5: Gray Component Replacement.</strong> The gray component <code class="notranslate">min(C, M, Y)</code> is extracted. A chroma modulation factor computed as <code class="notranslate">log(1 + normalizedChroma) / log(1 + 5.0)</code> (clamped to [0, 1]) controls the GCR intensity. At factor 0 (neutral), all gray component transfers to K. At factor 1 (chromatic), original CMY values are preserved. The K channel receives <code class="notranslate">K + grayComponent / 2</code> to match density without oversaturation.</p>
+<p><strong>Stage 6-8: Iterative Refinement.</strong> The algorithm iteratively adjusts K to match the target L* value (up to 1000 iterations), restores chroma for non-neutral colors through primary channel analysis, and performs boundary checks to ensure the output stays within the printable gamut.</p>
+<p><strong>Stage 9: Quantization.</strong> Float CMYK values are quantized to 16-bit for the CLUT output.</p>
+<h3 id="multiprofile-pipeline">Multiprofile Pipeline</h3>
+<p>LittleCMS supports Gray color spaces only in two-profile transforms. For chains involving Gray (e.g., Gray to sRGB to CMYK), the Color Engine builds composite transforms by chaining two-profile segments through a <code class="notranslate">CompositeLUTSampler</code>.</p>
+<p>For Lab to CMYK with K-Only GCR, the engine uses pipeline concatenation rather than composite sampling. The analytical Lab-to-sRGB pipeline stages (matrices and curves from <code class="notranslate">_cmsDefaultICCintents</code>) are concatenated with the K-Only sRGB-to-CMYK CLUT using <code class="notranslate">cmsPipelineCat</code>. This preserves the mathematical precision of the analytical stages, which is critical because the 16-bit CLUT evaluation path introduces chromaticity errors for neutral Lab values.</p>
+<h3 id="lab16-float-promotion">Lab16 Float Promotion</h3>
+<p>For 16-bit Lab input (<code class="notranslate">TYPE_Lab_16</code> or <code class="notranslate">TYPE_Lab_16_SE</code>), the Color Engine Plugin forces float pipeline evaluation instead of the default 16-bit path. The custom flag <code class="notranslate">cmsFLAGS_LAB16_FLOAT_PROMOTION</code> (bit 28) triggers the plugin's transform dispatch to read raw Lab16 bytes, convert to pipeline float using V4 scaling (<code class="notranslate">value / 65280.0</code>), and evaluate via <code class="notranslate">cmsPipelineEvalFloat</code>. This eliminates the quantization errors that caused neutral Lab values to produce non-zero CMY residuals in the 16-bit path.</p>
+<h3 id="dual-implementation">Dual Implementation</h3>
+<p>The project maintains two implementations:</p>
+<p><strong>JavaScript Prototype</strong> (<code class="notranslate">@conres/js-color-engine</code>, based on Glenn Wilton's jsColorEngine, GPL-3.0) is the reference implementation with 182 passing tests. It was developed first to validate the algorithm before porting to C.</p>
+<p><strong>WebAssembly Production</strong> (<code class="notranslate">@conres/color-engine</code>) compiles LittleCMS with five custom C modules via Emscripten. The WASM binary is approximately 300 KB (plus 44 KB JS wrapper). It runs in Web Workers for parallel image processing, achieving approximately 41–47 million pixels per second throughput (WASM SIMD, per CE-PERFORMANCE-ANALYSIS.md and Black-Point-Clamping-Optimization-Report.md benchmarks).</p>
+<h3 id="attribution">Attribution</h3>
+<p>Algorithm design, color science decisions, and project direction are by Saleh Abdel Motaal. C code generation was assisted by Claude AI models (Sonnet 4.5, Opus 4, Opus 4.6). The ATTRIBUTION.md in the repository provides a detailed timeline of human versus AI contributions.</p>
+<hr>
+<h2 id="test-form-generator">Test Form Generator</h2>
+<p><strong>Repository:</strong> <a href="https://github.com/ConRes/conres.io">ConRes/conres.io</a> (path: <code class="notranslate">testing/iso/ptf/2026/</code>)</p>
+<p>The Test Form Generator (TFG) is a browser-based tool that assembles individualized PDF test forms from pre-rendered asset pages, applying ICC color conversion and embedding traceability metadata. It replaces a manual workflow that previously required Adobe Acrobat for color conversion, PostScript for slug generation, and manual PDF assembly.</p>
+<h3 id="generation-workflow">Generation Workflow</h3>
+<p>For each participant, the Generator produces:</p>
+<ol>
+<li>One or more test form PDFs, one per rendering intent when multi-PDF output is required (e.g., separate Relative Colorimetric and K-Only GCR versions for CMYK profiles)</li>
+<li>A docket PDF containing generation metadata, ICC profile characteristics, and assembly parameters</li>
+<li>QR code slugs on every page linking to the embedded specification metadata</li>
+</ol>
+<p>The test forms contain 22 pages covering the full ConRes target grid plus step wedges and pictorial assessment pages. Total output size ranges from 500 MB to 1.1 GB depending on the output profile and bit depth.</p>
+<h3 id="converter-architecture">Converter Architecture</h3>
+<p>The PDF color conversion is decomposed into four hierarchical levels:</p>
+<p><strong>PDFDocumentColorConverter</strong> orchestrates the full document. It manages a ProfilePool (LRU-cached ICC profile handles), a BufferRegistry (deduplicating color lookups), and a WorkerPool (parallel Web Workers for image conversion). It determines which pages need conversion and dispatches them with appropriate concurrency.</p>
+<p><strong>PDFPageColorConverter</strong> coordinates per-page conversion with configurable concurrency. It iterates over image XObjects and content streams, dispatching each to the appropriate leaf converter. Multiple pages can be processed in parallel across worker pool subsets.</p>
+<p><strong>PDFImageColorConverter</strong> handles individual image XObjects. It decompresses FlateDecode streams, normalizes non-standard bit depths (1, 2, 4-bit to 8-bit), manages Lab absolute-zero pixel coercion (Photoshop mask encoding fix), and recompresses the converted output. For 16-bit Lab images, the Color Engine's Lab16 float promotion handles the encoding internally.</p>
+<p><strong>PDFContentStreamColorConverter</strong> parses PDF content stream operators (CS/cs, SC/sc/SCN/scn, G/g, RG/rg, K/k), builds color lookup tables for batch conversion, and reconstructs the stream text with converted values.</p>
+<h3 id="assembly-policy">Assembly Policy</h3>
+<p>An <code class="notranslate">assembly-policy.json</code> configuration defines profile categories, each with specific rendering intent passes and input color space compatibility:</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Category</th>
+<th>Profile Color Space</th>
+<th>Rendering Intents</th>
+<th>Multi-PDF</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Gray</td>
+<td>Gray</td>
+<td>Relative Colorimetric + BPC</td>
+<td>No</td>
+</tr>
+<tr>
+<td>RGB</td>
+<td>RGB</td>
+<td>Relative Colorimetric + BPC</td>
+<td>No</td>
+</tr>
+<tr>
+<td>CMYK</td>
+<td>CMYK</td>
+<td>Relative Colorimetric + BPC, K-Only GCR + BPC</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>CMYK-MaxGCR</td>
+<td>CMYK</td>
+<td>Relative Colorimetric + BPC</td>
+<td>No</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p>A Max GCR detection test (11 neutral Lab test points, CMY threshold 1%) distinguishes standard CMYK profiles from Maximum GCR profiles. CMYK-MaxGCR profiles already produce K-only output for neutrals, so the separate K-Only GCR pass is unnecessary.</p>
+<h3 id="color-conversion-policy">Color Conversion Policy</h3>
+<p>Engine-version-specific behavior is managed by <code class="notranslate">color-conversion-rules.json</code>. Each rule specifies which engine versions it applies to, what source/destination/intent combinations trigger it, and what overrides to apply:</p>
+<ul>
+<li><strong>Intent fallbacks</strong>: Lab K-Only GCR falls back to Relative Colorimetric on engines before <code class="notranslate">color-engine-2026-03-27</code> (which introduced the pipeline concatenation fix)</li>
+<li><strong>Multiprofile requirements</strong>: Non-RGB inputs with K-Only GCR require multiprofile transforms on engines from <code class="notranslate">color-engine-2026-01-07</code> onward</li>
+<li><strong>BPC scaling</strong>: RGB-to-RGB transforms with BPC require multiprofile transforms with black point scaling on engines from <code class="notranslate">color-engine-2026-01-30</code> onward</li>
+</ul>
+<p>The policy system ensures the same Generator code works correctly across different Color Engine versions without hardcoded workarounds.</p>
+<h3 id="specification-metadata">Specification Metadata</h3>
+<p>Participants provide five specification fields through the Generator UI:</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Field</th>
+<th>Example</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Device</td>
+<td>Epson SC-P9570</td>
+<td>Print system make and model</td>
+</tr>
+<tr>
+<td>Colorants</td>
+<td>UltraChrome Pro12 K,C,M,Y,LC,LM,LK,LLK,O,G,V</td>
+<td>Ink set or colorants used</td>
+</tr>
+<tr>
+<td>Substrate</td>
+<td>EFI Gravure Proof Paper 4245</td>
+<td>Paper or media type</td>
+</tr>
+<tr>
+<td>Settings</td>
+<td>PrismaPrePare, RGB None, Perceptual, use embedded Profils / CMYK None, Relative colormetric, Overrule embedded profiles</td>
+<td>Color Management, resolution, screening… etc.</td>
+</tr>
+<tr>
+<td>Email</td>
+<td><a href="mailto:participant@example.com">participant@example.com</a></td>
+<td>For QR code identification</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p>These specifications are embedded in docket pages and QR code slugs. A specification validator (in research phase) will cross-validate fields against each other, against the ICC profile header, and against JDF/XJDF standards for print job parameters.</p>
+<h3 id="jdf-xjdf-alignment">JDF XJDF Alignment</h3>
+<p>The specification fields map to structured elements in the CIP4 JDF (Job Definition Format) and XJDF (Exchange JDF) specifications:</p>
+<ul>
+<li><strong>Device</strong> maps to <code class="notranslate">&lt;Device Manufacturer="..." ModelName="..." /&gt;</code></li>
+<li><strong>Colorants</strong> maps to <code class="notranslate">&lt;Ink InkName="..." ColorantType="Process|Spot" /&gt;</code></li>
+<li><strong>Substrate</strong> maps to <code class="notranslate">&lt;Media MediaType="..." Weight="..." /&gt;</code></li>
+<li><strong>Settings</strong> maps to <code class="notranslate">&lt;DigitalPrintingParams Resolution="..." /&gt;</code> or <code class="notranslate">&lt;ImageSetterParams Resolution="..." /&gt;</code></li>
+</ul>
+<p>The validator does not produce JDF output. It verifies that the free-text input represents information that could be structured as JDF elements without contradiction.</p>
+<h3 id="browser-support">Browser Support</h3>
+<p>The Generator targets Safari 16.4+, Chrome 80+, and Firefox 115+. Large test form generation (1.5 GB source PDFs, 91.5 million pixel images at 16-bit) operates near Safari's per-tab memory limit. Worker pool concurrency is split into subsets to control peak memory usage during parallel image conversion.</p>
+<hr>
+<h2 id="iso-analysis-pipeline">ISO Analysis Pipeline</h2>
+<p><strong>Repository:</strong> <a href="https://github.com/ConRes/conres-iso-cv">ConRes/conres-iso-cv</a></p>
+<p>The ISO Analysis Pipeline implements the ISO 18621-31 measurement procedure for evaluating printed ConRes test forms. It is written in C++ using OpenCV and compiled to WebAssembly via Emscripten for in-browser or server-side execution.</p>
+<h3 id="analysis-steps">Analysis Steps</h3>
+<p>The pipeline implements nine steps that transform a scanned print into quantitative Contrast Resolution measurements:</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Step</th>
+<th>Name</th>
+<th>Input</th>
+<th>Output</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A1</td>
+<td>Block Extraction</td>
+<td>Full page scan</td>
+<td>Test form grid ROI, transformation matrix</td>
+</tr>
+<tr>
+<td>A2</td>
+<td>Fiducial Localization</td>
+<td>Block ROI</td>
+<td>Predicted fiducial positions in sample</td>
+</tr>
+<tr>
+<td>B1</td>
+<td>Patch Extraction</td>
+<td>Block + fiducials</td>
+<td>Individual contrast-resolution patches</td>
+</tr>
+<tr>
+<td>B2</td>
+<td>Patch Transformation</td>
+<td>Sample + reference fiducials</td>
+<td>Per-patch 3x3 homography matrices</td>
+</tr>
+<tr>
+<td>C1</td>
+<td>Patch Normalization</td>
+<td>Raw patches + homographies</td>
+<td>Geometrically corrected patches</td>
+</tr>
+<tr>
+<td>D1</td>
+<td>Barten Filtering</td>
+<td>Normalized patches</td>
+<td>CSF-weighted patches</td>
+</tr>
+<tr>
+<td>E1</td>
+<td>Windowing</td>
+<td>Filtered patches</td>
+<td>Artifact-reduced ROIs</td>
+</tr>
+<tr>
+<td>F1</td>
+<td>Cross-Correlation</td>
+<td>Reference + sample patches</td>
+<td>Correlation images</td>
+</tr>
+<tr>
+<td>F2</td>
+<td>Scoring</td>
+<td>Correlation images</td>
+<td>Contrast Resolution scores</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 id="barten-contrast-sensitivity-model">Barten Contrast Sensitivity Model</h3>
+<p>Step D1 applies the Barten contrast sensitivity function (CSF), which models the human visual system's sensitivity to spatial frequency at a given luminance and viewing distance:</p>
+<pre class="notranslate"><code class="notranslate">CSF(f) = (5200 * exp(-0.0016 * f^2 * (1 + 100/L)^0.08)) /
+         sqrt((t + 0.64 * f_ang * f^2) * (63/L^0.83 + 1/(1 - exp(-0.02*f^2))))
+         * exp(-(ln(Ls/L * t2)^2 - ln(t2)^2) / t3)
+</code></pre>
+<p>Where <code class="notranslate">f</code> is angular frequency in cycles per degree, <code class="notranslate">L</code> is reflected luminance, <code class="notranslate">Ls</code> is surround luminance, and <code class="notranslate">t</code>, <code class="notranslate">t2</code>, <code class="notranslate">t3</code> are derived from the field of view. The default parameters assume a 10 mm patch size, 400 mm viewing distance, and 1.75 degree field of view (foveal vision).</p>
+<p>The filter is applied in the frequency domain: the CSF is evaluated at each spatial frequency, assembled into a 2D filter kernel, and multiplied with the FFT of each patch. This weights the image data by human perceptual sensitivity before scoring.</p>
+<h3 id="cross-correlation-scoring">Cross-Correlation Scoring</h3>
+<p>Steps F1-F2 use normalized cross-correlation (<code class="notranslate">cv::matchTemplate</code> with <code class="notranslate">TM_CCOEFF_NORMED</code>) to compare filtered sample patches against reference patches. The smaller patch is used as the template with a circular mask to isolate the region of interest. The peak correlation value (-1.0 to 1.0) indicates match quality: 1.0 means the sample perfectly reproduces the reference pattern at that frequency and contrast combination; negative values indicate anti-correlation.</p>
+<h3 id="cross-environment-validation">Cross-Environment Validation</h3>
+<p>The pipeline uses a JSON snapshot framework that serializes all intermediate matrices with metadata at each analysis step. These snapshots enable validation across C++, MATLAB, WASM, and browser environments, ensuring that the WebAssembly output matches reference implementations. This is critical because the ISO standard defines the algorithm in prose, not in source code, and implementations must demonstrate cross-platform reproducibility.</p>
+<h3 id="build">Build</h3>
+<p>The project uses CMake with three library targets: <code class="notranslate">conres-iso-common</code> (shared utilities), <code class="notranslate">conres-iso-wasm</code> (browser WASM build), and <code class="notranslate">conres-iso-lib</code> (emerging native C/C++ library). Multiple build variants exist for OpenCV versions 4.7.0 through 4.12.0, SIMD support levels, and module formats. The optimized WASM binary is approximately 5 MB.</p>
+<h3 id="relationship-to-conreslab2">Relationship to ConResLab2</h3>
+<p>The current pipeline succeeds ConResLab2, a MATLAB/Java application developed by Saleh Abdel Motaal (2011–2014) that explored automated analysis approaches. Thomas Liensberger's L-Score program (Fogra, 2013) was the first to achieve automated ConRes evaluation; ConResLab2's principal contribution was identifying algorithmic approaches that do not work, informing the design of subsequent pipelines. ConResLab2 used FFT-based frequency analysis with Gaussian band-pass filtering across 75 radial bands, applying a visual resolution filter (retinal Gaussian) before FFT. The current pipeline replaces this with the Barten CSF model (which accounts for luminance, viewing distance, and angular frequency) and normalized cross-correlation scoring (which is distribution-independent). Per-patch fiducial-guided homography correction replaces ConResLab2's global perspective transform, and optional Wiener filtering compensates for scanner blur using SFR calibration data.</p>
+<hr>
+<h2 id="test-form-segmenter">Test Form Segmenter</h2>
+<p>The Test Form Segmenter is a Node.js tool (3,300 lines) that extracts regions of interest from high-resolution scanned ConRes test prints at 1200 DPI. It bridges the gap between raw scans and the analysis pipeline's patch-level input requirements.</p>
+<h3 id="pipeline">Pipeline</h3>
+<ol>
+<li><strong>Downsample</strong> from 1200 DPI to 150 DPI for contour detection (performance)</li>
+<li><strong>Morphological processing</strong>: grayscale conversion, thresholding, erosion/dilation</li>
+<li><strong>Contour detection</strong> with hierarchy analysis using OpenCV WASM</li>
+<li><strong>ROI grouping</strong> by hierarchy level with multiple contour approximation strategies (hexagon, quadrilateral, triangle)</li>
+<li><strong>Barcode extraction</strong>: PDF417 and QR code detection using ZXing for metadata recovery</li>
+<li><strong>Patch output</strong>: 16-bit PNG patches extracted at full 1200 DPI resolution</li>
+</ol>
+<p>The segmenter processes batch configurations across multiple scan dates and resolutions (1200 DPI and 300 DPI), with asset definitions specifying expected grid structure and fiducial positions.</p>
+<hr>
+<h2 id="conres-test-targets">ConRes Test Targets</h2>
+<p>The ConRes test targets are scientific test patterns authored in PostScript EPS by Franz Sigg. They encode the spatial frequency and contrast grid that the ISO 18621-31 standard measures.</p>
+<h3 id="target-structure">Target Structure</h3>
+<p>Each target contains:</p>
+<ul>
+<li><strong>10 spatial frequency steps</strong>: 0.625 to 6.250 lp/mm (settable in EPS header)</li>
+<li><strong>10 contrast levels</strong>: 100% down to 1%</li>
+<li><strong>40-step tone value grid</strong> for linearization verification</li>
+<li><strong>Fiducial marks</strong> and registration patterns for automated analysis</li>
+<li><strong>QR codes</strong> with embedded metadata</li>
+<li><strong>Step wedges</strong> for scanner calibration verification</li>
+</ul>
+<h3 id="target-revision-history">Target Revision History</h3>
+<p>The targets have evolved through 29+ revisions, all hand-programmed in PostScript by Franz Sigg. All versions use vector graphics. Each EPS file has a header with settable parameters including number of resolution and contrast steps, color, patch size, and the ranges of resolution and contrast (normally set to the perceptible range of the visual system at reading distance).</p>
+<ul>
+<li><strong>Version 1</strong> (April 2000): Continuously varying checkerboard pattern. Created interference with addressability grids.</li>
+<li><strong>Version 5</strong> (June 2000): Parallel lines replaced checkerboards. Still susceptible to registration and angular bias.</li>
+<li><strong>Version 8</strong> (November 2000): Dropped multicolor overprints (registration-dependent) and yellow (difficult to see). Black-only target.</li>
+<li><strong>Version 9</strong> (December 2000): Added visual reference tone area near each patch. Rectangular blocks for efficient space use with numeric value documentation.</li>
+<li><strong>Version 13</strong> (April 2002): Explored gradient areas for additional tone reproduction evaluation.</li>
+<li><strong>Version 14</strong> (July 2002): Demonstrated that testing only the black channel is sufficient, since the print engine for black is the same as for color. Smaller target.</li>
+<li><strong>Versions 16-18</strong>: Breakthrough innovation: circular patches. Circles are symmetrical, testing resolution in all angular directions with a single yes/no judgment. First circular version was number 16.</li>
+<li><strong>Version 22</strong> (October 2007): Configurable parameters, split-patch capability (one half K-only, other half CMY for registration comparison), adjustable average tone value. Also detects gray level limitations in binary systems (offset, Indigo) where low addressability and fine screen ruling produce fewer than 64 gray levels.</li>
+<li><strong>Version 28</strong> (February 2008): Multi-tone-value blocks testing ConRes performance across the full tonal range. Small step increments for all three variables. Built-in tone reproduction linearization.</li>
+<li><strong>Compact variant</strong> (2013): 35 mm strip version for gravure testing at Hochschule der Medien Stuttgart. Offset columns at lower contrast to reduce patch count.</li>
+<li><strong>ISO_ConRes19g</strong>: Redesigned fiducials after Eric Zeise's research showed original marks were difficult to detect automatically. Symmetric reference tints around patches, fiducials repositioned to frame boundaries, step wedge for linearization verification, gray background to reduce internal reflection edge effects.</li>
+<li><strong>ConRes21Cr5</strong> (2025-05-05): Working revision for ISO round-robin testing.</li>
+<li><strong>ConRes21Cr6</strong> (2025-07-01): Incorporates Eric Zeise's analysis feedback, OutputType conditional barcode color control, canonical ICC profile definitions, PostScript logic corrections.</li>
+</ul>
+<p>The targets have also been used in JPEG compression quality testing for the Library of Congress document archiving program.</p>
+<h3 id="color-space-variants">Color Space Variants</h3>
+<p>Each target revision is rendered in seven color space variants through Ghostscript:</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Variant</th>
+<th>Description</th>
+<th>Bit Depth</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>sRGB</td>
+<td>ICC sRGB</td>
+<td>48-bit TIFF (16-bit per channel)</td>
+</tr>
+<tr>
+<td>sGray</td>
+<td>ICC sGray</td>
+<td>16-bit TIFF</td>
+</tr>
+<tr>
+<td>Lab</td>
+<td>Device-independent CIE Lab</td>
+<td>16-bit per channel</td>
+</tr>
+<tr>
+<td>SepK</td>
+<td>K-only separation</td>
+<td>Single channel</td>
+</tr>
+<tr>
+<td>Ref</td>
+<td>Reference (unmanaged)</td>
+<td>Native</td>
+</tr>
+<tr>
+<td>Gray</td>
+<td>Non-ICC grayscale</td>
+<td>Native</td>
+</tr>
+<tr>
+<td>RGB</td>
+<td>Non-ICC RGB</td>
+<td>Native</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<hr>
+<h2 id="pictorial-assets">Pictorial Assets</h2>
+<p>The test forms include eight photographic images for perceptual assessment alongside the scientific target patterns. These images enable the proposed ISO/TS 18621-32 perceptual evaluation methodology.</p>
+<h3 id="perceptual-psychometrics">Perceptual Psychometrics</h3>
+<p>The pictorial assets serve a fundamentally different purpose from the scientific targets. While the targets measure objective contrast-resolution through algorithmic analysis, the pictorial pages test whether the measured performance translates to perceived quality with real-world content. A system might score well on the target grid but produce visible artifacts in photographic images due to screening interactions, ink spread patterns, or color management limitations.</p>
+<p>The perceptual evaluation framework uses the same round-robin distribution model: participants print test forms containing both scientific targets and pictorial pages, enabling paired comparison between objective scores and subjective quality assessments.</p>
+<h3 id="photographers-and-assets">Photographers and Assets</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Asset</th>
+<th>Photographer</th>
+<th>Subject</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>London</td>
+<td>Mario Ouellet</td>
+<td>Urban cityscape</td>
+</tr>
+<tr>
+<td>St. Paul</td>
+<td>Mario Ouellet</td>
+<td>Architecture</td>
+</tr>
+<tr>
+<td>Winter Trees</td>
+<td>Mario Ouellet</td>
+<td>Winter landscape</td>
+</tr>
+<tr>
+<td>Ice Trees Fog</td>
+<td>Mario Ouellet</td>
+<td>Atmospheric landscape</td>
+</tr>
+<tr>
+<td>Lake Forest</td>
+<td>Carey Rose</td>
+<td>Landscape with water</td>
+</tr>
+<tr>
+<td>Cat</td>
+<td>Carey Rose</td>
+<td>Animal portrait</td>
+</tr>
+<tr>
+<td>Winterthur Trees</td>
+<td>Franz Sigg</td>
+<td>Trees in parkland</td>
+</tr>
+<tr>
+<td>Milano Trees</td>
+<td>Franz Sigg</td>
+<td>Urban trees</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p>Each asset is prepared in three color space variants (sRGB, sGray, Lab) at 16-bit per channel, with step-wedges for tone scale normalization. The master assembly is approximately 1.5 GB.</p>
+<hr>
+<h2 id="supporting-tools">Supporting Tools</h2>
+<h3 id="ghostscript-wasm">Ghostscript WASM</h3>
+<p>Ghostscript is compiled to WebAssembly for browser-based PostScript and PDF rendering. The build uses GhostPDL 9.56.0 with patches by Auke Nauta for ConRes-specific output:</p>
+<ul>
+<li>CIELab TIFF support with correct 16-bit scaling (65284.0 vs 65535.0 quantization)</li>
+<li><code class="notranslate">tiffgray16</code> 16-bit grayscale device</li>
+<li>JPEG chroma subsampling control</li>
+<li>TIFF Deflate compression</li>
+<li>Threading and autogen cache support</li>
+</ul>
+<p>The WASM binary is approximately 15-17 MB. The Test Form Generator uses it through <code class="notranslate">GhostscriptService</code> for rendering PostScript slug templates (QR codes, metadata text, barcodes) into PDF docket pages.</p>
+<h3 id="scanner-calibration">Scanner Calibration</h3>
+<p>An ISO 12233 slanted-edge method implementation for Spatial Frequency Response (SFR) and Modulation Transfer Function (MTF) characterization. The pipeline measures the effective resolution of the scanning device and produces correction factors used in the analysis pipeline's optional Wiener filter (Step B1).</p>
+<p>The implementation follows the standard slanted-edge procedure: bilateral filtering for noise reduction, centroid-based edge detection, 4x oversampled Edge Spread Function extraction, Line Spread Function differentiation, Hamming windowing, and DFT magnitude spectrum computation. Calibration data for the Epson V600 at 1200 DPI shows MTF50 at approximately 0.03 cycles/pixel (36 lp/mm) with an effective resolution limit below 84 lp/mm.</p>
+<h3 id="utif2">UTIF2</h3>
+<p>A fork of Photopea's UTIF2 TIFF library (v4.1.0) enhanced with CMYK color space encoding, ICC profile embedding/extraction, 16-bit image support, and a complete ESM rewrite with TypeScript type definitions. Used by the segmenter and analysis pipelines for reading and writing high-bit-depth TIFF images.</p>
+<hr>
+<h2 id="development-infrastructure">Development Infrastructure</h2>
+<h3 id="web-platform">Web Platform</h3>
+<p><strong>Repository:</strong> <a href="https://github.com/ConRes/conres.io">ConRes/conres.io</a></p>
+<p>The ConRes website (<a href="https://www.conres.io" rel="nofollow">www.conres.io</a>) is hosted on GitHub Pages. The repository serves as both the public website and the development monorepo. The Test Form Generator lives within the <code class="notranslate">testing/iso/ptf/</code> directory and is served directly as static files.</p>
+<p>The platform uses ES Modules throughout with no build step. Browser-native import maps resolve vendored dependencies at runtime. The development workspace uses Yarn 4.8.1 with Node.js 24+ as the target for ecosystem packages.</p>
+<h3 id="team">Team</h3>
+<p>The ConRes project is a voluntary academic-industry collaboration spanning over two decades:</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Member</th>
+<th>Role</th>
+<th>Contributions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Franz Sigg</td>
+<td>ConRes founder</td>
+<td>PostScript test targets (29+ revisions), ISO committee liaison, visual QA, project history</td>
+</tr>
+<tr>
+<td>Saleh Abdel Motaal</td>
+<td>Platform development</td>
+<td>Color Engine, Test Form Generator, LittleCMS and Ghostscript WebAssembly ports, ConRes ISO WebAssembly analysis pipeline, web infrastructure</td>
+</tr>
+<tr>
+<td>Auke Nauta</td>
+<td>Ghostscript and analysis</td>
+<td>Ghostscript patches, ConRes ISO C++ analysis pipeline</td>
+</tr>
+<tr>
+<td>Eric Zeise</td>
+<td>Analysis and standards</td>
+<td>ISO/TS 18621-31 standard authorship, analysis program development, target revision feedback</td>
+</tr>
+<tr>
+<td>Frans Gaykema</td>
+<td>ISO JWG 14 Convenor and analysis tooling</td>
+<td>Automated EXE analyzer for ISO_ConRes19 and ConRe281</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p>Historical contributors include Eliot Harper (RIT thesis establishing ConRes methodology, 2000), Deepak Dubay (CRV-MTF relationship research), Thomas Liensberger (L-Score automated evaluation algorithm, Fogra, 2013) and Fuji Xerox researchers Miho Uno and Shinji Sasahara (improved L-Score algorithm, 2014).</p>
+<h3 id="project-history">Project History</h3>
+<p>The ConRes concept originated in the fall of 1999 from a discussion between Franz Sigg and Dr. Ed Granger at a lunch table at RIT.</p>
+<ul>
+<li><strong>1999-2000</strong>: Franz Sigg designs multiple target versions. Eliot Harper completes RIT thesis "An Investigation Into the Relationship Between Contrast and Resolution of a Printing System Using the RIT Contrast Resolution Test Target" (December 2000).</li>
+<li><strong>2001</strong>: Harper wins TAGA graduate student paper award with a compact description of the ConRes methodology.</li>
+<li><strong>2003-2005</strong>: Deepak Dubay publishes RIT TAGA paper "Relationship between Contrast Resolution Volume (CRV) and Modulation Transfer Function (MTF)" (2003), followed by thesis "A Comparative Analysis between the RIT Contrast Resolution Test Target And the Gutenberg Test Target" (2005).</li>
+<li><strong>2006</strong>: Franz Sigg writes "Testing for Resolution and Contrast" for the RIT TestTargets 6 publication. Topic taught to RIT students.</li>
+<li><strong>2007</strong>: Targets integrated into ISO/IEC JTC-1 SC28 WG4 test pages. Eric Zeise (Kodak) develops MATLAB program for computer-assisted visual evaluation. Saleh Motaal writes analysis software with data input modules for scan processing; automatic analysis was not completed at this stage (per Franz Sigg, <code class="notranslate">content/History.md</code>).</li>
+<li><strong>2011-2014</strong>: ConResLab2, the second-generation analysis software, integrating Saleh's earlier Java perceptual evaluation UI with MATLAB automated analysis modules. By the time the software was shelved, the team had learned what algorithmic approaches do not work rather than arriving at a working automated analysis.</li>
+<li><strong>2013</strong>: Thomas Liensberger presents L-Score automated evaluation program (Fogra) at ISO/IEC JTC1/SC28 WG4 Vienna meeting.</li>
+<li><strong>2014</strong>: Miho Uno and Shinji Sasahara (Fuji Xerox) present improved L-Score algorithm at ISO TC130 JWG14 Beijing meeting. Eric Zeise begins writing ISO/DTS 18621-31.</li>
+<li><strong>2018</strong>: Standard progresses to Preliminary Draft Technical Specification (ISO/PDTS 18621-31.42, November 2018). Frans Gaykema (Océ-Technologies B.V.) develops automated EXE analyzer for ISO_ConRes19 and ConRe281. Eric Zeise, Saleh Motaal, and Franz Sigg begin weekly Skype meetings on automated analysis. Saleh pursues JavaScript/HTML approach for browser-based analysis.</li>
+<li><strong>2020-2023</strong>: ISO analysis pipeline ported to C++/WebAssembly (Auke Nauta). 526+ workhours across 330 active days.</li>
+<li><strong>2024-2025</strong>: Color Engine development eliminates Adobe Acrobat dependency for color conversion.</li>
+<li><strong>2025-2026</strong>: Test Form Generator reaches browser-based production capability. Test targets revised through Cr5, Cr6, Cr7.</li>
+</ul>
+<p>Total tracked investment: over 3,490 workhours across the platform ecosystem.</p>
+<hr>
+<h2 id="attribution-and-ai-disclosure">Attribution and AI Disclosure</h2>
+<h3 id="authorship">Authorship</h3>
+<p>This document was authored by <strong>Saleh Abdel Motaal</strong> (<a href="mailto:dev@smotaal.io">dev@smotaal.io</a>). AI agents are tools — they generate prose, they do not author documents. The author directs the work, owns the ideas, determines what is accurate, and takes responsibility for the content. See the <a href="~/.claude/meta/conventions/Attribution.md">full analysis of AI authorship conventions</a> for the legal and professional framework behind this position.</p>
+<h3 id="ai-assistance">AI Assistance</h3>
+<p><strong>Claude Opus 4.6</strong> (Anthropic) was used for prose generation, structural organization, and drafting technical descriptions from source materials. All technical claims, historical facts, dates, and contributor attributions are subject to review by the author and the ConRes team.</p>
+<h3 id="human-contributions-to-this-document">Human Contributions to This Document</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Contributor</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Saleh Abdel Motaal</td>
+<td>Author — directed all content, provided source materials, reviewed and revised all sections</td>
+</tr>
+<tr>
+<td>Franz Sigg, Eric Zeise, Auke Nauta, Thomas Sprinzing</td>
+<td>Reviewers (pending) — collaborative review for technical accuracy and historical correctness</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 id="source-documents-referenced">Source Documents Referenced</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Source</th>
+<th>Location</th>
+<th>What It Provided</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ConRes.io repository source code</td>
+<td><code class="notranslate">testing/iso/ptf/2026/</code></td>
+<td>Generator architecture, policy system, converter hierarchy, color engine integration</td>
+</tr>
+<tr>
+<td>Color Engine repository source code</td>
+<td><code class="notranslate">~/Projects/conres/color-engine/</code></td>
+<td>K-Only GCR algorithm, multiprofile pipeline, Lab16 float promotion</td>
+</tr>
+<tr>
+<td>Color Engine ATTRIBUTION.md</td>
+<td><code class="notranslate">~/Projects/conres/color-engine/ATTRIBUTION.md</code></td>
+<td>Attribution framework, upstream dependencies, human vs AI contribution timeline</td>
+</tr>
+<tr>
+<td>Lab-K-Only-Neutrals.md</td>
+<td><code class="notranslate">packages/color-engine-2026-03-27/documentation/</code></td>
+<td>CE fix documentation for Lab K-Only neutral preservation</td>
+</tr>
+<tr>
+<td>Franz Sigg's ConRes History</td>
+<td><code class="notranslate">content/History.md</code> (conres.io repository)</td>
+<td>Target revision history, project timeline, team contributions — authored by Franz Sigg</td>
+</tr>
+<tr>
+<td>Gmail archives (ConRes/Archive)</td>
+<td>Email threads 2007-2026 (cited in historical evidence compilation)</td>
+<td>Meeting records, ISO correspondence, collaboration timeline</td>
+</tr>
+<tr>
+<td>ISO meeting records</td>
+<td>ISO/IEC JTC-1 SC28 WG4 and ISO TC130 JWG14</td>
+<td>Standards progression, presentation dates, participant roles</td>
+</tr>
+<tr>
+<td>CLAUDE.md project instructions</td>
+<td><code class="notranslate">testing/iso/ptf/2026/CLAUDE.md</code></td>
+<td>Code conventions, module descriptions, integration status</td>
+</tr>
+<tr>
+<td>Git commit history</td>
+<td><code class="notranslate">git log</code> on <code class="notranslate">test-form-generator/2026/dev</code> branch</td>
+<td>Development timeline, commit messages, feature progression</td>
+</tr>
+<tr>
+<td>Claude Code conversation history</td>
+<td><code class="notranslate">~/.claude/history.jsonl</code></td>
+<td>Conversation context for technical decisions and design rationale</td>
+</tr>
+<tr>
+<td>ISO/TS 18621-31</td>
+<td>Referenced (not included)</td>
+<td>Measurement procedure, L-Score algorithm, reporting format</td>
+</tr>
+<tr>
+<td>Eliot Harper RIT thesis (2000)</td>
+<td>Referenced (not included)</td>
+<td>ConRes methodology establishment</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+</article>
+
+
+<script type="module">
+function t(t){if("clipboard"in navigator)return navigator.clipboard.writeText(t.textContent||"");const e=getSelection();if(null==e)return Promise.reject(new Error);e.removeAllRanges();const i=document.createRange();return i.selectNodeContents(t),e.addRange(i),document.execCommand("copy"),e.removeAllRanges(),Promise.resolve()}function e(e){if("clipboard"in navigator)return navigator.clipboard.writeText(e);const i=document.body;if(!i)return Promise.reject(new Error);const s=function(t){const e=document.createElement("pre");return e.style.width="1px",e.style.height="1px",e.style.position="fixed",e.style.top="5px",e.textContent=t,e}(e);return i.appendChild(s),t(s),i.removeChild(s),Promise.resolve()}async function i(i){const s=i.getAttribute("for"),n=i.getAttribute("value");function r(){i.dispatchEvent(new CustomEvent("clipboard-copy",{bubbles:!0}))}var o;if("true"!==i.getAttribute("aria-disabled"))if(n)await e(n),r();else if(s){const n="getRootNode"in Element.prototype?i.getRootNode():i.ownerDocument;if(!(n instanceof Document||"ShadowRoot"in window&&n instanceof ShadowRoot))return;const a=n.getElementById(s);a&&(await(o=a,o instanceof HTMLInputElement||o instanceof HTMLTextAreaElement?e(o.value):o instanceof HTMLAnchorElement&&o.hasAttribute("href")?e(o.href):t(o)),r())}}function s(t){const e=t.currentTarget;e instanceof HTMLElement&&i(e)}function n(t){if(" "===t.key||"Enter"===t.key){const e=t.currentTarget;e instanceof HTMLElement&&(t.preventDefault(),i(e))}}function r(t){t.currentTarget.addEventListener("keydown",n)}function o(t){t.currentTarget.removeEventListener("keydown",n)}class a extends HTMLElement{static define(t="clipboard-copy",e=customElements){return e.define(t,this),this}constructor(){super(),this.addEventListener("click",s),this.addEventListener("focus",r),this.addEventListener("blur",o)}connectedCallback(){this.hasAttribute("tabindex")||this.setAttribute("tabindex","0"),this.hasAttribute("role")||this.setAttribute("role","button")}get value(){return this.getAttribute("value")||""}set value(t){this.setAttribute("value",t)}}const h="undefined"!=typeof globalThis?globalThis:window;try{h.ClipboardCopyElement=a.define()}catch(t){if(!(h.DOMException&&t instanceof DOMException&&"NotSupportedError"===t.name||t instanceof ReferenceError))throw t}var u,l=function(t,e,i,s){if("a"===i&&!s)throw new TypeError("Private accessor was defined without a getter");if("function"==typeof e?t!==e||!s:!e.has(t))throw new TypeError("Cannot read private member from an object whose class did not declare it");return"m"===i?s:"a"===i?s.call(t):s?s.value:e.get(t)};const c="undefined"!=typeof Intl&&Intl.ListFormat||class{formatToParts(t){const e=[];for(const i of t)e.push({type:"element",value:i}),e.push({type:"literal",value:", "});return e.slice(0,-1)}},m=[["years","year"],["months","month"],["weeks","week"],["days","day"],["hours","hour"],["minutes","minute"],["seconds","second"],["milliseconds","millisecond"]],d={minimumIntegerDigits:2};class f{constructor(t,e={}){u.set(this,void 0);let i=String(e.style||"short");"long"!==i&&"short"!==i&&"narrow"!==i&&"digital"!==i&&(i="short");let s="digital"===i?"numeric":i;const n=e.hours||s;s="2-digit"===n?"numeric":n;const r=e.minutes||s;s="2-digit"===r?"numeric":r;const o=e.seconds||s;s="2-digit"===o?"numeric":o;const a=e.milliseconds||s;!function(t,e,i,s,n){if("m"===s)throw new TypeError("Private method is not writable");if("a"===s&&!n)throw new TypeError("Private accessor was defined without a setter");if("function"==typeof e?t!==e||!n:!e.has(t))throw new TypeError("Cannot write private member to an object whose class did not declare it");"a"===s?n.call(t,i):n?n.value=i:e.set(t,i)}(this,u,{locale:t,style:i,years:e.years||"digital"===i?"short":i,yearsDisplay:"always"===e.yearsDisplay?"always":"auto",months:e.months||"digital"===i?"short":i,monthsDisplay:"always"===e.monthsDisplay?"always":"auto",weeks:e.weeks||"digital"===i?"short":i,weeksDisplay:"always"===e.weeksDisplay?"always":"auto",days:e.days||"digital"===i?"short":i,daysDisplay:"always"===e.daysDisplay?"always":"auto",hours:n,hoursDisplay:"always"===e.hoursDisplay||"digital"===i?"always":"auto",minutes:r,minutesDisplay:"always"===e.minutesDisplay||"digital"===i?"always":"auto",seconds:o,secondsDisplay:"always"===e.secondsDisplay||"digital"===i?"always":"auto",milliseconds:a,millisecondsDisplay:"always"===e.millisecondsDisplay?"always":"auto"},"f")}resolvedOptions(){return l(this,u,"f")}formatToParts(t){const e=[],i=l(this,u,"f"),s=i.style,n=i.locale;for(const[r,o]of m){const a=t[r];if("auto"===i[`${r}Display`]&&!a)continue;const h=i[r],u="2-digit"===h?d:"numeric"===h?{}:{style:"unit",unit:o,unitDisplay:h};let l=new Intl.NumberFormat(n,u).format(a);"months"===r&&("narrow"===h||"narrow"===s&&l.endsWith("m"))&&(l=l.replace(/(\d+)m$/,"$1mo")),e.push(l)}return new c(n,{type:"unit",style:"digital"===s?"short":s}).formatToParts(e)}format(t){return this.formatToParts(t).map(t=>t.value).join("")}}u=new WeakMap;const g=/^[-+]?P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/,w=["year","month","week","day","hour","minute","second","millisecond"];class y{constructor(t=0,e=0,i=0,s=0,n=0,r=0,o=0,a=0){this.years=t,this.months=e,this.weeks=i,this.days=s,this.hours=n,this.minutes=r,this.seconds=o,this.milliseconds=a,this.years||(this.years=0),this.sign||(this.sign=Math.sign(this.years)),this.months||(this.months=0),this.sign||(this.sign=Math.sign(this.months)),this.weeks||(this.weeks=0),this.sign||(this.sign=Math.sign(this.weeks)),this.days||(this.days=0),this.sign||(this.sign=Math.sign(this.days)),this.hours||(this.hours=0),this.sign||(this.sign=Math.sign(this.hours)),this.minutes||(this.minutes=0),this.sign||(this.sign=Math.sign(this.minutes)),this.seconds||(this.seconds=0),this.sign||(this.sign=Math.sign(this.seconds)),this.milliseconds||(this.milliseconds=0),this.sign||(this.sign=Math.sign(this.milliseconds)),this.blank=0===this.sign}abs(){return new y(Math.abs(this.years),Math.abs(this.months),Math.abs(this.weeks),Math.abs(this.days),Math.abs(this.hours),Math.abs(this.minutes),Math.abs(this.seconds),Math.abs(this.milliseconds))}static from(t){var e;if("string"==typeof t){const i=String(t).trim(),s=i.startsWith("-")?-1:1,n=null===(e=i.match(g))||void 0===e?void 0:e.slice(1).map(t=>(Number(t)||0)*s);return n?new y(...n):new y}if("object"==typeof t){const{years:e,months:i,weeks:s,days:n,hours:r,minutes:o,seconds:a,milliseconds:h}=t;return new y(e,i,s,n,r,o,a,h)}throw new RangeError("invalid duration")}static compare(t,e){const i=Date.now(),s=Math.abs(p(i,y.from(t)).getTime()-i),n=Math.abs(p(i,y.from(e)).getTime()-i);return s>n?-1:s<n?1:0}toLocaleString(t,e){return new f(t,e).format(this)}}function p(t,e){const i=new Date(t);return e.sign<0?(i.setUTCSeconds(i.getUTCSeconds()+e.seconds),i.setUTCMinutes(i.getUTCMinutes()+e.minutes),i.setUTCHours(i.getUTCHours()+e.hours),i.setUTCDate(i.getUTCDate()+7*e.weeks+e.days),i.setUTCMonth(i.getUTCMonth()+e.months),i.setUTCFullYear(i.getUTCFullYear()+e.years)):(i.setUTCFullYear(i.getUTCFullYear()+e.years),i.setUTCMonth(i.getUTCMonth()+e.months),i.setUTCDate(i.getUTCDate()+7*e.weeks+e.days),i.setUTCHours(i.getUTCHours()+e.hours),i.setUTCMinutes(i.getUTCMinutes()+e.minutes),i.setUTCSeconds(i.getUTCSeconds()+e.seconds)),i}function b(t,{relativeTo:e=Date.now()}={}){if(e=new Date(e),t.blank)return t;const i=t.sign;let s=Math.abs(t.years),n=Math.abs(t.months),r=Math.abs(t.weeks),o=Math.abs(t.days),a=Math.abs(t.hours),h=Math.abs(t.minutes),u=Math.abs(t.seconds),l=Math.abs(t.milliseconds);l>=900&&(u+=Math.round(l/1e3)),(u||h||a||o||r||n||s)&&(l=0),u>=55&&(h+=Math.round(u/60)),(h||a||o||r||n||s)&&(u=0),h>=55&&(a+=Math.round(h/60)),(a||o||r||n||s)&&(h=0),o&&a>=12&&(o+=Math.round(a/24)),!o&&a>=21&&(o+=Math.round(a/24)),(o||r||n||s)&&(a=0);const c=e.getFullYear(),m=e.getMonth(),d=e.getDate();if(o>=27||s+n+o){const t=new Date(e);t.setDate(1),t.setMonth(m+n*i+1),t.setDate(0);const a=Math.max(0,d-t.getDate()),h=new Date(e);h.setFullYear(c+s*i),h.setDate(d-a),h.setMonth(m+n*i),h.setDate(d-a+o*i);const u=h.getFullYear()-e.getFullYear(),l=h.getMonth()-e.getMonth(),f=Math.abs(Math.round((Number(h)-Number(e))/864e5))+a,g=Math.abs(12*u+l);f<27?(o>=6?(r+=Math.round(o/7),o=0):o=f,n=s=0):g<=11?(n=g,s=0):(n=0,s=u*i),(n||s)&&(o=0)}return s&&(n=0),r>=4&&(n+=Math.round(r/4)),(n||s)&&(r=0),o&&r&&!n&&!s&&(r+=Math.round(o/7),o=0),new y(s*i,n*i,r*i,o*i,a*i,h*i,u*i,l*i)}var v,T,M,D,A,C,E,k,x,U,S,F,I,L,R,N,P=function(t,e,i,s){if("a"===i&&!s)throw new TypeError("Private accessor was defined without a getter");if("function"==typeof e?t!==e||!s:!e.has(t))throw new TypeError("Cannot read private member from an object whose class did not declare it");return"m"===i?s:"a"===i?s.call(t):s?s.value:e.get(t)},Z=function(t,e,i,s,n){if("m"===s)throw new TypeError("Private method is not writable");if("a"===s&&!n)throw new TypeError("Private accessor was defined without a setter");if("function"==typeof e?t!==e||!n:!e.has(t))throw new TypeError("Cannot write private member to an object whose class did not declare it");return"a"===s?n.call(t,i):n?n.value=i:e.set(t,i),i};const j=globalThis.HTMLElement||null,O=new y,H=new y(0,0,0,0,0,1);class Y extends Event{constructor(t,e,i,s){super("relative-time-updated",{bubbles:!0,composed:!0}),this.oldText=t,this.newText=e,this.oldTitle=i,this.newTitle=s}}function $(t){if(!t.date)return 1/0;if("duration"===t.format||"elapsed"===t.format){const e=t.precision;if("second"===e)return 1e3;if("minute"===e)return 6e4}const e=Math.abs(Date.now()-t.date.getTime());return e<6e4?1e3:e<36e5?6e4:36e5}const W=new class{constructor(){this.elements=new Set,this.time=1/0,this.timer=-1}observe(t){if(this.elements.has(t))return;this.elements.add(t);const e=t.date;if(e&&e.getTime()){const e=$(t),i=Date.now()+e;i<this.time&&(clearTimeout(this.timer),this.timer=setTimeout(()=>this.update(),e),this.time=i)}}unobserve(t){this.elements.has(t)&&this.elements.delete(t)}update(){if(clearTimeout(this.timer),!this.elements.size)return;let t=1/0;for(const e of this.elements)t=Math.min(t,$(e)),e.update();this.time=Math.min(36e5,t),this.timer=setTimeout(()=>this.update(),this.time),this.time+=Date.now()}};class z extends j{constructor(){super(...arguments),v.add(this),T.set(this,!1),M.set(this,!1),A.set(this,this.shadowRoot?this.shadowRoot:this.attachShadow?this.attachShadow({mode:"open"}):this),N.set(this,null)}static define(t="relative-time",e=customElements){return e.define(t,this),this}get timeZone(){var t;return(null===(t=this.closest("[time-zone]"))||void 0===t?void 0:t.getAttribute("time-zone"))||this.ownerDocument.documentElement.getAttribute("time-zone")||void 0}static get observedAttributes(){return["second","minute","hour","weekday","day","month","year","time-zone-name","prefix","threshold","tense","precision","format","format-style","no-title","datetime","lang","title","aria-hidden","time-zone"]}get onRelativeTimeUpdated(){return P(this,N,"f")}set onRelativeTimeUpdated(t){P(this,N,"f")&&this.removeEventListener("relative-time-updated",P(this,N,"f")),Z(this,N,"object"==typeof t||"function"==typeof t?t:null,"f"),"function"==typeof t&&this.addEventListener("relative-time-updated",t)}get second(){const t=this.getAttribute("second");if("numeric"===t||"2-digit"===t)return t}set second(t){this.setAttribute("second",t||"")}get minute(){const t=this.getAttribute("minute");if("numeric"===t||"2-digit"===t)return t}set minute(t){this.setAttribute("minute",t||"")}get hour(){const t=this.getAttribute("hour");if("numeric"===t||"2-digit"===t)return t}set hour(t){this.setAttribute("hour",t||"")}get weekday(){const t=this.getAttribute("weekday");return"long"===t||"short"===t||"narrow"===t?t:"datetime"===this.format&&""!==t?this.formatStyle:void 0}set weekday(t){this.setAttribute("weekday",t||"")}get day(){var t;const e=null!==(t=this.getAttribute("day"))&&void 0!==t?t:"numeric";if("numeric"===e||"2-digit"===e)return e}set day(t){this.setAttribute("day",t||"")}get month(){const t=this.format;let e=this.getAttribute("month");if(""!==e)return null!=e||(e="datetime"===t?this.formatStyle:"short"),"numeric"===e||"2-digit"===e||"short"===e||"long"===e||"narrow"===e?e:void 0}set month(t){this.setAttribute("month",t||"")}get year(){var t;const e=this.getAttribute("year");return"numeric"===e||"2-digit"===e?e:this.hasAttribute("year")||(new Date).getUTCFullYear()===(null===(t=this.date)||void 0===t?void 0:t.getUTCFullYear())?void 0:"numeric"}set year(t){this.setAttribute("year",t||"")}get timeZoneName(){const t=this.getAttribute("time-zone-name");if("long"===t||"short"===t||"shortOffset"===t||"longOffset"===t||"shortGeneric"===t||"longGeneric"===t)return t}set timeZoneName(t){this.setAttribute("time-zone-name",t||"")}get prefix(){var t;return null!==(t=this.getAttribute("prefix"))&&void 0!==t?t:"datetime"===this.format?"":"on"}set prefix(t){this.setAttribute("prefix",t)}get threshold(){const t=this.getAttribute("threshold");return t&&(e=t,g.test(e))?t:"P30D";var e}set threshold(t){this.setAttribute("threshold",t)}get tense(){const t=this.getAttribute("tense");return"past"===t?"past":"future"===t?"future":"auto"}set tense(t){this.setAttribute("tense",t)}get precision(){const t=this.getAttribute("precision");return w.includes(t)?t:"micro"===this.format?"minute":"second"}set precision(t){this.setAttribute("precision",t)}get format(){const t=this.getAttribute("format");return"datetime"===t?"datetime":"relative"===t?"relative":"duration"===t?"duration":"micro"===t?"micro":"elapsed"===t?"elapsed":"auto"}set format(t){this.setAttribute("format",t)}get formatStyle(){const t=this.getAttribute("format-style");if("long"===t)return"long";if("short"===t)return"short";if("narrow"===t)return"narrow";const e=this.format;return"elapsed"===e||"micro"===e?"narrow":"datetime"===e?"short":"long"}set formatStyle(t){this.setAttribute("format-style",t)}get noTitle(){return this.hasAttribute("no-title")}set noTitle(t){this.toggleAttribute("no-title",t)}get datetime(){return this.getAttribute("datetime")||""}set datetime(t){this.setAttribute("datetime",t)}get date(){const t=Date.parse(this.datetime);return Number.isNaN(t)?null:new Date(t)}set date(t){this.datetime=(null==t?void 0:t.toISOString())||""}connectedCallback(){this.update()}disconnectedCallback(){W.unobserve(this)}attributeChangedCallback(t,e,i){e!==i&&("title"===t&&Z(this,T,null!==i&&(this.date&&P(this,v,"m",C).call(this,this.date))!==i,"f"),P(this,M,"f")||"title"===t&&P(this,T,"f")||Z(this,M,(async()=>{await Promise.resolve(),this.update(),Z(this,M,!1,"f")})(),"f"))}update(){const t=P(this,A,"f").textContent||this.textContent||"",e=this.getAttribute("title")||"";let i=e;const s=this.date;if("undefined"==typeof Intl||!Intl.DateTimeFormat||!s)return void(P(this,A,"f").textContent=t);const n=Date.now();P(this,T,"f")||(i=P(this,v,"m",C).call(this,s)||"",i&&!this.noTitle&&this.setAttribute("title",i));const r=function(t,e="second",i=Date.now()){const s=t.getTime()-i;if(0===s)return new y;const n=Math.sign(s),r=Math.abs(s),o=Math.floor(r/1e3),a=Math.floor(o/60),h=Math.floor(a/60),u=Math.floor(h/24),l=Math.floor(u/30),c=Math.floor(l/12),m=w.indexOf(e)||w.length;return new y(m>=0?c*n:0,m>=1?(l-12*c)*n:0,0,m>=3?(u-30*l)*n:0,m>=4?(h-24*u)*n:0,m>=5?(a-60*h)*n:0,m>=6?(o-60*a)*n:0,m>=7?(r-1e3*o)*n:0)}(s,this.precision,n),o=P(this,v,"m",E).call(this,r);let a=t;const h=P(this,v,"m",R).call(this,o);a=h?P(this,v,"m",I).call(this,s):"duration"===o?P(this,v,"m",k).call(this,r):"relative"===o?P(this,v,"m",x).call(this,r):P(this,v,"m",U).call(this,s),a?P(this,v,"m",L).call(this,a):this.shadowRoot===P(this,A,"f")&&this.textContent&&P(this,v,"m",L).call(this,this.textContent),a===t&&i===e||this.dispatchEvent(new Y(t,a,e,i)),"relative"===o||"duration"===o||h&&(P(this,v,"m",S).call(this,s)||P(this,v,"m",F).call(this,s))?W.observe(this):W.unobserve(this)}}T=new WeakMap,M=new WeakMap,A=new WeakMap,N=new WeakMap,v=new WeakSet,D=function(){var t;const e=(null===(t=this.closest("[lang]"))||void 0===t?void 0:t.getAttribute("lang"))||this.ownerDocument.documentElement.getAttribute("lang");try{return new Intl.Locale(null!=e?e:"").toString()}catch(t){return"default"}},C=function(t){return new Intl.DateTimeFormat(P(this,v,"a",D),{day:"numeric",month:"short",year:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short",timeZone:this.timeZone}).format(t)},E=function(t){const e=this.format;if("datetime"===e)return"datetime";if("duration"===e)return"duration";if("elapsed"===e)return"duration";if("micro"===e)return"duration";if(("auto"===e||"relative"===e)&&"undefined"!=typeof Intl&&Intl.RelativeTimeFormat){const e=this.tense;if("past"===e||"future"===e)return"relative";if(1===y.compare(t,this.threshold))return"relative"}return"datetime"},k=function(t){const e=P(this,v,"a",D),i=this.format,s=this.formatStyle,n=this.tense;let r=O;"micro"===i?(t=b(t),r=H,0===t.months&&("past"===this.tense&&-1!==t.sign||"future"===this.tense&&1!==t.sign)&&(t=H)):("past"===n&&-1!==t.sign||"future"===n&&1!==t.sign)&&(t=r);const o=`${this.precision}sDisplay`;return t.blank?r.toLocaleString(e,{style:s,[o]:"always"}):t.abs().toLocaleString(e,{style:s})},x=function(t){const e=new Intl.RelativeTimeFormat(P(this,v,"a",D),{numeric:"auto",style:this.formatStyle}),i=this.tense;"future"===i&&1!==t.sign&&(t=O),"past"===i&&-1!==t.sign&&(t=O);const[s,n]=function(t){const e=b(t,void 0);if(e.blank)return[0,"second"];for(const t of w){if("millisecond"===t)continue;const i=e[`${t}s`];if(i)return[i,t]}return[0,"second"]}(t);return"second"===n&&s<10?e.format(0,"millisecond"===this.precision?"second":this.precision):e.format(s,n)},U=function(t){const e=new Intl.DateTimeFormat(P(this,v,"a",D),{second:this.second,minute:this.minute,hour:this.hour,weekday:this.weekday,day:this.day,month:this.month,year:this.year,timeZoneName:this.timeZoneName,timeZone:this.timeZone});return`${this.prefix} ${e.format(t)}`.trim()},S=function(t){const e=new Date,i=new Intl.DateTimeFormat(P(this,v,"a",D),{timeZone:this.timeZone,year:"numeric",month:"2-digit",day:"2-digit"});return i.format(e)===i.format(t)},F=function(t){const e=new Date,i=new Intl.DateTimeFormat(P(this,v,"a",D),{timeZone:this.timeZone,year:"numeric"});return i.format(e)===i.format(t)},I=function(t){const e={hour:"numeric",minute:"2-digit",timeZoneName:"short",timeZone:this.timeZone};if(P(this,v,"m",S).call(this,t)){let i=new Intl.RelativeTimeFormat(P(this,v,"a",D),{numeric:"auto"}).format(0,"day");return i=i.charAt(0).toLocaleUpperCase(P(this,v,"a",D))+i.slice(1),`${i} ${new Intl.DateTimeFormat(P(this,v,"a",D),e).format(t)}`}const i=Object.assign(Object.assign({},e),{day:"numeric",month:"short"});return P(this,v,"m",F).call(this,t)?new Intl.DateTimeFormat(P(this,v,"a",D),i).format(t):new Intl.DateTimeFormat(P(this,v,"a",D),Object.assign(Object.assign({},i),{year:"numeric"})).format(t)},L=function(t){if(this.hasAttribute("aria-hidden")&&"true"===this.getAttribute("aria-hidden")){const e=document.createElement("span");e.setAttribute("aria-hidden","true"),e.textContent=t,P(this,A,"f").replaceChildren(e)}else P(this,A,"f").textContent=t},R=function(t){var e;return"duration"!==t&&("true"===this.ownerDocument.documentElement.getAttribute("data-prefers-absolute-time")||"true"===(null===(e=this.ownerDocument.body)||void 0===e?void 0:e.getAttribute("data-prefers-absolute-time")))};const G="undefined"!=typeof globalThis?globalThis:window;try{G.RelativeTimeElement=z.define()}catch(t){if(!(G.DOMException&&t instanceof DOMException&&"NotSupportedError"===t.name||t instanceof ReferenceError))throw t}
+
+</script>
+<script>
+document.addEventListener('click', (event) => {
+	const anchor = event.target.closest('a');
+	if (!anchor) return;
+	const href = anchor.getAttribute('href');
+	if (!href || href.startsWith('#')) return;
+	try {
+		const url = new URL(href, location.href);
+		if (url.protocol !== 'file:') return;
+		const lastSegment = url.pathname.split('/').pop();
+		if (!lastSegment || lastSegment.includes('.')) return;
+		event.preventDefault();
+		url.pathname += '.html';
+		location.href = url.href;
+	} catch {}
+});
+</script>
+</body>
+</html>
