@@ -464,6 +464,13 @@ export class AssetPagePreConverter {
             const sharedProvider = new ColorEngineProvider();
             await sharedProvider.initialize();
 
+            // Shared dedup set across all subset converters for this chain.
+            // Subsets operate on the SAME PDFDocument and share mutations to
+            // image XObject dicts — after one subset converts an image, the
+            // others must not re-enumerate it.
+            /** @type {Set<string>} */
+            const sharedConvertedImageRefKeys = new Set();
+
             /** @type {import('../../classes/baseline/pdf-document-color-converter.js').PDFDocumentColorConverter[]} */
             const converters = subsets.map(subset =>
                 new PDFDocumentColorConverterClass({
@@ -490,6 +497,7 @@ export class AssetPagePreConverter {
                     convertDeviceRGB: this.#convertDeviceRGB,
                     convertDeviceCMYK: this.#convertDeviceCMYK,
                     convertDeviceGray: this.#convertDeviceGray,
+                    sharedConvertedImageRefKeys,
                 }, { colorEngineProvider: sharedProvider })
             );
 
@@ -568,6 +576,7 @@ export class AssetPagePreConverter {
                             convertDeviceRGB: this.#convertDeviceRGB,
                             convertDeviceCMYK: this.#convertDeviceCMYK,
                             convertDeviceGray: this.#convertDeviceGray,
+                            sharedConvertedImageRefKeys,
                         }, { colorEngineProvider: sharedProvider });
 
                         results.push(await convertSubset(subsetConverter));

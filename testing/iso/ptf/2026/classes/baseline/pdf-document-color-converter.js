@@ -41,6 +41,7 @@ import {
  *   convertDeviceRGB?: boolean,
  *   convertDeviceCMYK?: boolean,
  *   convertDeviceGray?: boolean,
+ *   sharedConvertedImageRefKeys?: Set<string>,
  * }} PDFDocumentColorConverterConfiguration
  */
 
@@ -416,6 +417,20 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
         let totalColorOperationsConverted = 0;
         const allErrors = [];
 
+        // Track image XObject refs already collected for conversion.
+        // A shared image referenced by multiple pages must be collected only
+        // once — after the first page's converter mutates the image dict
+        // (e.g., ICCBased → Device*, updated BitsPerComponent, stripped ICC
+        // profile), a second enumeration of the same ref would see a
+        // profile-less Device* image and fail to re-convert.
+        //
+        // The Set can be supplied via config.sharedConvertedImageRefKeys so
+        // that multiple PDFDocumentColorConverter instances operating on the
+        // SAME PDFDocument (e.g., concurrent subset converters in
+        // AssetPagePreConverter) share a single dedup view.
+        /** @type {Set<string>} */
+        const collectedImageRefKeys = config.sharedConvertedImageRefKeys ?? new Set();
+
         const totalPages = pageFilter ? pageFilter.size : allPages.length;
         let pagesCompleted = 0;
 
@@ -446,7 +461,7 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
                     await pageConverter.ensureReady();
 
                     // Collect images and content streams for this page
-                    const pageData = await this.#collectPageData(page, pdfContext, pageIndex);
+                    const pageData = await this.#collectPageData(page, pdfContext, pageIndex, collectedImageRefKeys);
 
                     result = await pageConverter.convertColor({
                         pageLeaf: /** @type {import('pdf-lib').PDFPageLeaf} */ (pdfContext.lookup(pageRef)),
@@ -543,8 +558,9 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
      * @param {import('pdf-lib').PDFPage} page
      * @param {import('pdf-lib').PDFContext} context
      * @param {number} pageIndex
+     * @param {Set<string>} [collectedImageRefKeys] - Document-level dedup set; ref keys already collected this invocation
      */
-    async #collectPageData(page, context, pageIndex) {
+    async #collectPageData(page, context, pageIndex, collectedImageRefKeys) {
         /** @type {import('./pdf-page-color-converter.js').PDFPageColorConverterInputImage[]} */
         const images = [];
         /** @type {import('./pdf-page-color-converter.js').PDFPageColorConverterContentStreamImage[]} */
@@ -596,12 +612,21 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
                     if (xobjectDict instanceof PDFDict) {
                         for (const [name, ref] of xobjectDict.entries()) {
                             if (ref instanceof PDFRef) {
+                                // Deduplicate shared XObjects across pages at the document level.
+                                // A ref collected on a previous page has already been (or will be)
+                                // converted; re-collecting it here would re-enter the conversion
+                                // pipeline after the image dict has been rewritten by the first
+                                // converter pass.
+                                const refKey = ref.toString();
+                                if (collectedImageRefKeys?.has(refKey)) continue;
+
                                 const obj = context.lookup(ref);
                                 if (obj instanceof PDFRawStream) {
                                     const subtype = obj.dict.get(PDFName.of('Subtype'));
                                     if (subtype instanceof PDFName && subtype.asString() === '/Image') {
                                         const colorSpaceInfo = await this.#getImageColorSpaceInfo(obj.dict, context);
                                         if (colorSpaceInfo && this.#isColorSpaceIncluded(colorSpaceInfo.type)) {
+                                            collectedImageRefKeys?.add(refKey);
                                             images.push({
                                                 ref,
                                                 stream: obj,
