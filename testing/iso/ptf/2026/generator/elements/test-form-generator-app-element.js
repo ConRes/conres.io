@@ -915,8 +915,8 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         const categoryDefinition = policyData.profileCategories[previewCategory];
         if (!categoryDefinition) return;
 
-        const includedTypes = new Set(categoryDefinition.includedColorSpaceTypes);
-        const excludedTypes = new Set(categoryDefinition.excludedColorSpaceTypes);
+        const includedTypes = new Set(categoryDefinition.includedLayoutColorSpaceTypes);
+        const excludedTypes = new Set(categoryDefinition.excludedLayoutColorSpaceTypes);
 
         // --- Color Spaces auto state ---
         const colorSpaceCheckboxes = /** @type {NodeListOf<HTMLInputElement>} */ (
