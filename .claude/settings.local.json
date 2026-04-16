@@ -72,7 +72,14 @@
       "Bash(INPUT=\"/Volumes/Pro-Blade/ConRes/Perceptual Test Forms/Revisions/2025-05-30 - ISO PTF 2x-4x \\(D\\)/2026-02-14 - ConRes - ISO PTF - CR1 \\(F9f\\) Assets OP2.pdf\")",
       "Bash(OUTPUT=\"/Volumes/Pro-Blade/ConRes/Perceptual Test Forms/Revisions/2025-05-30 - ISO PTF 2x-4x \\(D\\)/2026-02-14 - ConRes - ISO PTF - CR1 \\(F9f\\) Assets OP2 - sGray Tagged.pdf\")",
       "Bash(PROFILE=\"testing/iso/ptf/2025/tests/fixtures/profiles/sGray.icc\")",
-      "Bash(__NEW_LINE_1f75027f2c639ce7__ node:*)"
+      "Bash(__NEW_LINE_1f75027f2c639ce7__ node:*)",
+      "Bash(/tmp/test_stream_creation.txt:*)",
+      "Read(//tmp/**)",
+      "Bash(cd /Users/daflair/Projects/conres/conres.io/temp/\"Generator Tests\")",
+      "Bash(node -e \":*)",
+      "Bash(do basename:*)",
+      "Bash(pkill -f \"http-server\")",
+      "Bash(awk '/^export class PDFService/,/^}/' /Users/daflair/Projects/conres/conres.io/testing/iso/ptf/2026/services/PDFService.js)"
     ],
     "deny": [],
     "ask (disabled)": [
