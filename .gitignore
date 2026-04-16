@@ -90,3 +90,6 @@ typings/
 output/*.log
 /testing/iso/ptf/fixtures/test forms/\[Outdated]/
 /testing/iso/ptf/2025/experiments/output/
+/worktrees/
+/testing/iso/ptf/2026/experiments/
+/COMMITS.md
