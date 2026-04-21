@@ -247,6 +247,7 @@ async function processImage(task) {
                 width: task.width,
                 height: task.height,
                 colorSpace: task.colorSpace,
+                pdfColorSpaceType: task.pdfColorSpaceType,
                 bitsPerComponent: task.bitsPerComponent,
                 inputBitsPerComponent: task.inputBitsPerComponent,
                 outputBitsPerComponent: task.outputBitsPerComponent,
@@ -281,11 +282,31 @@ async function processImage(task) {
             }
         }
     } catch (error) {
-        console.error(`${runtime?.CONTEXT_PREFIX ?? ''} [WorkerPoolEntrypoint] processImage error:`, error);
+        const prefix = runtime?.CONTEXT_PREFIX ?? '';
+        const err = /** @type {Error} */ (error);
+        const context = {
+            streamRef: task.streamRef,
+            colorSpace: task.colorSpace,
+            bitsPerComponent: task.bitsPerComponent,
+            hasSourceProfile: task.sourceProfile instanceof ArrayBuffer,
+            sourceProfileByteLength: task.sourceProfile?.byteLength,
+            hasDestinationProfile: task.destinationProfile instanceof ArrayBuffer,
+            destinationColorSpace: task.destinationColorSpace,
+            isCompressed: task.isCompressed,
+            width: task.width,
+            height: task.height,
+        };
+        console.error(`${prefix} [WorkerPoolEntrypoint] processImage error:`, err.message);
+        console.error(`${prefix} [WorkerPoolEntrypoint] processImage context:`, JSON.stringify(context));
+        if (err.stack) {
+            console.error(`${prefix} [WorkerPoolEntrypoint] processImage stack:\n${err.stack}`);
+        }
         return {
             success: false,
             taskId: task.taskId,
-            error: /** @type {Error} */ (error).message,
+            error: err.message,
+            stack: err.stack,
+            context,
             duration: performance.now() - start,
         };
     }
@@ -678,15 +699,85 @@ async function sendResult(result) {
 // Worker Setup
 // ============================================================================
 
+/**
+ * Unified uncaught error handler for worker scope.
+ * Catches unhandled promise rejections and uncaught errors that escape
+ * per-task try/catch — otherwise they are lost with only a generic
+ * "Uncaught (in promise)" console line.
+ *
+ * Posts a structured message back to the pool so the main thread has
+ * the full stack, not just the message.
+ *
+ * @param {Event | PromiseRejectionEvent | ErrorEvent | Error} eventOrError
+ */
+function uncaughtErrorHandler(eventOrError) {
+    const prefix = runtime?.CONTEXT_PREFIX ?? '';
+
+    // Normalize event → error
+    let error;
+    let kind;
+    if (eventOrError instanceof Error) {
+        error = eventOrError;
+        kind = 'error';
+    } else if ('reason' in eventOrError) {
+        // PromiseRejectionEvent
+        error = eventOrError.reason instanceof Error
+            ? eventOrError.reason
+            : new Error(String(eventOrError.reason));
+        kind = 'unhandledrejection';
+    } else if ('error' in eventOrError && eventOrError.error) {
+        // ErrorEvent
+        error = eventOrError.error;
+        kind = 'error';
+    } else {
+        error = new Error(String(eventOrError));
+        kind = 'error';
+    }
+
+    console.error(`${prefix} [WorkerPoolEntrypoint] Uncaught ${kind}:`, error.message);
+    if (error.stack) {
+        console.error(`${prefix} [WorkerPoolEntrypoint] Stack:\n${error.stack}`);
+    }
+
+    // Post structured message back to main (non-task — taskId:null)
+    try {
+        const payload = {
+            type: 'uncaught-error',
+            taskId: null,
+            kind,
+            error: error.message,
+            stack: error.stack,
+        };
+        if (IS_NODE) {
+            import('worker_threads').then(({ parentPort }) => {
+                parentPort?.postMessage(payload);
+            });
+        } else {
+            self.postMessage(payload);
+        }
+    } catch {
+        // If postMessage itself fails, nothing we can do
+    }
+}
+
 if (IS_NODE) {
     import('worker_threads').then(({ parentPort }) => {
         parentPort?.on('message', handleMessage);
         parentPort?.postMessage({ type: 'ready' });
     });
+    // Node worker_threads: process-level hooks
+    if (typeof process !== 'undefined') {
+        process.on('uncaughtException', uncaughtErrorHandler);
+        process.on('unhandledRejection', (reason) => uncaughtErrorHandler(
+            reason instanceof Error ? reason : new Error(String(reason))
+        ));
+    }
 } else {
     self.onmessage = (event) => {
         handleMessage(event.data);
     };
+    self.addEventListener('unhandledrejection', uncaughtErrorHandler);
+    self.addEventListener('error', uncaughtErrorHandler);
     self.postMessage({ type: 'ready' });
 }
 

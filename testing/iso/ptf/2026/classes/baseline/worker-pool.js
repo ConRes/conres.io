@@ -72,6 +72,7 @@
  *   width: number,
  *   height: number,
  *   colorSpace: import('./color-converter.js').ColorType,
+ *   pdfColorSpaceType?: import('./pdf-image-color-converter.js').PDFColorSpaceType,
  *   bitsPerComponent: import('./color-conversion-policy.js').BitDepth,
  *   inputBitsPerComponent?: import('./color-conversion-policy.js').BitDepth,
  *   outputBitsPerComponent?: import('./color-conversion-policy.js').BitDepth,

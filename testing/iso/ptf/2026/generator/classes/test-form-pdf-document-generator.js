@@ -431,6 +431,28 @@ export class TestFormPDFDocumentGenerator {
 
             console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Docket PDF generated: ${docketPDFBuffer ? (docketPDFBuffer.byteLength / 1024).toFixed(1) + ' KB' : 'null'}`);
 
+            // Convert docket Device* content to output intent color space when
+            // required (RGB output intent). The same converter pipeline used for
+            // asset pages applies here — no bespoke docket-specific conversion.
+            //
+            // PDFDocumentColorConverter appends `(Color-Engine <version>)` to
+            // Info.Producer on every invocation. The docket arrives with
+            // Info.Producer and XMP.Producer already aligned (done by
+            // #postProcessDocument inside #generateDocketPDF). Running the
+            // converter here desyncs them — Info.Producer gets the suffix,
+            // XMP stays unchanged → preflight RUL30 "Producer mismatch".
+            // Re-run #ensureXMPMetadata after the conversion to rewrite the
+            // XMP Producer entry with the post-conversion Info.Producer value.
+            if (docketPDFBuffer && iccProfileHeader.colorSpace === 'RGB') {
+                const docketDocument = await PDFDocument.load(docketPDFBuffer, { updateMetadata: false });
+                await this.#convertDeviceColorToOutputIntent(docketDocument, iccProfileBuffer, iccProfileHeader.colorSpace);
+                await this.#ensureXMPMetadata(docketDocument, iccProfileHeader);
+                docketPDFBuffer = /** @type {ArrayBuffer} */ (
+                    (await docketDocument.save({ addDefaultPage: false, updateFieldAppearances: false })).buffer
+                );
+                console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Docket PDF converted to ${iccProfileHeader.colorSpace}: ${(docketPDFBuffer.byteLength / 1024).toFixed(1)} KB`);
+            }
+
             // Deliver docket immediately — UI downloads it before main job starts
             if (docketPDFBuffer && callbacks.onDocketReady) {
                 await callbacks.onDocketReady(docketPDFBuffer, metadataJSON);
@@ -549,6 +571,11 @@ export class TestFormPDFDocumentGenerator {
                     effectiveManifest.pages, iccProfileBuffer, iccProfileHeader, userMetadata,
                     singlePass.intentPass.label, assemblyPlan.profileCategoryLabel,
                 );
+
+                // Convert slug Device* content (DeviceGray fills/labels/QR) to
+                // output intent color space when required (RGB output intent).
+                // Same converter pipeline as asset pages — no bespoke slug path.
+                await this.#convertDeviceColorToOutputIntent(slugsDocument, iccProfileBuffer, iccProfileHeader.colorSpace);
 
                 await onProgress('slugs', 88, `Embedding slugs (${effectiveManifest.pages.length} pages)\u2026`);
                 await PDFService.embedSlugsIntoPDFDocument(assembledDocument, slugsDocument);
@@ -835,6 +862,7 @@ export class TestFormPDFDocumentGenerator {
                             pass.manifest.pages, iccProfileBuffer, iccProfileHeader, userMetadata,
                             passLabel, assemblyPlan.profileCategoryLabel,
                         );
+                        await this.#convertDeviceColorToOutputIntent(slugsDocument, iccProfileBuffer, iccProfileHeader.colorSpace);
                         await PDFService.embedSlugsIntoPDFDocument(assembledDocument, slugsDocument);
                         // slugsDocument goes out of scope here
                     }
@@ -940,6 +968,7 @@ export class TestFormPDFDocumentGenerator {
             fullSlugsDocument = await this.#generateSlugsPDF(
                 manifest.pages, iccProfileBuffer, iccProfileHeader, userMetadata,
             );
+            await this.#convertDeviceColorToOutputIntent(fullSlugsDocument, iccProfileBuffer, iccProfileHeader.colorSpace);
         }
 
         // ------------------------------------------------------------------
@@ -1273,6 +1302,63 @@ export class TestFormPDFDocumentGenerator {
      * @param {ArrayBuffer} iccProfileBuffer
      * @param {ArrayBuffer} manifestBuffer
      */
+    /**
+     * Convert Device* color (content streams + images) in a GhostScript-generated
+     * PDF (docket or slugs) to match the output intent color space.
+     *
+     * Docket and slug PDFs are produced by GhostScript and contain DeviceCMYK
+     * (K-only text/strokes) and DeviceGray (slug fills/labels) content. For RGB
+     * output intents, this content violates PDF/X-4 conformance unless converted
+     * to DeviceRGB. For CMYK output intents, PDF/X-4 permits DeviceGray and the
+     * DeviceCMYK content is already compatible — no conversion needed. For Gray
+     * output intents, content is already DeviceGray.
+     *
+     * Uses the same `PDFDocumentColorConverter` pipeline as asset pages, with
+     * `defaultSourceProfileForDevice*: null` so Device color routes through
+     * `TraditionalPostScriptColorConverter`.
+     *
+     * @param {PDFDocument} document - Document to convert in place
+     * @param {ArrayBuffer} iccProfileBuffer - Output intent ICC profile
+     * @param {string} outputColorSpace - Output intent color space ('RGB' | 'CMYK' | 'Gray')
+     * @returns {Promise<void>}
+     */
+    async #convertDeviceColorToOutputIntent(document, iccProfileBuffer, outputColorSpace) {
+        // Only RGB output intents require converting GhostScript Device content.
+        // CMYK output intents accept DeviceCMYK (K-only) and DeviceGray per PDF/X-4.
+        // Gray output intents accept DeviceGray — source is already compatible.
+        if (outputColorSpace !== 'RGB') return;
+
+        const { PDFDocumentColorConverter } = await import('../../classes/baseline/pdf-document-color-converter.js');
+
+        const converter = new PDFDocumentColorConverter({
+            renderingIntent: 'relative-colorimetric',
+            blackPointCompensation: true,
+            useAdaptiveBPCClamping: false,
+            destinationProfile: iccProfileBuffer,
+            destinationColorSpace: /** @type {import('../../classes/baseline/color-converter.js').ColorType} */ (outputColorSpace),
+            outputBitsPerComponent: 8,
+            convertImages: true,
+            convertContentStreams: true,
+            useWorkers: false,
+            verbose: false,
+            // Trigger the TPS path inside image + content-stream converters
+            defaultSourceProfileForDeviceRGB: undefined,
+            defaultSourceProfileForDeviceCMYK: undefined,
+            defaultSourceProfileForDeviceGray: undefined,
+            convertDeviceRGB: true,
+            convertDeviceCMYK: true,
+            convertDeviceGray: true,
+            useLegacyContentStreamParsing: false,
+        });
+
+        try {
+            await converter.ensureReady();
+            await converter.convertColor({ pdfDocument: document });
+        } finally {
+            converter.dispose();
+        }
+    }
+
     async #postProcessDocument(document, iccProfileHeader, iccProfileBuffer, manifestBuffer, attachmentName = 'test-form.manifest.json') {
         // Always use the user's destination ICC profile for the output intent
         // (not a source profile extracted from the document)

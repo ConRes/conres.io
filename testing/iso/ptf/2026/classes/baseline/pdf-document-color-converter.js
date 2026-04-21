@@ -884,7 +884,7 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
      *
      * @param {import('pdf-lib').PDFDict} dict
      * @param {import('pdf-lib').PDFContext} context
-     * @returns {PDFColorSpaceInformation?}
+     * @returns {Promise<PDFColorSpaceInformation?>}
      */
     async #getImageColorSpaceInfo(dict, context) {
         const colorSpace = /** @type {import('pdf-lib').PDFName | import('pdf-lib').PDFRef | import('pdf-lib').PDFArray | undefined} */ (dict.get(PDFName.of('ColorSpace')));

@@ -1,8 +1,149 @@
 # Device Color Handling for PDF/X-4 RGB and Gray Output Intents
 
-**Last Updated:** 2026-04-07  
-**Status:** Planning  
+**Last Updated:** 2026-04-16
+**Status:** Shortest-path landed (A, D, E, F, H) — pending B (worker payload), C (resolver helper), I/J (audits), K (tests)
 **Branch:** `test-form-generator/2026/dev`
+
+---
+
+## Landing Plan (2026-04-16)
+
+Investigation triggered by regressions observed in RGB-output-intent generation:
+
+- **Regression A**: `image-color-converter.js:267` throws "Source ICC profile is required for RGB conversion" when converter encounters a `DeviceRGB` image (no embedded profile, no fallback wired)
+- **Regression B**: RGB docket PDF fails Acrobat preflight RUL83 (DeviceGray) and RUL101 (DeviceCMYK) — docket never color-converted, and content-stream converter ignores Device operators even when `convertDevice*` flags are set
+- **Regression C**: Full asset RGB output PDF fails same preflight rules — `assembly-policy.json` RGB category does not include `CMYK`, so `DeviceCMYK` images are filtered out before conversion
+
+### What is actually implemented vs. what is not
+
+| Area | Status | Evidence |
+| --- | --- | --- |
+| `sourcePDFColorSpace` tracking, sentinel removal | ✅ Done | Sentinels gone from `#getImageColorSpaceInfo`; names use PDF color space identifiers |
+| `#isColorSpaceIncluded` configuration-driven filter | ✅ Done | Shorthand resolution works for `RGB`/`Gray`/`CMYK`/`Lab` |
+| `defaultSourceProfileForDevice*` typedef + config plumbing | ✅ Done | Fields flow generator → document converter → page converter |
+| `defaultSourceProfileForDevice*` **consumption** in `#getImageColorSpaceInfo` | ❌ Missing | Device branches return no `sourceProfile` field; Audit Issue 2 |
+| Content stream Device operator conversion (`setGray`/`setRGB`/`setCMYK`) | ❌ Missing | `flush()` filters `operation === 'setColor'` only; Device ops counted then passed through |
+| PostScript math path for `null` source profile | ❌ Missing | Section 9 marked "Not addressed in plan"; zero code exists |
+| Resolver policy consumption (`preferOutputIntent`, `preferEmbeded`, `preferGracefulFallback`) | ❌ Missing | `resolveDefaultSourceProfile()` reads path field only |
+| Assembly policy RGB category includes `CMYK` | ❌ Missing | Current: `["RGB","Gray","Lab"]` |
+| Docket color conversion for non-CMYK output intents | ❌ Missing | Docket only goes through `decalibrateColorInPDFDocument` + `replaceTransparencyBlendingSpace` |
+| Worker task fields for `defaultSourceProfileForDevice*` | ❌ Missing | Not in `ImageTask`/`ContentStreamTask` typedefs |
+| Audit Issue 3 — `outputChannels` hardcoded 3 for Gray | ❌ Missing | `pdf-content-stream-color-converter.js:493` |
+| Audit Issue 4 — `renderingIntent` default in separate-chains | ❌ Missing | `test-form-pdf-document-generator.js:953` |
+| E5 (CMYK OI) and E6 (RGB OI) end-to-end tests | ❌ Missing | No generator integration tests |
+
+### Semantic reconciliation (from user history instructions)
+
+At the **converter** layer:
+
+| Value | Semantics |
+| --- | --- |
+| `ArrayBuffer` | Invoke non-PDF super class with this ICC profile (ICC transform) |
+| `null` | Use traditional PostScript math within PDF conversion classes (super class not invoked) |
+| `undefined` | Skip conversion for this Device color space (super class not invoked) |
+
+At the **generator resolver** layer (produces the above from the manifest):
+
+| Manifest value | Policy | Resolver output |
+| --- | --- | --- |
+| Path string | — | `ArrayBuffer` (fetched from path) |
+| `null` | `preferOutputIntent: true` + output intent color space matches Device type | Output intent `ArrayBuffer` |
+| `null` | `preferEmbeded: true` + embedded profile available | Embedded `ArrayBuffer` |
+| `null` | `preferGracefulFallback: true` + settings.json default exists | Settings.json `ArrayBuffer` |
+| `null` | All policies false or no matching profile | `null` (→ PostScript math) |
+| absent | — | `undefined` (→ skip conversion) |
+
+### F10a manifest specifics
+
+Manifest sets `defaultSourceProfileForDevice{RGB,CMYK,Gray}: null` with `preferOutputIntent: true`, `preferEmbeded: false`, `preferGracefulFallback: false`.
+
+| Device type | Output intent = RGB | Output intent = CMYK | Output intent = Gray |
+| --- | --- | --- | --- |
+| `DeviceRGB` | OI color space matches → resolver returns OI ICC → ICC transform (identity-ish) | OI mismatches → PostScript math (RGB→CMYK: throw, black generation unspecified) | OI mismatches → PostScript math (RGB→Gray: luminance) |
+| `DeviceCMYK` | OI mismatches → PostScript math (CMYK→RGB: `1 − min(1, C+K)` …) | OI matches → ICC transform (identity-ish) | OI mismatches → PostScript math (CMYK→Gray) |
+| `DeviceGray` | OI mismatches → PostScript math (Gray→RGB: R=G=B=g) | OI mismatches → PostScript math (Gray→CMYK: K=1-g) — but PDF/X-4 permits DeviceGray passthrough in CMYK OI, so actually **skip** | OI matches → no conversion needed |
+
+### GhostScript-generated PDFs (docket + slugs) per-OI policy
+
+Docket and slug PDFs both originate from GhostScript and carry Device* content. They must go through the **same** `PDFDocumentColorConverter` pipeline as asset pages — no duplicated or bespoke conversion paths. The composition points (E + F) and `resolveDeviceSourceProfile()` handle them identically to assets.
+
+| GhostScript output | Content | Output intent RGB | Output intent CMYK | Output intent Gray |
+| --- | --- | --- | --- | --- |
+| Docket | DeviceCMYK text/checkboxes/radio (0/0/0/1), DeviceGray backgrounds | **Convert** (CMYK/Gray → RGB via resolver) | Skip (PDF/X-4 permits DeviceGray in CMYK; DeviceCMYK already compatible) | Skip (DeviceGray already compatible) |
+| Slug PDFs | DeviceGray 0.94922 fill, 0.5 frame, 0 labels/QR | **Convert** (Gray → RGB via resolver) | Skip | Skip |
+
+No separate pipeline, no separate dispatcher. Docket and slugs enter the same `convertColor` call surface that asset pages use.
+
+### Clarifications (2026-04-16, revised)
+
+- **Assembly policy is about layouts, not conversion.** `assembly-policy.json` now uses `includedLayoutColorSpaceTypes` / `excludedLayoutColorSpaceTypes` (renamed from `includedColorSpaceTypes`). It gates which **layouts** appear in the assembled PDF, not which color spaces get color-converted. Conversion inclusion is handled elsewhere by per-image/stream PDF color space inspection.
+- **One new class, not inline math.** PostScript math lives in a new `TraditionalPostScriptColorConverter` class (sibling to `ColorConverter`), PDF-agnostic, Float32 internally, reusing existing bit-depth/endianness helpers from `color-conversion-policy.js`. The two PDF converter classes compose it. No inline formulas anywhere else.
+- **Single resolver, one place.** `resolveDeviceSourceProfile()` is a pure function encoding the conjunction once. Used by both composition points.
+- **Worker delegation preserved.** `PDFImageColorConverter` / `PDFContentStreamColorConverter` are dynamically imported in the worker entrypoint. `TraditionalPostScriptColorConverter` is loaded transitively inside the worker isolate via those classes' own imports — never instantiated directly by `worker-pool-entrypoint.js`. Decision + math both execute in the worker.
+
+### The conjunction encoded in `resolveDeviceSourceProfile()`
+
+Condition: flattened settings do NOT resolve to an explicit source profile when ALL of the following hold for a given `X ∈ {RGB, CMYK, Gray}`:
+
+- `defaultSourceProfileForDevice<X> === null`, AND
+- `preferOutputIntent !== true` OR output intent color space type ≠ `X`, AND
+- `preferEmbeded !== true` OR embedded profiles with color space type `X` (uncompressed bytes) count ≠ 1, AND
+- `preferGracefullFallback !== true` OR `X` ∉ `{RGB, Gray}`.
+
+Resolver return values:
+
+- `ArrayBuffer` → route to non-PDF super class for ICC conversion
+- `null` → route to `TraditionalPostScriptColorConverter` (when the conjunction's graceful-fallback branch permits; otherwise resolver throws)
+- `undefined` → skip (no Device setting configured)
+
+### Composition and delegation (ACU)
+
+| Layer | Role | Thread |
+| --- | --- | --- |
+| `resolveDeviceSourceProfile()` (new, pure) | Encode conjunction once | Called inside worker |
+| `TraditionalPostScriptColorConverter` (new) | Float32 PS math; operates on buffers AND tuples | Worker isolate (transitively loaded) |
+| `PDFImageColorConverter.convertPDFImageColor` | Decision point before `super.convertColor`: ICC super OR composed TPS | Worker |
+| `PDFContentStreamColorConverter` Device operator handling | Decision point per `k/K`, `rg/RG`, `g/G`: ICC lookup table OR TPS tuple convert | Worker |
+
+### Worker task payload additions (required so workers decide autonomously)
+
+Shared profile fields broadcast via existing `broadcastSharedProfiles` mechanism (not duplicated per-task):
+
+| Field on ImageTask / ContentStreamTask | Purpose |
+| --- | --- |
+| `pdfColorSpaceType` | Preserves Device* vs ICCBased* distinction (currently lost at `typeToColorSpace` mapping) |
+| `defaultSourceProfileForDeviceRGB/CMYK/Gray` | `ArrayBuffer \| null \| undefined` |
+| `defaultSourceProfileForDeviceRGB/CMYK/GrayPolicy` | `{ preferOutputIntent, preferEmbeded, preferGracefullFallback }` |
+| `outputIntentColorSpaceType` | `'RGB' \| 'CMYK' \| 'Gray'` from ICC header |
+| `embeddedProfileInventory` | Count (or refs) of embedded ICC profiles grouped by color space type |
+
+### Work blocks (dependency-ordered) — revised 2026-04-16
+
+| ID | Block | Primary Files | Depends On | Status |
+| --- | --- | --- | --- | --- |
+| A | Forward `pdfColorSpaceType` through imageInput + worker task | `pdf-document-color-converter.js`, `pdf-page-color-converter.js`, `pdf-image-color-converter.js` | — | ✅ Done |
+| B | Worker task payload additions (profiles, policies, OI type, embedded inventory) | `worker-pool.js`, `worker-pool-entrypoint.js`, `pdf-image-color-converter.js` | A | ⏳ Pending |
+| C | `resolveDeviceSourceProfile()` helper (pure function) | `classes/baseline/device-source-profile-resolver.js` (new) | — | ⏳ Pending |
+| D | `TraditionalPostScriptColorConverter` class (Float32, PDF-agnostic) | `classes/baseline/traditional-postscript-color-converter.js` (new) | — | ✅ Done |
+| E | `PDFImageColorConverter` composition point (8/16-bit Device images) | `pdf-image-color-converter.js` | A, D | ✅ Done |
+| F | `PDFContentStreamColorConverter` composition point (Device operator tuples) | `pdf-content-stream-color-converter.js` | A, D | ✅ Done |
+| H | Route docket AND slugs through unified conversion pipeline (no duplicated paths) | `generator/classes/test-form-pdf-document-generator.js` | E, F | ✅ Done |
+| I | Audit Issue 3 — `outputChannels` for Gray output | `pdf-content-stream-color-converter.js:493` | — | ⏳ Pending |
+| J | Audit Issue 4 — separate-chains `renderingIntent` | `test-form-pdf-document-generator.js:953` | — | ⏳ Pending |
+| K | Tests: TPS unit + resolver + E5/E6 end-to-end | `tests/classes/`, `tests/generator/` | C, D, E, F | ⏳ Pending |
+| L | Progress doc final refresh | this file | all prior | 🟡 In Progress |
+| P | Override PDF-default DeviceGray state with explicit RGB defaults for RGB OI | TBD (not in streaming converter) | F | ⏳ Pending — first attempt reverted (browser-specific corruption) |
+
+### Scope decisions
+
+- `DeviceRGB → DeviceCMYK` PostScript math: **throw** (black generation unspecified; not needed for F10a RGB output intent case).
+- `preferEmbeded`: disabled in current F10a manifest — implement the gate, defer embedded-profile scan until manifest re-enables it.
+- `preferGracefullFallback: false` (current F10a): when no policy resolves a profile, resolver returns `null` and PDF converter routes to `TraditionalPostScriptColorConverter` ONLY for RGB or Gray; throws otherwise (CMYK graceful fallback is not defined).
+- Worker isolation: no Device math runs on main thread — all decision + execution happens in worker.
+
+### Out of scope for this document
+
+- Profile-loss regression investigation (separate effort; not tracked here).
 
 ---
 
@@ -70,7 +211,7 @@ The same pattern applies for `defaultSourceProfileForDeviceCMYK` and `defaultSou
 
 **Policy fields** (`defaultSourceProfileForDeviceRGBPolicy`, etc.) contain `preferOutputIntent`, `preferEmbeded`, and `preferGracefulFallback` booleans that modify the resolution behavior. These are consumed by the generator layer during resolution, not by the converter.
 
-### 2. Granular `includedColorSpaceTypes` and `excludedColorSpaceTypes`
+### 2. Granular `includedLayoutColorSpaceTypes` and `excludedLayoutColorSpaceTypes`
 
 Expand the assembly policy and PDF color conversion classes to support granular color space type values:
 
@@ -90,10 +231,10 @@ Expand the assembly policy and PDF color conversion classes to support granular 
 
 **Resolution logic for shorthand vs explicit:**
 
-- `RGB` in `includedColorSpaceTypes` includes both `DeviceRGB` and `ICCBasedRGB` **unless** either `DeviceRGB` or `ICCBasedRGB` is also explicitly present in `excludedColorSpaceTypes`
-- `DeviceRGB` in `excludedColorSpaceTypes` excludes only `DeviceRGB` even if `RGB` is in `includedColorSpaceTypes`
-- If both `RGB` (shorthand) and `DeviceRGB` (explicit) appear in `includedColorSpaceTypes`, `DeviceRGB` takes no additional effect (already covered by `RGB`)
-- If both `RGB` (shorthand) and `DeviceRGB` (explicit) appear in `excludedColorSpaceTypes`, same principle applies
+- `RGB` in `includedLayoutColorSpaceTypes` includes both `DeviceRGB` and `ICCBasedRGB` **unless** either `DeviceRGB` or `ICCBasedRGB` is also explicitly present in `excludedLayoutColorSpaceTypes`
+- `DeviceRGB` in `excludedLayoutColorSpaceTypes` excludes only `DeviceRGB` even if `RGB` is in `includedLayoutColorSpaceTypes`
+- If both `RGB` (shorthand) and `DeviceRGB` (explicit) appear in `includedLayoutColorSpaceTypes`, `DeviceRGB` takes no additional effect (already covered by `RGB`)
+- If both `RGB` (shorthand) and `DeviceRGB` (explicit) appear in `excludedLayoutColorSpaceTypes`, same principle applies
 
 ### 3. Device Color Conversion Behavior
 
@@ -105,7 +246,7 @@ When a `Device*` color space is included for conversion, the PDF converter class
 
 ### 4. `DeviceN` Warning
 
-`DeviceN` is distinct from `DeviceRGB`, `DeviceCMYK`, and `DeviceGray`. Specifying `DeviceN` in either `includedColorSpaceTypes` or `excludedColorSpaceTypes` must not affect the handling of `DeviceRGB`, `DeviceCMYK`, or `DeviceGray`. If `DeviceN` is specified and is not supported (which is the current state), a warning must be emitted.
+`DeviceN` is distinct from `DeviceRGB`, `DeviceCMYK`, and `DeviceGray`. Specifying `DeviceN` in either `includedLayoutColorSpaceTypes` or `excludedLayoutColorSpaceTypes` must not affect the handling of `DeviceRGB`, `DeviceCMYK`, or `DeviceGray`. If `DeviceN` is specified and is not supported (which is the current state), a warning must be emitted.
 
 ---
 
@@ -141,7 +282,7 @@ Each task addresses specific violations of the separation of concerns between PD
   - Update tests
 
 - [ ] **Task 3: Fix PDF layer — configurable filtering** (Violation V4)
-  - Add `includedColorSpaceTypes`/`excludedColorSpaceTypes` to `PDFDocumentColorConverterConfiguration`
+  - Add `includedLayoutColorSpaceTypes`/`excludedLayoutColorSpaceTypes` to `PDFDocumentColorConverterConfiguration`
   - Replace hardcoded `!type.includes('CMYK')` filter in `#collectPageData` with configuration-driven filtering using `sourcePDFColorSpace`
   - The assembly policy provides these values per profile category; the generator passes them through
 
@@ -160,10 +301,10 @@ Each task addresses specific violations of the separation of concerns between PD
   - Read `manifest.settings.colorManagement` in generator
   - Resolve `defaultSourceProfileForDevice*` settings (null, path → ArrayBuffer, or undefined)
   - Resolve `*Policy` settings (preferOutputIntent, preferEmbeded, preferGracefulFallback)
-  - Pass resolved `defaultSourceProfileForDevice*` and `includedColorSpaceTypes`/`excludedColorSpaceTypes` to `PDFDocumentColorConverter` construction in `AssetPagePreConverter`
+  - Pass resolved `defaultSourceProfileForDevice*` and `includedLayoutColorSpaceTypes`/`excludedLayoutColorSpaceTypes` to `PDFDocumentColorConverter` construction in `AssetPagePreConverter`
 
 - [ ] **Task 6: Update assembly policy configuration**
-  - Update `assembly-policy.json` profile categories to include `DeviceCMYK`/`DeviceGray` in `includedColorSpaceTypes` for RGB output intents
+  - Update `assembly-policy.json` profile categories to include `DeviceCMYK`/`DeviceGray` in `includedLayoutColorSpaceTypes` for RGB output intents
   - Update Gray profile category similarly
   - Verify CMYK categories remain correct
   - `DeviceN` in include/exclude must warn if unsupported
@@ -222,7 +363,7 @@ The original gap analysis has been superseded by the violation-anchored analysis
 
 **Current:** `if (colorSpaceInfo && !colorSpaceInfo.type.includes('CMYK'))` — hardcoded to skip all CMYK images (both `DeviceCMYK` and `ICCBasedCMYK`).
 
-**Problem:** For RGB output intents, `DeviceCMYK` images must be converted. `ICCBasedCMYK` images should also be converted. This filter must become configurable using the resolved `includedColorSpaceTypes`/`excludedColorSpaceTypes`.
+**Problem:** For RGB output intents, `DeviceCMYK` images must be converted. `ICCBasedCMYK` images should also be converted. This filter must become configurable using the resolved `includedLayoutColorSpaceTypes`/`excludedLayoutColorSpaceTypes`.
 
 **No equivalent filter exists for content streams** — all content streams are collected unconditionally. The filtering happens later in `PDFContentStreamColorConverter.convertColor` (lines 296-313) where Device colors (`type === 'rgb'` or `type === 'gray'`) are separated from ICCBased/Lab colors. `type === 'cmyk'` operations are parsed but never included in either group — they are silently dropped from the conversion pipeline.
 
@@ -283,11 +424,11 @@ This maps **both** Device and ICCBased types to the same shorthand. The new gran
 - In practice, for the test form generator use case, `defaultSourceProfileForDeviceRGB` would likely also be `sRGB v4.icc`, but the semantic distinction matters for future flexibility
 - A `sourceCMYKProfile` does not currently exist and would be needed; conflating it with `defaultSourceProfileForDeviceCMYK` would create confusion
 
-### 6. Assembly policy `includedColorSpaceTypes` current values
+### 6. Assembly policy `includedLayoutColorSpaceTypes` current values
 
 **Current assembly policy values:**
 
-| Category    | `includedColorSpaceTypes`           | `excludedColorSpaceTypes` |
+| Category    | `includedLayoutColorSpaceTypes`           | `excludedLayoutColorSpaceTypes` |
 | ----------- | ----------------------------------- | ------------------------- |
 | Gray        | `["Gray", "Lab"]`                   | `["DeviceN"]`             |
 | RGB         | `["RGB", "Gray", "Lab"]`            | `["DeviceN"]`             |
@@ -349,7 +490,7 @@ These are simple enough to implement inline without the color engine, but the pl
 
 - `defaultSourceProfileForDeviceCMYK` (or `sourceCMYKProfile`) — for Device CMYK content streams and images
 - Possibly `defaultSourceProfileForDeviceRGB`, `defaultSourceProfileForDeviceGray` if they differ from `sourceRGBProfile`, `sourceGrayProfile`
-- `includedColorSpaceTypes`, `excludedColorSpaceTypes` — if content stream workers need to do their own filtering (currently all filtering happens on the main thread before dispatch)
+- `includedLayoutColorSpaceTypes`, `excludedLayoutColorSpaceTypes` — if content stream workers need to do their own filtering (currently all filtering happens on the main thread before dispatch)
 
 ## Critical: Legacy `'sRGB'`/`'sGray'` Sentinel String Contamination
 
@@ -431,14 +572,14 @@ The full violation analysis is in `2026-04-06-DECISION-FLOW-ANALYSIS.md`. Summar
 
 ### Issues Found
 
-| #  | Severity   | File | Issue | Runtime Impact | Tests Catch? |
-| -- | ---------- | ---- | ----- | -------------- | ------------ |
-| 1  | **Fixed**  | `test-form-pdf-document-generator.js` | `defaultSourceProfileForDevice*` declared as `const` in `generate()` but referenced in 3 other methods — `ReferenceError` | Crashes multi-intent, separate-chains, docket paths | No |
-| 2  | **High**   | `pdf-document-color-converter.js` | `defaultSourceProfileForDevice*` flows through config but is never consumed to provide source profiles — DeviceRGB images that pass inclusion filter would crash with "Source ICC profile is required" | Crash on DeviceRGB/DeviceGray image conversion | No |
-| 3  | **Medium** | `pdf-content-stream-color-converter.js:493` | `outputChannels` hardcodes 3 for non-CMYK, but Gray output needs 1 — garbled Gray destination output | Wrong color values in Gray output | No |
-| 4  | **Medium** | `test-form-pdf-document-generator.js:953` | Separate-chains `AssetPagePreConverter` omits `renderingIntent`/`blackPointCompensation`, defaults to Relative Colorimetric regardless of assembly plan | Wrong rendering intent in separate-chains mode | No |
-| 5  | Low        | `pdf-document-color-converter.js` | Duplicate typedef for `defaultSourceProfileForDevice*` in parent and child config | None (redundant types) | N/A |
-| 6  | Low        | `pdf-page-color-converter.js` | `defaultSourceProfileForDevice*` declared in typedef but never consumed in file | None (unused plumbing) | N/A |
+| #   | Severity   | File                                        | Issue                                                                                                                                                                                                  | Runtime Impact                                      | Tests Catch? |
+| --- | ---------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------- | ------------ |
+| 1   | **Fixed**  | `test-form-pdf-document-generator.js`       | `defaultSourceProfileForDevice*` declared as `const` in `generate()` but referenced in 3 other methods — `ReferenceError`                                                                              | Crashes multi-intent, separate-chains, docket paths | No           |
+| 2   | **High**   | `pdf-document-color-converter.js`           | `defaultSourceProfileForDevice*` flows through config but is never consumed to provide source profiles — DeviceRGB images that pass inclusion filter would crash with "Source ICC profile is required" | Crash on DeviceRGB/DeviceGray image conversion      | No           |
+| 3   | **Medium** | `pdf-content-stream-color-converter.js:493` | `outputChannels` hardcodes 3 for non-CMYK, but Gray output needs 1 — garbled Gray destination output                                                                                                   | Wrong color values in Gray output                   | No           |
+| 4   | **Medium** | `test-form-pdf-document-generator.js:953`   | Separate-chains `AssetPagePreConverter` omits `renderingIntent`/`blackPointCompensation`, defaults to Relative Colorimetric regardless of assembly plan                                                | Wrong rendering intent in separate-chains mode      | No           |
+| 5   | Low        | `pdf-document-color-converter.js`           | Duplicate typedef for `defaultSourceProfileForDevice*` in parent and child config                                                                                                                      | None (redundant types)                              | N/A          |
+| 6   | Low        | `pdf-page-color-converter.js`               | `defaultSourceProfileForDevice*` declared in typedef but never consumed in file                                                                                                                        | None (unused plumbing)                              | N/A          |
 
 ### Issue Status
 
@@ -450,12 +591,12 @@ The full violation analysis is in `2026-04-06-DECISION-FLOW-ANALYSIS.md`. Summar
 
 ### Missing Tests That Would Have Caught These
 
-| Test | Would Catch | Priority |
-| ---- | ----------- | -------- |
-| **E5: Generator end-to-end with CMYK output intent** | Issue 1 (ReferenceError in multi-intent/docket paths) | **Critical** |
-| **E6: Generator end-to-end with RGB output intent** | Issue 2 (DeviceRGB crash) | **Critical** |
-| Content stream conversion with `destinationColorSpace: 'Gray'` | Issue 3 (wrong outputChannels) | Medium |
-| Generator with separate-chains strategy + K-Only GCR | Issue 4 (wrong rendering intent) | Medium |
+| Test                                                           | Would Catch                                           | Priority     |
+| -------------------------------------------------------------- | ----------------------------------------------------- | ------------ |
+| **E5: Generator end-to-end with CMYK output intent**           | Issue 1 (ReferenceError in multi-intent/docket paths) | **Critical** |
+| **E6: Generator end-to-end with RGB output intent**            | Issue 2 (DeviceRGB crash)                             | **Critical** |
+| Content stream conversion with `destinationColorSpace: 'Gray'` | Issue 3 (wrong outputChannels)                        | Medium       |
+| Generator with separate-chains strategy + K-Only GCR           | Issue 4 (wrong rendering intent)                      | Medium       |
 
 ---
 
@@ -471,26 +612,56 @@ The full violation analysis is in `2026-04-06-DECISION-FLOW-ANALYSIS.md`. Summar
 
 ## Current Status
 
-**Focus:** Tasks 2-5 implemented with critical bug fixed. Tasks 6-8 deferred. Audit completed — 6 issues found, 2 high/medium severity. Generator end-to-end tests still missing (E5/E6).
+**2026-04-16:** Landing plan revised after user feedback. Key design corrections:
+
+- Assembly policy (`includedLayoutColorSpaceTypes`/`excludedLayoutColorSpaceTypes`) is **layout-gating**, not conversion-gating. Removed from scope.
+- PostScript math is **not** inline formulas — it's a new `TraditionalPostScriptColorConverter` class, Float32, PDF-agnostic, reusing bit-depth/endianness helpers.
+- Decision logic is a single pure `resolveDeviceSourceProfile()` helper, called from both PDF converter composition points (image + content stream). No duplication.
+- Workers load the PDF converter classes dynamically; TPS loads transitively. Device decision + math both execute inside the worker isolate — no lazy main-thread work.
+- Profile-loss regression is tracked separately and is not part of this document's scope.
+
+See "Work blocks (dependency-ordered) — revised 2026-04-16" table above.
 
 ---
 
 ## Activity Log
 
-| Date       | Activity |
-| ---------- | -------- |
-| 2026-04-05 | Created progress document with specification |
-| 2026-04-05 | Initial gap analysis — identified sentinel contamination and 8 disconnects |
-| 2026-04-06 | Decision flow analysis — mapped all decision points across both pipelines, identified structural disconnect |
-| 2026-04-06 | Reframed around separation of concerns — 6 violations identified, roadmap anchored to PDF/non-PDF layer boundary |
-| 2026-04-06 | Verified `settings.json` change safe (no regressions); established test baseline (284 pass, 0 fail); added testing protocol |
-| 2026-04-06 | Assessed Indexed/unsupported color spaces; audited content stream parser duplication; added follow-up items |
-| 2026-04-06 | Content stream parser refactor promoted to prerequisite; created `2026-04-06-CONTENT-STREAM-MARKUP-REFACTOR-PROGRESS.md` |
-| 2026-04-06 | Content stream parser refactor complete — tokenizer + interpreter + bridge layer; 372 tests, 321 pass, 0 fail |
-| 2026-04-06 | Task 2: Removed `'sRGB'`/`'sGray'` sentinels, `#normalizeColorSpaceType` returns proper PDF color space names |
-| 2026-04-06 | Task 3: `#isColorSpaceIncluded` replaces hardcoded CMYK filter, shorthand resolution for include/exclude |
-| 2026-04-06 | Task 4: `defaultSourceProfileForDevice*` fields added to converter + page converter config, propagated |
-| 2026-04-06 | Task 5: Generator reads manifest `settings.colorManagement`, resolves profiles, passes to all pre-converters |
-| 2026-04-07 | **Bug found and fixed:** Task 5 had introduced `ReferenceError` in 3 of 4 generator code paths — local `const` variables referenced in separate methods where they were out of scope. Fixed by using `this.#` instance fields. No test caught this because zero generator E5/E6 tests exist. |
-| 2026-04-07 | Post-implementation audit — 6 issues found (see Audit Results below). Added CLAUDE.md rules and memory to prevent performative test claims. |
+| Date       | Activity                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 2026-04-05 | Created progress document with specification                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| 2026-04-05 | Initial gap analysis — identified sentinel contamination and 8 disconnects                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| 2026-04-06 | Decision flow analysis — mapped all decision points across both pipelines, identified structural disconnect                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| 2026-04-06 | Reframed around separation of concerns — 6 violations identified, roadmap anchored to PDF/non-PDF layer boundary                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| 2026-04-06 | Verified `settings.json` change safe (no regressions); established test baseline (284 pass, 0 fail); added testing protocol                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| 2026-04-06 | Assessed Indexed/unsupported color spaces; audited content stream parser duplication; added follow-up items                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| 2026-04-06 | Content stream parser refactor promoted to prerequisite; created `2026-04-06-CONTENT-STREAM-MARKUP-REFACTOR-PROGRESS.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| 2026-04-06 | Content stream parser refactor complete — tokenizer + interpreter + bridge layer; 372 tests, 321 pass, 0 fail                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| 2026-04-06 | Task 2: Removed `'sRGB'`/`'sGray'` sentinels, `#normalizeColorSpaceType` returns proper PDF color space names                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| 2026-04-06 | Task 3: `#isColorSpaceIncluded` replaces hardcoded CMYK filter, shorthand resolution for include/exclude                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| 2026-04-06 | Task 4: `defaultSourceProfileForDevice*` fields added to converter + page converter config, propagated                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| 2026-04-06 | Task 5: Generator reads manifest `settings.colorManagement`, resolves profiles, passes to all pre-converters                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| 2026-04-07 | **Bug found and fixed:** Task 5 had introduced `ReferenceError` in 3 of 4 generator code paths — local `const` variables referenced in separate methods where they were out of scope. Fixed by using `this.#` instance fields. No test caught this because zero generator E5/E6 tests exist.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| 2026-04-07 | Post-implementation audit — 6 issues found (see Audit Results below). Added CLAUDE.md rules and memory to prevent performative test claims.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | 2026-04-07 | Researched PDF color space taxonomy via Google AI Mode reference (https://share.google/aimode/4ZYeAWEVbLSAokCgU) — covers Device (DeviceGray/RGB/CMYK), CIE-Based (CalGray/CalRGB/Lab/ICCBased), Special (Indexed/Separation/DeviceN/Pattern), and content stream operators for each category. Confirmed UI toggles `convertDeviceRGB`, `convertDeviceCMYK`, `convertDeviceGray` exist in config and flow through the pipeline, but currently only control the early-exit check in `convertColorStreaming` — Device color operators (rg/RG/g/G/k/K) are counted but passed through unchanged. For RGB output intent: DeviceCMYK and DeviceRGB in GhostScript-generated slugs/docket would violate PDF/X-4; DeviceGray is allowed in both CMYK and RGB output intents. PostScript math for Device color conversion (DeviceCMYK→DeviceRGB etc.) still pending. |
+| 2026-04-16 | **Design correction** — assembly-policy.json renamed `includedColorSpaceTypes` → `includedLayoutColorSpaceTypes` (layout-gating, not conversion-gating). This doc's earlier "add CMYK to RGB category" item was based on a misread and is removed from scope. Assembly policy is not modified by this work. |
+| 2026-04-16 | **Class design** — replaced inline PostScript-math plan with a new `TraditionalPostScriptColorConverter` class (sibling to `ColorConverter`, PDF-agnostic, Float32 internally). Reuses bit-depth/endianness helpers already in `color-conversion-policy.js`. Single math implementation; used by both PDF converter composition points. |
+| 2026-04-16 | **Single resolver** — added `resolveDeviceSourceProfile()` as a pure function encoding the conjunction once (default → preferOutputIntent → preferEmbeded → preferGracefullFallback). Returns ArrayBuffer, null, or throws. No duplication across converters. |
+| 2026-04-16 | **Worker delegation verified** — `worker-pool-entrypoint.js` dynamically imports `PDFImageColorConverter` (line 213) and `PDFContentStreamColorConverter` (line 306). `TraditionalPostScriptColorConverter` is loaded transitively inside the worker isolate via those classes — never instantiated directly by the worker entrypoint. Decision + math execute entirely in the worker. Task payload expanded to carry `pdfColorSpaceType`, policy fields, output-intent color space type, and embedded profile inventory so workers make the decision autonomously (no main-thread round-trip). |
+| 2026-04-16 | **Work blocks revised** — A: forward `pdfColorSpaceType`; B: worker task payload additions; C: resolver helper; D: TPS class; E: `PDFImageColorConverter` composition point; F: `PDFContentStreamColorConverter` composition point; H: docket routing for RGB OI; I/J: pre-existing audit fixes; K: tests; L: final doc refresh. Profile-loss regression tracked separately, out of scope here. |
+| 2026-04-16 | **Unified GhostScript output handling** — docket PDF and slug PDFs both go through the same conversion pipeline as asset pages. No docket-specific or slug-specific paths. When output intent is RGB: DeviceCMYK (docket) and DeviceGray (both) resolve via `resolveDeviceSourceProfile()` and dispatch through E/F. Skipped for CMYK and Gray output intents where content is already PDF/X-4 compatible. |
+| 2026-04-16 | **Block A landed** — `pdfColorSpaceType` typedef added to `PDFImageColorConverter`; `#extractImageInput` propagates `colorSpaceInfo.type` for both Indexed and non-Indexed branches; worker payload + entrypoint forward the field. Preserves `Device*` vs `ICCBased*` distinction that was being lost at `typeToColorSpace` mapping. |
+| 2026-04-16 | **Block D landed** — `TraditionalPostScriptColorConverter` created, extends `ColorConverter`, accepts parent's `colorEngineProvider` via options so `#ready` resolves immediately. Float32Array in → Float32Array out (throws otherwise). Identity short-circuit via `Float32Array.prototype.set` bulk copy. Dispatch table: `CMYK→RGB`, `Gray→RGB`, `Gray→CMYK`, `RGB→Gray`, `CMYK→Gray`, `RGB→CMYK`. Exposes both `convertColor(input, context)` buffer path and `convertTuple(values, options)` synchronous single-tuple path. |
+| 2026-04-16 | **Block M landed** — TPS `RGB → CMYK` implemented with PostScript Level 2 default black generation and undercolor removal: `K = min(1 − R, 1 − G, 1 − B); C = 1 − R − K; M = 1 − G − K; Y = 1 − B − K`. Removed the previous throw. PostScript math has no rendering intent and never fails — any Device-to-Device direction always produces a deterministic result. User feedback: "Traditional PostScript math does not have any rendering intent, it should never fail, let alone have contrived blockers without even letting me know." |
+| 2026-04-16 | **R2 CMYK OI passes preflight** — `Maps (Decalibrated).pdf` → eciCMYK v2: 16-bit CMYK output verified by user (R2 preflight reports clean). 10× 16-bit `DeviceRGB` images converted via TPS `RGB → CMYK` BG/UCR; 8× 8-bit `DeviceGray` images converted via TPS `Gray → CMYK` K-only. |
+| 2026-04-16 | **Block N landed — docket XMP/Producer sync after Block H conversion** — `PDFDocumentColorConverter.convertColor` appends `(Color-Engine <version>)` to `Info.Producer` on every invocation (`pdf-document-color-converter.js:542`). The docket arrives from `#generateDocketPDF` with `Info.Producer` and `XMP.Producer` already aligned by `#postProcessDocument` → `#ensureXMPMetadata`. Running the converter here desynced them — `Info.Producer` gained the suffix, XMP stayed unchanged → preflight `RUL30` "Producer mismatch between Document Info and XMP Metadata". Fix: after `#convertDeviceColorToOutputIntent` call `#ensureXMPMetadata(docketDocument, iccProfileHeader)` before saving to re-align. Main PDF does not need this fix because `#postProcess` → `#ensureXMPMetadata` runs after pre-conversion in that flow. Slug PDFs also do not need it because slugs are embedded as Form XObjects (only pages/streams/resources copy over — Info/XMP are discarded). |
+| 2026-04-16 | **R3 RGB OI residual `RUL83` hits root-caused (pre-existing, out of scope)** — 2466 preflight hits for "DeviceGray used but OutputIntent not Gray or CMYK". Graphics-state-aware simulation of source PDF Form XObject `258 0 R` reveals 6304 stroke operators, only 714 preceded by `RG`; the remaining 2465 execute with the **PDF default stroke color space** which is `DeviceGray` per spec (ISO 32000-2 §8.6.1.2). One additional fill hit in Form `252 0 R` where the single fill runs in default `DeviceGray` state. Zero explicit `G`/`cs /DeviceGray` operators in any converted stream — so TPS and the content-stream converter never see a Device-Gray color operation to convert. The fix requires prepending explicit RGB defaults (`0 0 0 rg 0 0 0 RG`) to each converted content stream when output intent is RGB, to override the PDF-default DeviceGray state. |
+| 2026-04-16 | **R4 verification (4-way matrix: CMYK 8-bit, CMYK 16-bit, RGB 8-bit, RGB 16-bit × docket + main)** — CMYK-OI 8/16-bit docket + main: 0 preflight hits on all four. RGB-OI 8/16-bit docket: 0 preflight hits (Task N `#ensureXMPMetadata` sync confirmed). RGB-OI 8/16-bit main: still 221 hits each (same root cause — PDF-default DeviceGray state in Forms `252 0 R` + `258 0 R`). Task P implemented in response. |
+| 2026-04-16 | **Block P landed (provisionally)** — `PDFContentStreamColorConverter.convertColorStreaming` writes `0 0 0 rg 0 0 0 RG\n` to the compressor BEFORE any stream content when `destinationColorSpace === 'RGB'`. |
+| 2026-04-16 | **Block P first attempt deadlocked** — `await compressWriter.write(prologueBytes)` at the function-body level (before `Promise.all`) blocked because the readable side had no consumer yet. Fix: move the write into `processTokens` IIFE so it runs concurrently with the reader started by `Promise.all`. |
+| 2026-04-16 | **Block P REVERTED in R5** — even after the deadlock fix, the browser-generated R5 docket showed 6 specific `rg` operators zeroed to `0 0 0 rg` at chunk-aligned positions (every ~98 KB / ~6 DecompressionStream chunks). Direct Node reproduction via `convertColorStreaming` and `PDFDocumentColorConverter` on the R3 docket bytes both produced CORRECT output with no zero-outs. The bug is browser-specific — likely a Firefox CompressionStream/DecompressionStream interaction with the prologue write. Reverted the prologue write from `pdf-content-stream-color-converter.js`; CMYK OI and RGB OI docket remain clean (Task N), but RGB OI main PDFs still show 221 RUL83 hits from the inherited PDF-default `DeviceGray` state in source Forms `252 0 R` and `258 0 R`. Task P needs a different implementation strategy — likely decompress→prepend→recompress at the page-converter apply step, outside any streaming-pipeline interaction. |
+| 2026-04-16 | **Block E landed** — `PDFImageColorConverter.convertPDFImageColor` early-routes Device images with no `sourceProfile` to `#convertViaPostScriptMath`. Supports 8-bit and 16-bit input via `DataView.getUint16(i*2, false)` (explicit big-endian per ISO 32000). Output packed big-endian 8-bit or 16-bit. Reuses existing `#decompress`/`#compress` helpers — no bespoke bit/endianness code. |
+| 2026-04-16 | **Catastrophic identity-loop bug caught and fixed** — TPS identity function was `O(N²)` (quadrillion iterations on 27M-pixel 16-bit DeviceRGB identity). Generator froze at 5:54. Fixed by short-circuiting identity in `convertColor` with `Float32Array.prototype.set` (bulk O(N) copy). |
+| 2026-04-16 | **Block F landed** — `PDFContentStreamColorConverter.flush()` pre-pass extracts Device operators (`setGray`/`setRGB`/`setCMYK`), calls `this.#getTPS().convertTuple(vals, {inputColorSpace, outputColorSpace})`, merges into the existing `conversions` Map so the existing output writer handles both ICC and TPS-converted operators uniformly. Handled `setGray` singular `value` vs `setRGB`/`setCMYK` plural `values`. Fixed pre-existing `#getOutputOperator` bug where `K` was treated as a fill operator instead of a stroke operator. |
+| 2026-04-16 | **Content stream early-exit fixed** — `AssetPagePreConverter` defaults `convertDeviceRGB/CMYK/Gray` to `true` via `?? true`, preventing the content-stream converter from short-circuiting before Block F runs. |
+| 2026-04-16 | **Block H landed** — Added `#convertDeviceColorToOutputIntent(document, iccProfileBuffer, outputColorSpace)` private helper in `test-form-pdf-document-generator.js` that runs a minimal `PDFDocumentColorConverter` in place when output intent is RGB. Wired after `#generateDocketPDF` (load → convert → save) and before `embedSlugsIntoPDFDocument`. Unified pipeline — no bespoke docket or slug conversion paths. |
+| 2026-04-16 | **End-to-end verification (Maps Decalibrated, sRGB OI)** — Playwright MCP generator run produced: Docket content streams contain 3087 `rg` fill + 7 `RG` stroke operators, 0 `k/K/g/G`. Main PDF content streams contain 0 Device operators of any kind. Images: 21× DeviceRGB 8-bit (converted from mix of 10× DeviceRGB 16-bit + 8× DeviceGray 8-bit + 3 GhostScript-generated). No console errors, no flate stream corruption, no warnings. Target asset: `testing/iso/ptf/assets/2026-04-16 - ConRes - ISO PTF - CR1 (F10a) Assets - Maps (Decalibrated).pdf`. |

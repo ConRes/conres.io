@@ -10,6 +10,7 @@
  */
 
 import { LookupTableColorConverter } from './lookup-table-color-converter.js';
+import { TraditionalPostScriptColorConverter } from './traditional-postscript-color-converter.js';
 import { CONTEXT_PREFIX } from '../../services/helpers/runtime.js';
 import { tokenize, tokenizeFromAsync, transformFromAsync, OE, OPERATOR_PATTERN } from './pdf-content-stream-parser.js';
 import { createInterpreter, collectOperations } from './pdf-content-stream-interpreter.js';
@@ -225,6 +226,16 @@ function* legacyMatchAll(string, regex) {
  * ```
  */
 export class PDFContentStreamColorConverter extends LookupTableColorConverter {
+    /**
+     * Lazily-constructed `TraditionalPostScriptColorConverter`, used when
+     * a Device operator (`g/G`, `rg/RG`, `k/K`) needs conversion and no
+     * resolved ICC profile is available. Composed — not instantiated by
+     * the worker entrypoint.
+     *
+     * @type {TraditionalPostScriptColorConverter | null}
+     */
+    #tps = null;
+
     // ========================================
     // Constructor
     // ========================================
@@ -238,6 +249,29 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
      */
     constructor(configuration, options = {}) {
         super(configuration, options);
+    }
+
+    /**
+     * Lazy TPS accessor. Shares this converter's colorEngineProvider so the
+     * TPS base class resolves `#ready` immediately (TPS doesn't use the engine).
+     *
+     * @returns {TraditionalPostScriptColorConverter}
+     */
+    #getTPS() {
+        if (!this.#tps) {
+            const config = this.configuration;
+            this.#tps = new TraditionalPostScriptColorConverter(
+                {
+                    renderingIntent: config.renderingIntent,
+                    blackPointCompensation: config.blackPointCompensation,
+                    useAdaptiveBPCClamping: config.useAdaptiveBPCClamping,
+                    destinationColorSpace: config.destinationColorSpace,
+                    verbose: config.verbose,
+                },
+                { colorEngineProvider: this.colorEngineProvider ?? undefined },
+            );
+        }
+        return this.#tps;
     }
 
     // ========================================
@@ -637,6 +671,60 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
                 /** @type {number[]} */
                 const lookupTokenIndices = [];
 
+                // ── Device-operator direct conversions via TPS (pre-pass) ──
+                // `setGray`/`setRGB`/`setCMYK` operators carry their color values
+                // implicitly and have no named color space. When the source Device
+                // type differs from the destination color space, route through
+                // TraditionalPostScriptColorConverter for Float32 math. Results
+                // feed into the same `conversions` map used by the ICC lookup path
+                // below, so the output-writing stage is unchanged.
+                //
+                // MVP: no policy resolver — every Device operator whose source
+                // type differs from the destination type goes through TPS. This
+                // matches the F10a manifest configuration (defaults null, policy
+                // resolution deferred to Task C).
+                /** @type {Map<number, number[]>} token index → converted values (Device path) */
+                const deviceConversions = new Map();
+                const destColorSpace = /** @type {'RGB' | 'CMYK' | 'Gray'} */ (config.destinationColorSpace);
+                for (let i = 0; i < tokens.length; i++) {
+                    const item = tokens[i];
+                    if (item.kind !== 'operator') continue;
+                    const enriched = item.enriched;
+                    if (!enriched) continue;
+
+                    /** @type {'RGB' | 'CMYK' | 'Gray' | null} */
+                    let srcDevice = null;
+                    switch (enriched.operation) {
+                        case 'setGray': srcDevice = 'Gray'; break;
+                        case 'setRGB':  srcDevice = 'RGB';  break;
+                        case 'setCMYK': srcDevice = 'CMYK'; break;
+                    }
+                    if (!srcDevice) continue;
+                    if (srcDevice === destColorSpace) continue; // identity — leave operator unchanged
+                    if (destColorSpace !== 'RGB' && destColorSpace !== 'CMYK' && destColorSpace !== 'Gray') continue;
+
+                    // `setGray` carries a singular `value`; `setRGB`/`setCMYK` carry `values[]`.
+                    const vals = enriched.operation === 'setGray'
+                        ? (typeof enriched.value === 'number' ? [enriched.value] : null)
+                        : enriched.values;
+                    if (!vals || vals.length === 0) continue;
+
+                    try {
+                        const converted = this.#getTPS().convertTuple(vals, {
+                            inputColorSpace: srcDevice,
+                            outputColorSpace: destColorSpace,
+                        });
+                        deviceConversions.set(i, Array.from(converted));
+                    } catch (error) {
+                        if (config.verbose) {
+                            console.warn(
+                                `${CONTEXT_PREFIX} [PDFContentStreamColorConverter] TPS conversion ` +
+                                `(${srcDevice} → ${destColorSpace}) failed for operator ${enriched.operator}: ${error}`,
+                            );
+                        }
+                    }
+                }
+
                 for (let i = 0; i < tokens.length; i++) {
                     const item = tokens[i];
                     if (item.kind !== 'operator') continue;
@@ -687,6 +775,11 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
                             console.warn(`${CONTEXT_PREFIX} [PDFContentStreamColorConverter] Batch conversion failed: ${error}`);
                         }
                     }
+                }
+
+                // Merge Device-operator TPS conversions into the same output map.
+                for (const [idx, vals] of deviceConversions) {
+                    conversions.set(idx, vals);
                 }
 
                 // ── Resolve ALL tokens to output Uint8Arrays in original order ──
@@ -1262,8 +1355,10 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
      * @returns {string} Output operator
      */
     #getOutputOperator(inputOp) {
-        // Determine stroke vs fill
-        const isStroke = inputOp === 'G' || inputOp === 'RG' || inputOp === 'SC' || inputOp === 'SCN';
+        // Determine stroke vs fill — uppercase PDF operators are stroke variants
+        // (G, RG, K, SC, SCN); lowercase are fill variants (g, rg, k, sc, scn).
+        const isStroke = inputOp === 'G' || inputOp === 'RG' || inputOp === 'K'
+            || inputOp === 'SC' || inputOp === 'SCN';
 
         switch (this.configuration.destinationColorSpace) {
             case 'CMYK':
