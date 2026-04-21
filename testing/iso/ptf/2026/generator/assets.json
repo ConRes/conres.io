@@ -8,6 +8,20 @@
             }
         },
         {
+            "name": "2026-04-16 - ConRes - ISO PTF - CR1 (F10a) Assets - Maps",
+            "resources": {
+                "assets" : "../../assets/2026-04-16 - ConRes - ISO PTF - CR1 (F10a) Assets - Maps.pdf",
+                "manifest": "../../assets/2026-04-16 - ConRes - ISO PTF - CR1 (F10a) Assets - Maps/manifest.json"
+            }
+        },
+        {
+            "name": "2026-04-16 - ConRes - ISO PTF - CR1 (F10a) Assets - Maps (Decalibrated)",
+            "resources": {
+                "assets" : "../../assets/2026-04-16 - ConRes - ISO PTF - CR1 (F10a) Assets - Maps (Decalibrated).pdf",
+                "manifest": "../../assets/2026-04-16 - ConRes - ISO PTF - CR1 (F10a) Assets - Maps (Decalibrated)/manifest.json"
+            }
+        },
+        {
             "name": "2026-03-30 - ConRes - ISO PTF - CR1 (F10a) Assets (8-bit)",
             "resources": {
                 "assets" : "../../assets/2026-03-30 - ConRes - ISO PTF - CR1 (F10a) Assets (8-bit).pdf",
