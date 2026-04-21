@@ -52,7 +52,7 @@
                 "warn": false
             },
             "gray": {
-                "text": "Gray profiles are not yet fully supported. Use an sRGB output profile for now — Gray support is in development.",
+                "text": "Gray profiles are not yet fully supported. Use a RGB output profile for now — Gray support is in development.",
                 "warn": true
             }
         },

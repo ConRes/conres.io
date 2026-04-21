@@ -225,7 +225,7 @@ Replace current content with:
 | Test form version | 8-bit variant selected                            | "The 8-bit variant is for systems that cannot process 16-bit source data. Use the standard version unless you have a specific reason."     |
 | Output bit depth  | 16-bit selected                                   | "16-bit output is only needed if your RIP and workflow specifically require it. Most printing systems use 8-bit."                          |
 | Output bit depth  | "Same as Source" selected                         | "This will produce 16-bit output from 16-bit sources. Only use this if your workflow requires matching source bit depth."                  |
-| Output profile    | Gray ICC detected                                 | "Gray output profiles are not yet fully supported. Use an sRGB profile for now — Gray support is in development."                          |
+| Output profile    | Gray ICC detected                                 | "Gray output profiles are not yet fully supported. Use a RGB profile for now — Gray support is in development."                            |
 
 ### Manifest-Derived Guidance (shown on test form selection)
 
@@ -266,7 +266,7 @@ Replace current content with:
       "default": "Select the ICC profile calibrated for your exact device, colorants, substrate, and print settings.",
       "cmyk": "CMYK profile detected: {{description}}.",
       "rgb": "RGB profile detected: {{description}}. The test form will be converted to this RGB color space.",
-      "gray": "Gray profiles are not yet fully supported. Use an sRGB output profile for now."
+      "gray": "Gray profiles are not yet fully supported. Use a RGB output profile for now."
     },
     "outputBitDepth": {
       "8-bit": "Standard precision — suitable for most printing systems.",

@@ -1196,7 +1196,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             const profileBytes = new Uint8Array(await iccProfileFile.arrayBuffer());
             const colorSpaceSig = String.fromCharCode(profileBytes[16], profileBytes[17], profileBytes[18], profileBytes[19]).trim();
             if (colorSpaceSig === 'GRAY') {
-                validationErrors.push('Gray profiles are not yet supported. Please use an sRGB or CMYK output profile.');
+                validationErrors.push('Gray profiles are not yet supported. Please use a RGB or CMYK output profile.');
             }
         }
 
