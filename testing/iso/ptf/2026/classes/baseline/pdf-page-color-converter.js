@@ -620,7 +620,7 @@ export class PDFPageColorConverter extends CompositeColorConverter {
                             const workerPool = this.workerPool;
                             const workerResult = await workerPool.submitTask({
                                 type: 'content-stream-streaming',
-                                compressedContents: streamData.stream.contents,
+                                compressedContents: new Uint8Array(streamData.stream.contents),
                                 colorSpaceDefinitions: streamData.colorSpaceDefinitions,
                                 initialColorSpaceState: currentColorSpaceState,
                                 renderingIntent: config.renderingIntent,
