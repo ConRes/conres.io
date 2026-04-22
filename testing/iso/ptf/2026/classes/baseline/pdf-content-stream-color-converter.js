@@ -42,6 +42,8 @@ import { createInterpreter, collectOperations } from './pdf-content-stream-inter
  *   convertDeviceRGB?: boolean,
  *   convertDeviceCMYK?: boolean,
  *   convertDeviceGray?: boolean,
+ *   experimentalPaintOpInsertion?: boolean,
+ *   pdfX4CompliantOutput?: boolean,
  * }} PDFContentStreamColorConverterConfiguration
  */
 
@@ -545,6 +547,15 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
 
         const { streamRef, compressedContents, colorSpaceDefinitions, initialColorSpaceState = {} } = input;
 
+        // ── Effective Device conversion flags ──
+        // When pdfX4CompliantOutput is true and destination is RGB, Device Gray
+        // and Device CMYK must be converted to avoid non-conforming Device
+        // color spaces in the output. The explicit convertDevice* flags take
+        // precedence; pdfX4CompliantOutput provides the fallback.
+        const config = /** @type {PDFContentStreamColorConverterConfiguration} */ (this.configuration);
+        const effectiveConvertDeviceGray = config.convertDeviceGray ?? (config.pdfX4CompliantOutput && config.destinationColorSpace === 'RGB');
+        const effectiveConvertDeviceCMYK = config.convertDeviceCMYK ?? (config.pdfX4CompliantOutput && config.destinationColorSpace === 'RGB');
+
         // ── Early exit: check if any conversion is needed ──
         // Skip the decompress/tokenize/recompress pipeline if:
         // 1. No named color spaces are convertible (no ICCBased or Lab), AND
@@ -554,10 +565,7 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
         // color space entry. The convertDevice* flags (not the profile fields)
         // determine whether they need conversion. The profile fields determine
         // the conversion method (ICC via profile or PostScript math if null).
-        {
-            const config = /** @type {PDFContentStreamColorConverterConfiguration} */ (this.configuration);
-
-            const hasConvertibleNamedColorSpaces = colorSpaceDefinitions
+        const hasConvertibleNamedColorSpaces = colorSpaceDefinitions
                 ? Object.values(colorSpaceDefinitions).some(def => {
                     const csType = def.colorSpaceType;
                     return csType === 'ICCBasedGray' || csType === 'ICCBasedRGB' || csType === 'ICCBasedCMYK' || csType === 'Lab';
@@ -566,10 +574,12 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
 
             const hasDeviceColorConversion =
                 config.convertDeviceRGB === true ||
-                config.convertDeviceCMYK === true ||
-                config.convertDeviceGray === true;
+                effectiveConvertDeviceCMYK === true ||
+                effectiveConvertDeviceGray === true;
 
-            if (!hasConvertibleNamedColorSpaces && !hasDeviceColorConversion) {
+            const needsPrologue = config.experimentalPaintOpInsertion &&
+                (config.destinationColorSpace === 'RGB' || config.destinationColorSpace === 'CMYK');
+            if (!hasConvertibleNamedColorSpaces && !hasDeviceColorConversion && !needsPrologue) {
                 if (config.verbose) {
                     console.log(`${CONTEXT_PREFIX} [PDFContentStreamColorConverter] Streaming early exit for ${streamRef}: no convertible color spaces, no device conversion`);
                 }
@@ -582,7 +592,6 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
                     finalColorSpaceState: initialColorSpaceState,
                 };
             }
-        }
 
         // ── Single-pass streaming pipeline ──
         //
@@ -606,6 +615,20 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
         let colorConversions = 0;
         let deviceColorCount = 0;
 
+        // Detect deflate format from the stream header.
+        // PDF FlateDecode is zlib (RFC 1950) by default: CMF byte 0x78
+        // followed by a check byte where (CMF*256 + FLG) % 31 === 0.
+        // Some producers (including pdf-lib's internal streams) may use
+        // raw deflate (RFC 1951) without the zlib wrapper.
+        // DecompressionStream('deflate') = zlib, ('deflate-raw') = raw.
+        // Zlib CMF byte: low nibble = method (8 = deflate), high nibble = window size.
+        // 0x78 = method 8, window 32K (most common). 0x48 = method 8, window 1K (Adobe).
+        // Valid zlib requires (CMF * 256 + FLG) % 31 === 0.
+        const cmf = compressedContents.length >= 2 ? compressedContents[0] : 0;
+        const flg = compressedContents.length >= 2 ? compressedContents[1] : 0;
+        const hasZlibHeader = (cmf & 0x0F) === 8 && (cmf * 256 + flg) % 31 === 0;
+        const deflateFormat = hasZlibHeader ? 'deflate' : 'deflate-raw';
+
         // Decompress to async Uint8Array chunks
         const inputStream = new ReadableStream({
             start(controller) {
@@ -614,10 +637,13 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
             },
         });
         const decompressedChunks = readableStreamAsyncIterable(
-            inputStream.pipeThrough(new DecompressionStream('deflate')),
+            inputStream.pipeThrough(new DecompressionStream(deflateFormat)),
         );
 
         // Stream: decompress → tokenize → interpret → substitute → compress
+        // Always recompress as zlib ('deflate') — pdf-lib's FlateStream
+        // requires the 2-byte zlib header (CMF + FLG). Input format may
+        // vary (raw or zlib) but output must be consistent.
         const compressor = new CompressionStream('deflate');
         const compressWriter = compressor.writable.getWriter();
 
@@ -633,8 +659,6 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
         // Passthrough views are into the shared buffer and must be written
         // before the next yield from transformFromAsync (which reuses the buffer).
         // Operator replacements are small independent allocations.
-
-        const config = /** @type {PDFContentStreamColorConverterConfiguration} */ (this.configuration);
 
         const processTokens = (async () => {
             // Accumulate ALL tokens (passthrough + operator) across decompression
@@ -826,6 +850,9 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
                 tokens = [];
                 accumulatedBytes = 0;
             };
+
+            // Prologue removed — TPS conversion via pdfX4CompliantOutput handles
+            // all Device color operators. No prologue needed when TPS is active.
 
             for await (const token of transformFromAsync(decompressedChunks)) {
                 switch (token.type) {

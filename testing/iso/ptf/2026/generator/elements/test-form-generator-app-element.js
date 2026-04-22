@@ -1097,6 +1097,10 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             ? (/** @type {HTMLInputElement | null} */ (this.querySelector('#concurrent-subsets-checkbox'))?.checked ?? false)
             : false;
 
+        const experimentalContentStreamConversion = isDebugging
+            ? (/** @type {HTMLInputElement | null} */ (this.querySelector('#experimental-content-stream-conversion-checkbox'))?.checked ?? false)
+            : false;
+
         const interConversionDelay = isDebugging
             ? parseInt(/** @type {HTMLInputElement | null} */ (this.querySelector('#inter-conversion-delay-input'))?.value ?? '500', 10) || 500
             : 500;
@@ -1572,6 +1576,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                     useLegacyContentStreamParsing,
                     interConversionDelay,
                     concurrentSubsets,
+                    experimentalContentStreamConversion,
                     handleProgress,
                     setCancelHandler: (handler) => { this.#cancelGeneration = handler; },
                     onDownloadProgress: (state) => {
@@ -1607,6 +1612,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                     useLegacyContentStreamParsing,
                     interConversionDelay,
                     concurrentSubsets,
+                    experimentalContentStreamConversion,
                     handleProgress,
                     setCancelHandler: (handler) => { this.#cancelGeneration = handler; },
                     onDownloadProgress: (state) => {
@@ -1747,6 +1753,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         debugging, outputBitsPerComponent, useWorkers, processingStrategy,
         assemblyOverrides, includeOutputProfile, testFormName, outputProfileBasename, handleProgress, setCancelHandler, onDownloadProgress,
         environmentSuffix, convertImages, convertContentStreams, useLegacyContentStreamParsing, interConversionDelay, concurrentSubsets,
+        experimentalContentStreamConversion,
     }) {
         const generator = new TestFormPDFDocumentGenerator({
             testFormVersion,
@@ -1762,6 +1769,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             useLegacyContentStreamParsing,
             interConversionDelay,
             concurrentSubsets,
+            experimentalContentStreamConversion,
         });
 
         setCancelHandler?.(() => generator.abort?.());
@@ -1841,6 +1849,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         debugging, outputBitsPerComponent, useWorkers, processingStrategy,
         assemblyOverrides, includeOutputProfile, testFormName, outputProfileBasename, handleProgress, setCancelHandler, onDownloadProgress,
         environmentSuffix, convertImages, convertContentStreams, useLegacyContentStreamParsing, interConversionDelay, concurrentSubsets,
+        experimentalContentStreamConversion,
     }) {
         const workerURL = new URL('../bootstrap-worker-entrypoint.js', import.meta.url).href;
 
@@ -1971,6 +1980,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                         useLegacyContentStreamParsing,
                         interConversionDelay,
                         concurrentSubsets,
+                        experimentalContentStreamConversion,
                     },
                     [iccProfileCopy],
                 );

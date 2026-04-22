@@ -41,6 +41,8 @@ import {
  *   convertDeviceRGB?: boolean,
  *   convertDeviceCMYK?: boolean,
  *   convertDeviceGray?: boolean,
+ *   experimentalPaintOpInsertion?: boolean,
+ *   pdfX4CompliantOutput?: boolean,
  *   sharedConvertedImageRefKeys?: Set<string>,
  * }} PDFDocumentColorConverterConfiguration
  */
@@ -329,6 +331,8 @@ export class PDFDocumentColorConverter extends CompositeColorConverter {
             convertDeviceRGB: base.convertDeviceRGB,
             convertDeviceCMYK: base.convertDeviceCMYK,
             convertDeviceGray: base.convertDeviceGray,
+            experimentalPaintOpInsertion: base.experimentalPaintOpInsertion,
+            pdfX4CompliantOutput: base.pdfX4CompliantOutput,
 
             // Apply per-page overrides (Map takes precedence)
             ...override,

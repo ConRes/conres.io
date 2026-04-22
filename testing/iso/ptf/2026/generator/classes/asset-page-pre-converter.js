@@ -106,6 +106,12 @@ export class AssetPagePreConverter {
     /** @type {boolean} */
     #concurrentSubsets;
 
+    /** @type {boolean} */
+    #experimentalPaintOpInsertion;
+
+    /** @type {boolean} */
+    #pdfX4CompliantOutput;
+
     /** @type {import('../../classes/baseline/worker-pool.js').WorkerPool | null} */
     #workerPool = null;
 
@@ -136,7 +142,7 @@ export class AssetPagePreConverter {
      * @param {boolean} [options.convertDeviceCMYK] - Convert DeviceCMYK colors in content streams
      * @param {boolean} [options.convertDeviceGray] - Convert DeviceGray colors in content streams
      */
-    constructor({ outputProfile, outputColorSpace, outputBitsPerComponent, colorSpaceResolver, renderingIntent = 'relative-colorimetric', blackPointCompensation = true, debugging = false, useWorkers = false, interConversionDelay = 0, defaultSourceProfileForDeviceRGB, defaultSourceProfileForDeviceCMYK, defaultSourceProfileForDeviceGray, includedLayoutColorSpaceTypes, excludedLayoutColorSpaceTypes, useLegacyContentStreamParsing, convertDeviceRGB, convertDeviceCMYK, convertDeviceGray, convertImages = true, convertContentStreams = true, concurrentSubsets = false }) {
+    constructor({ outputProfile, outputColorSpace, outputBitsPerComponent, colorSpaceResolver, renderingIntent = 'relative-colorimetric', blackPointCompensation = true, debugging = false, useWorkers = false, interConversionDelay = 0, defaultSourceProfileForDeviceRGB, defaultSourceProfileForDeviceCMYK, defaultSourceProfileForDeviceGray, includedLayoutColorSpaceTypes, excludedLayoutColorSpaceTypes, useLegacyContentStreamParsing, convertDeviceRGB, convertDeviceCMYK, convertDeviceGray, convertImages = true, convertContentStreams = true, concurrentSubsets = false, experimentalPaintOpInsertion = false, pdfX4CompliantOutput = false }) {
         this.#outputProfile = outputProfile;
         this.#outputColorSpace = outputColorSpace;
         this.#outputBitsPerComponent = outputBitsPerComponent;
@@ -164,17 +170,19 @@ export class AssetPagePreConverter {
         // whether an actual conversion is needed (source Device type vs
         // destination color space) and pass-through-identities when they match.
         /** @type {boolean} */
-        this.#convertDeviceRGB = convertDeviceRGB ?? true;
+        this.#convertDeviceRGB = convertDeviceRGB ?? false;
         /** @type {boolean} */
-        this.#convertDeviceCMYK = convertDeviceCMYK ?? true;
+        this.#convertDeviceCMYK = convertDeviceCMYK ?? false;
         /** @type {boolean} */
-        this.#convertDeviceGray = convertDeviceGray ?? true;
+        this.#convertDeviceGray = convertDeviceGray ?? false;
         /** @type {boolean} */
         this.#convertImages = convertImages;
         /** @type {boolean} */
         this.#convertContentStreams = convertContentStreams;
         /** @type {boolean} */
         this.#concurrentSubsets = concurrentSubsets;
+        this.#experimentalPaintOpInsertion = experimentalPaintOpInsertion ?? false;
+        this.#pdfX4CompliantOutput = pdfX4CompliantOutput;
     }
 
     /**
@@ -502,6 +510,9 @@ export class AssetPagePreConverter {
                     convertDeviceRGB: this.#convertDeviceRGB,
                     convertDeviceCMYK: this.#convertDeviceCMYK,
                     convertDeviceGray: this.#convertDeviceGray,
+                    experimentalPaintOpInsertion: this.#experimentalPaintOpInsertion,
+                    pdfX4CompliantOutput: this.#pdfX4CompliantOutput,
+
                     sharedConvertedImageRefKeys,
                 }, { colorEngineProvider: sharedProvider })
             );
@@ -581,6 +592,9 @@ export class AssetPagePreConverter {
                             convertDeviceRGB: this.#convertDeviceRGB,
                             convertDeviceCMYK: this.#convertDeviceCMYK,
                             convertDeviceGray: this.#convertDeviceGray,
+                            experimentalPaintOpInsertion: this.#experimentalPaintOpInsertion,
+                            pdfX4CompliantOutput: this.#pdfX4CompliantOutput,
+
                             sharedConvertedImageRefKeys,
                         }, { colorEngineProvider: sharedProvider });
 

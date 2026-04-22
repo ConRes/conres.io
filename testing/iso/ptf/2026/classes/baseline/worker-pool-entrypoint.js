@@ -430,6 +430,8 @@ async function processContentStreamStreaming(task) {
             convertDeviceRGB: task.convertDeviceRGB,
             convertDeviceCMYK: task.convertDeviceCMYK,
             convertDeviceGray: task.convertDeviceGray,
+            experimentalPaintOpInsertion: task.experimentalPaintOpInsertion,
+            pdfX4CompliantOutput: task.pdfX4CompliantOutput,
             defaultSourceProfileForDeviceRGB: task.defaultSourceProfileForDeviceRGB,
             defaultSourceProfileForDeviceCMYK: task.defaultSourceProfileForDeviceCMYK,
             defaultSourceProfileForDeviceGray: task.defaultSourceProfileForDeviceGray,

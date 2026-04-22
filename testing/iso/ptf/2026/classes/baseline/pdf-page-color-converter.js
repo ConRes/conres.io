@@ -36,6 +36,8 @@ import { PDFName, PDFDict, PDFRef, decodePDFRawStream } from '../../packages/pdf
  *   convertDeviceRGB?: boolean,
  *   convertDeviceCMYK?: boolean,
  *   convertDeviceGray?: boolean,
+ *   experimentalPaintOpInsertion?: boolean,
+ *   pdfX4CompliantOutput?: boolean,
  * }} PDFPageColorConverterConfiguration
  */
 
@@ -257,6 +259,8 @@ export class PDFPageColorConverter extends CompositeColorConverter {
             convertDeviceRGB: base.convertDeviceRGB,
             convertDeviceCMYK: base.convertDeviceCMYK,
             convertDeviceGray: base.convertDeviceGray,
+            experimentalPaintOpInsertion: base.experimentalPaintOpInsertion,
+            pdfX4CompliantOutput: base.pdfX4CompliantOutput,
 
             // Shared BufferRegistry for cross-instance caching
             bufferRegistry: base.bufferRegistry,
@@ -633,6 +637,8 @@ export class PDFPageColorConverter extends CompositeColorConverter {
                                 convertDeviceRGB: config.convertDeviceRGB,
                                 convertDeviceCMYK: config.convertDeviceCMYK,
                                 convertDeviceGray: config.convertDeviceGray,
+                                experimentalPaintOpInsertion: config.experimentalPaintOpInsertion,
+                                pdfX4CompliantOutput: config.pdfX4CompliantOutput,
                                 defaultSourceProfileForDeviceRGB: config.defaultSourceProfileForDeviceRGB,
                                 defaultSourceProfileForDeviceCMYK: config.defaultSourceProfileForDeviceCMYK,
                                 defaultSourceProfileForDeviceGray: config.defaultSourceProfileForDeviceGray,
@@ -647,8 +653,9 @@ export class PDFPageColorConverter extends CompositeColorConverter {
                                 currentColorSpaceState = workerResult.finalColorSpaceState;
                             }
 
-                            // Apply compressed output
-                            if (workerResult.replacementCount > 0) {
+                            // Apply compressed output — validate non-empty to guard
+                            // against worker compression failures that produce 0-byte output.
+                            if (workerResult.replacementCount > 0 && workerResult.compressedOutput?.length > 0) {
                                 // @ts-ignore - Accessing internal property
                                 streamData.stream.contents = workerResult.compressedOutput;
                                 streamData.stream.dict.set(PDFName.of('Filter'), PDFName.of('FlateDecode'));
@@ -690,7 +697,10 @@ export class PDFPageColorConverter extends CompositeColorConverter {
                             }
 
                             // Apply compressed output directly to the PDF stream
-                            if (streamingResult.replacementCount > 0) {
+                            if (streamingResult.replacementCount > 0 && (!streamingResult.compressedOutput || streamingResult.compressedOutput.length === 0)) {
+                                console.error(`${CONTEXT_PREFIX} [PDFPageColorConverter] EMPTY OUTPUT for ${streamData.ref}: replacements=${streamingResult.replacementCount}, output=${streamingResult.compressedOutput?.length ?? 0}B — keeping original`);
+                            }
+                            if (streamingResult.replacementCount > 0 && streamingResult.compressedOutput?.length > 0) {
                                 // @ts-ignore - Accessing internal property
                                 streamData.stream.contents = streamingResult.compressedOutput;
                                 // Ensure FlateDecode filter is set

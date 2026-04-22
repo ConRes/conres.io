@@ -16,6 +16,7 @@
 import {
     PDFDocument, StandardFonts,
     PDFName, PDFString, PDFHexString, PDFDict, PDFArray, PDFRef, PDFRawStream,
+    decodePDFRawStream,
 } from '../../packages/pdf-lib/pdf-lib.esm.js';
 
 import {
@@ -224,6 +225,9 @@ export class TestFormPDFDocumentGenerator {
     /** @type {boolean} */
     #concurrentSubsets;
 
+    /** @type {boolean} */
+    #experimentalContentStreamConversion;
+
     /** @type {import('./assembly-policy-resolver.js').AssemblyUserOverrides | undefined} */
     #assemblyOverrides;
 
@@ -250,7 +254,7 @@ export class TestFormPDFDocumentGenerator {
      * @param {import('./assembly-policy-resolver.js').AssemblyUserOverrides} [options.assemblyOverrides] - User overrides for layout/colorSpace/intent filtering
      * @param {string} [options.outputProfileName] - ICC profile filename (for slug metadata)
      */
-    constructor({ testFormVersion, resources, debugging = false, outputBitsPerComponent, useWorkers = false, processingStrategy = 'in-place', assemblyOverrides, outputProfileName, convertImages = true, convertContentStreams = true, useLegacyContentStreamParsing = false, interConversionDelay = 500, concurrentSubsets = false }) {
+    constructor({ testFormVersion, resources, debugging = false, outputBitsPerComponent, useWorkers = false, processingStrategy = 'in-place', assemblyOverrides, outputProfileName, convertImages = true, convertContentStreams = true, useLegacyContentStreamParsing = false, interConversionDelay = 500, concurrentSubsets = false, experimentalContentStreamConversion = false }) {
         this.#testFormVersion = testFormVersion;
         this.#debugging = debugging;
         this.#outputBitsPerComponent = outputBitsPerComponent;
@@ -263,6 +267,7 @@ export class TestFormPDFDocumentGenerator {
         this.#useLegacyContentStreamParsing = useLegacyContentStreamParsing;
         this.#interConversionDelay = interConversionDelay;
         this.#concurrentSubsets = concurrentSubsets;
+        this.#experimentalContentStreamConversion = experimentalContentStreamConversion;
         this.#cache = globalThis.caches?.open?.('conres-testforms');
 
         if (resources) {
@@ -518,6 +523,8 @@ export class TestFormPDFDocumentGenerator {
             convertContentStreams: this.#convertContentStreams,
             useLegacyContentStreamParsing: this.#useLegacyContentStreamParsing,
             concurrentSubsets: this.#concurrentSubsets,
+            experimentalPaintOpInsertion: this.#experimentalContentStreamConversion,
+            pdfX4CompliantOutput: true,
         });
 
         // Use filtered manifest from assembly plan
@@ -535,11 +542,48 @@ export class TestFormPDFDocumentGenerator {
             console.timeEnd('Pre-conversion and assembly');
             console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Assembled document: ${assembledDocument.getPageCount()} pages`);
 
+            // ── Pre-flush stream integrity check ──
+            // Validate FlateDecode streams in BOTH the source asset document
+            // AND the assembled document. The pre-converter modifies the asset
+            // document's streams in place; flush()/embedPdf reads those streams
+            // for embedded page finalization. If any are corrupt, flush crashes.
+            {
+                for (const [label, doc] of [['asset', assetDocument], ['assembled', assembledDocument]]) {
+                    let checked = 0;
+                    const failures = [];
+                    for (const [ref, obj] of doc.context.enumerateIndirectObjects()) {
+                        if (!(obj instanceof PDFRawStream)) continue;
+                        const filter = obj.dict.lookup(PDFName.of('Filter'));
+                        if (!(filter instanceof PDFName) || filter.encodedName !== '/FlateDecode') continue;
+                        if (!obj.contents || obj.contents.length === 0) continue;
+                        checked++;
+                        try {
+                            decodePDFRawStream(obj);
+                        } catch (err) {
+                            const subtype = obj.dict.lookup(PDFName.of('Subtype'));
+                            failures.push(`${ref} (${subtype?.encodedName ?? 'no subtype'}, ${obj.contents.length}B): ${err.message}`);
+                        }
+                    }
+                    console.log(`${CONTEXT_PREFIX} [StreamCheck] ${label}: ${checked} streams, ${failures.length} failures`);
+                    if (failures.length > 0) {
+                        for (const f of failures) console.error(`${CONTEXT_PREFIX} [StreamCheck] FAIL [${label}]: ${f}`);
+                        throw new Error(`Stream integrity [${label}]: ${failures.length} corrupt stream(s) — ${failures[0]}`);
+                    }
+                }
+            }
+
             // Flush pending embeds so that lazy PDFEmbeddedPage objects
             // finalize their Form XObjects into the context. Without this,
             // removeOrphanedObjects would delete the source pages' content
             // streams that the embedders still need to decode.
-            await assembledDocument.flush();
+            console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] flush() starting...`);
+            try {
+                await assembledDocument.flush();
+                console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] flush() completed`);
+            } catch (flushErr) {
+                console.error(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] flush() THREW: ${flushErr.message}\n${flushErr.stack}`);
+                throw flushErr;
+            }
 
             // Remove orphaned objects left behind by removePage
             const { removedCount } = PDFService.removeOrphanedObjects(assembledDocument);
@@ -562,6 +606,13 @@ export class TestFormPDFDocumentGenerator {
             await onProgress('converting', 78, 'Color conversion complete');
 
             // ----------------------------------------------------------------
+            // 6b. Add DeviceRGB prologue to page Contents for RGB PDF/X-4
+            // ----------------------------------------------------------------
+            if (iccProfileHeader.colorSpace === 'RGB') {
+                this.#addPDFX4Prologue(assembledDocument);
+            }
+
+            // ----------------------------------------------------------------
             // 7. Generate and embed slugs (single-document path)
             // ----------------------------------------------------------------
             if (userMetadata) {
@@ -576,6 +627,17 @@ export class TestFormPDFDocumentGenerator {
                 // output intent color space when required (RGB output intent).
                 // Same converter pipeline as asset pages — no bespoke slug path.
                 await this.#convertDeviceColorToOutputIntent(slugsDocument, iccProfileBuffer, iccProfileHeader.colorSpace);
+
+                // Post-conversion slug stream integrity check
+                for (const [sRef, sObj] of slugsDocument.context.enumerateIndirectObjects()) {
+                    if (!(sObj instanceof PDFRawStream)) continue;
+                    const sFilter = sObj.dict.lookup(PDFName.of('Filter'));
+                    if (!(sFilter instanceof PDFName) || sFilter.encodedName !== '/FlateDecode') continue;
+                    if (!sObj.contents || sObj.contents.length === 0) { console.error(`${CONTEXT_PREFIX} [SlugCheck] EMPTY: ${sRef}`); continue; }
+                    try { decodePDFRawStream(sObj); }
+                    catch (err) { console.error(`${CONTEXT_PREFIX} [SlugCheck] CORRUPT: ${sRef} (${sObj.contents.length}B): ${err.message}`); }
+                }
+                console.log(`${CONTEXT_PREFIX} [SlugCheck] done`);
 
                 await onProgress('slugs', 88, `Embedding slugs (${effectiveManifest.pages.length} pages)\u2026`);
                 await PDFService.embedSlugsIntoPDFDocument(assembledDocument, slugsDocument);
@@ -829,6 +891,7 @@ export class TestFormPDFDocumentGenerator {
                     convertContentStreams: this.#convertContentStreams,
                     useLegacyContentStreamParsing: this.#useLegacyContentStreamParsing,
                     concurrentSubsets: this.#concurrentSubsets,
+                    pdfX4CompliantOutput: true,
                 });
 
                 try {
@@ -1022,6 +1085,7 @@ export class TestFormPDFDocumentGenerator {
                 convertContentStreams: this.#convertContentStreams,
                 useLegacyContentStreamParsing: this.#useLegacyContentStreamParsing,
                 concurrentSubsets: this.#concurrentSubsets,
+                pdfX4CompliantOutput: true,
             });
 
             try {
@@ -1316,6 +1380,51 @@ export class TestFormPDFDocumentGenerator {
      * Uses the same `PDFDocumentColorConverter` pipeline as asset pages, with
      * `defaultSourceProfileForDevice*: null` so Device color routes through
      * `TraditionalPostScriptColorConverter`.
+     */
+
+    /**
+     * Add a PDF/X-4 prologue stream to each page's Contents array.
+     *
+     * Per PDF 1.7 §7.8.2, a page's Contents may be an array of streams
+     * that are concatenated in order. Prepending a tiny stream containing
+     * `0 0 0 rg 0 0 0 RG` overrides the PDF default color space (DeviceGray)
+     * with DeviceRGB at the page level. Form XObjects invoked via `Do`
+     * inherit this state, eliminating preflight RUL83 hits from strokes
+     * or fills that execute in the default graphics state.
+     *
+     * @param {PDFDocument} document - Document to modify in place
+     */
+    #addPDFX4Prologue(document) {
+        const prologueBytes = new TextEncoder().encode('0 0 0 rg 0 0 0 RG\n');
+        const prologueStream = document.context.flateStream(prologueBytes);
+        const prologueRef = document.context.register(prologueStream);
+
+        for (let i = 0; i < document.getPageCount(); i++) {
+            const page = document.getPage(i);
+            const pageLeaf = document.context.lookup(page.ref);
+            const existingContents = pageLeaf.get(PDFName.of('Contents'));
+
+            const contentsArray = PDFArray.withContext(document.context);
+            contentsArray.push(prologueRef);
+
+            if (existingContents instanceof PDFRef) {
+                const resolved = document.context.lookup(existingContents);
+                if (resolved instanceof PDFArray) {
+                    for (let j = 0; j < resolved.size(); j++) contentsArray.push(resolved.get(j));
+                } else {
+                    contentsArray.push(existingContents);
+                }
+            } else if (existingContents instanceof PDFArray) {
+                for (let j = 0; j < existingContents.size(); j++) contentsArray.push(existingContents.get(j));
+            }
+
+            pageLeaf.set(PDFName.of('Contents'), contentsArray);
+        }
+
+        console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Added DeviceRGB prologue to ${document.getPageCount()} pages`);
+    }
+
+    /**
      *
      * @param {PDFDocument} document - Document to convert in place
      * @param {ArrayBuffer} iccProfileBuffer - Output intent ICC profile
@@ -1327,6 +1436,17 @@ export class TestFormPDFDocumentGenerator {
         // CMYK output intents accept DeviceCMYK (K-only) and DeviceGray per PDF/X-4.
         // Gray output intents accept DeviceGray — source is already compatible.
         if (outputColorSpace !== 'RGB') return;
+
+        // Pre-check: log stream formats in the document
+        for (const [ref, obj] of document.context.enumerateIndirectObjects()) {
+            if (!(obj instanceof PDFRawStream)) continue;
+            const filter = obj.dict.lookup(PDFName.of('Filter'));
+            if (!(filter instanceof PDFName) || filter.encodedName !== '/FlateDecode') continue;
+            if (!obj.contents || obj.contents.length === 0) continue;
+            const b0 = obj.contents[0], b1 = obj.contents[1];
+            const sub = obj.dict.lookup(PDFName.of('Subtype'));
+            console.log(`${CONTEXT_PREFIX} [convertDeviceColor] Pre-check ${ref}: ${sub?.encodedName ?? 'stream'} ${obj.contents.length}B bytes=[0x${b0.toString(16)},0x${b1.toString(16)}]`);
+        }
 
         const { PDFDocumentColorConverter } = await import('../../classes/baseline/pdf-document-color-converter.js');
 
@@ -1704,6 +1824,7 @@ export class TestFormPDFDocumentGenerator {
                 convertContentStreams: this.#convertContentStreams,
                 useLegacyContentStreamParsing: this.#useLegacyContentStreamParsing,
                 concurrentSubsets: this.#concurrentSubsets,
+                pdfX4CompliantOutput: true,
             });
 
             try {

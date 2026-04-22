@@ -94,6 +94,7 @@ async function handleGenerate(data) {
             useLegacyContentStreamParsing: data.useLegacyContentStreamParsing,
             interConversionDelay: data.interConversionDelay,
             concurrentSubsets: data.concurrentSubsets,
+            experimentalContentStreamConversion: data.experimentalContentStreamConversion,
         });
 
         const result = await generator.generate(
