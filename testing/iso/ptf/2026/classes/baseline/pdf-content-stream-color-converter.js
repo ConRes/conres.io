@@ -548,11 +548,15 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
         const { streamRef, compressedContents, colorSpaceDefinitions, initialColorSpaceState = {} } = input;
 
         // ── Effective Device conversion flags ──
-        // When pdfX4CompliantOutput is true and destination is RGB, Device Gray
-        // and Device CMYK must be converted to avoid non-conforming Device
-        // color spaces in the output. The explicit convertDevice* flags take
-        // precedence; pdfX4CompliantOutput provides the fallback.
+        // When pdfX4CompliantOutput is true, Device color spaces that don't
+        // match the output intent must be converted. The explicit convertDevice*
+        // flags take precedence; pdfX4CompliantOutput provides the fallback.
+        //
+        // RGB output:  DeviceGray and DeviceCMYK must convert (DeviceRGB is native)
+        // CMYK output: DeviceRGB must convert (DeviceGray and DeviceCMYK are permitted)
+        // Gray output: DeviceRGB and DeviceCMYK must convert (DeviceGray is native)
         const config = /** @type {PDFContentStreamColorConverterConfiguration} */ (this.configuration);
+        const effectiveConvertDeviceRGB = config.convertDeviceRGB ?? (config.pdfX4CompliantOutput && (config.destinationColorSpace === 'CMYK' || config.destinationColorSpace === 'Gray'));
         const effectiveConvertDeviceGray = config.convertDeviceGray ?? (config.pdfX4CompliantOutput && config.destinationColorSpace === 'RGB');
         const effectiveConvertDeviceCMYK = config.convertDeviceCMYK ?? (config.pdfX4CompliantOutput && config.destinationColorSpace === 'RGB');
 
@@ -573,7 +577,7 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
                 : false;
 
             const hasDeviceColorConversion =
-                config.convertDeviceRGB === true ||
+                effectiveConvertDeviceRGB === true ||
                 effectiveConvertDeviceCMYK === true ||
                 effectiveConvertDeviceGray === true;
 
@@ -850,9 +854,6 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
                 tokens = [];
                 accumulatedBytes = 0;
             };
-
-            // Prologue removed — TPS conversion via pdfX4CompliantOutput handles
-            // all Device color operators. No prologue needed when TPS is active.
 
             for await (const token of transformFromAsync(decompressedChunks)) {
                 switch (token.type) {

@@ -164,17 +164,15 @@ export class AssetPagePreConverter {
         this.#excludedLayoutColorSpaceTypes = excludedLayoutColorSpaceTypes;
         /** @type {boolean | undefined} */
         this.#useLegacyContentStreamParsing = useLegacyContentStreamParsing;
-        // Default Device-conversion flags to `true` so the content stream
-        // converter does not early-exit when no named ICCBased color spaces
-        // are present. The content stream converter itself decides per-operator
-        // whether an actual conversion is needed (source Device type vs
-        // destination color space) and pass-through-identities when they match.
-        /** @type {boolean} */
-        this.#convertDeviceRGB = convertDeviceRGB ?? false;
-        /** @type {boolean} */
-        this.#convertDeviceCMYK = convertDeviceCMYK ?? false;
-        /** @type {boolean} */
-        this.#convertDeviceGray = convertDeviceGray ?? false;
+        // Device-conversion flags: undefined = let pdfX4CompliantOutput decide;
+        // true/false = explicit override. Passed through to the content stream
+        // converter which computes effective values based on output intent.
+        /** @type {boolean | undefined} */
+        this.#convertDeviceRGB = convertDeviceRGB;
+        /** @type {boolean | undefined} */
+        this.#convertDeviceCMYK = convertDeviceCMYK;
+        /** @type {boolean | undefined} */
+        this.#convertDeviceGray = convertDeviceGray;
         /** @type {boolean} */
         this.#convertImages = convertImages;
         /** @type {boolean} */

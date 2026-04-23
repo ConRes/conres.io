@@ -606,10 +606,10 @@ export class TestFormPDFDocumentGenerator {
             await onProgress('converting', 78, 'Color conversion complete');
 
             // ----------------------------------------------------------------
-            // 6b. Add DeviceRGB prologue to page Contents for RGB PDF/X-4
+            // 6b. Add color space prologue to page Contents for PDF/X-4
             // ----------------------------------------------------------------
-            if (iccProfileHeader.colorSpace === 'RGB') {
-                this.#addPDFX4Prologue(assembledDocument);
+            if (iccProfileHeader.colorSpace === 'RGB' || iccProfileHeader.colorSpace === 'CMYK') {
+                this.#addPDFX4Prologue(assembledDocument, iccProfileHeader.colorSpace);
             }
 
             // ----------------------------------------------------------------
@@ -1386,16 +1386,20 @@ export class TestFormPDFDocumentGenerator {
      * Add a PDF/X-4 prologue stream to each page's Contents array.
      *
      * Per PDF 1.7 §7.8.2, a page's Contents may be an array of streams
-     * that are concatenated in order. Prepending a tiny stream containing
-     * `0 0 0 rg 0 0 0 RG` overrides the PDF default color space (DeviceGray)
-     * with DeviceRGB at the page level. Form XObjects invoked via `Do`
-     * inherit this state, eliminating preflight RUL83 hits from strokes
-     * or fills that execute in the default graphics state.
+     * that are concatenated in order. Prepending a tiny stream that sets
+     * the output intent's native color space overrides the PDF default
+     * (DeviceGray) at the page level. Form XObjects invoked via `Do`
+     * inherit this state, eliminating preflight hits from paint ops
+     * that execute in the default graphics state.
      *
      * @param {PDFDocument} document - Document to modify in place
+     * @param {'RGB' | 'CMYK'} colorSpace - Output intent color space
      */
-    #addPDFX4Prologue(document) {
-        const prologueBytes = new TextEncoder().encode('0 0 0 rg 0 0 0 RG\n');
+    #addPDFX4Prologue(document, colorSpace) {
+        const prologueText = colorSpace === 'CMYK'
+            ? '0 0 0 1 k 0 0 0 1 K\n'
+            : '0 0 0 rg 0 0 0 RG\n';
+        const prologueBytes = new TextEncoder().encode(prologueText);
         const prologueStream = document.context.flateStream(prologueBytes);
         const prologueRef = document.context.register(prologueStream);
 
@@ -1421,7 +1425,7 @@ export class TestFormPDFDocumentGenerator {
             pageLeaf.set(PDFName.of('Contents'), contentsArray);
         }
 
-        console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Added DeviceRGB prologue to ${document.getPageCount()} pages`);
+        console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Added Device${colorSpace} prologue to ${document.getPageCount()} pages`);
     }
 
     /**
