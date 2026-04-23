@@ -1,0 +1,80 @@
+# Simple workflow for deploying static content to GitHub Pages
+name: Deploy static content to Pages
+
+on:
+  # Runs on pushes targeting the default branch
+  push:
+    branches: ["master"]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Ensure we fetch the full history/lfs pointers if needed
+          lfs: false
+
+      # NEW STEP: Resolve symbolic links before uploading
+      # This replaces the symlink with the actual file (or LFS pointer) it points to.
+      - name: Dereference Symbolic Links with Safety Guards
+        timeout-minutes: 5 
+        run: |
+          MAX_SIZE=512000
+          echo "Starting dereference..."
+          
+          # 1. Create flattened copy, EXCLUDING system/config folders
+          mkdir ../flattened_site
+          rsync -aL . ../flattened_site/ \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude '.vscode' \
+            --exclude '.yarn'
+          
+          # 2. Check the size
+          NEW_SIZE=$(du -sk ../flattened_site | cut -f1)
+          echo "New site size: ${NEW_SIZE}KB"
+          
+          if [ "$NEW_SIZE" -gt "$MAX_SIZE" ]; then
+            echo "ERROR: Site too large!"
+            exit 1
+          fi
+          
+          # 3. Clean the workspace of everything EXCEPT the system folders 
+          # so we don't try to move them back on top of themselves.
+          find . -maxdepth 1 ! -name '.git' ! -name '.github' ! -name '.' -exec rm -rf {} +
+          
+          # 4. Move the flattened files back
+          shopt -s dotglob
+          mv ../flattened_site/* .
+          echo "Symlinks resolved successfully."
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Upload the modified workspace
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4 # Note: v4 is currently the stable standard
