@@ -97,6 +97,7 @@ export async function runGenerator(options) {
         interConversionDelay,
         profilePath,
         enabledLayoutNames,
+        experimentalContentStreamConversion = false,
     } = options;
 
     // Non-magical profile path resolution: verbatim if absolute, CWD-relative otherwise.
@@ -376,6 +377,11 @@ export async function runGenerator(options) {
         const input = await page.waitForSelector('#inter-conversion-delay-input');
         await input.evaluate((el, val) => { /** @type {HTMLInputElement} */ (el).value = String(val); }, interConversionDelay);
         console.log(`  Inter-conversion delay: ${interConversionDelay}ms`);
+    }
+    if (experimentalContentStreamConversion) {
+        const cb = await page.waitForSelector('#experimental-content-stream-conversion-checkbox');
+        await cb.evaluate(el => { /** @type {HTMLInputElement} */ (el).checked = true; });
+        console.log('  Checked: experimental content stream conversion');
     }
 
     // Configure layout filter before profile upload (must happen while customization is available)

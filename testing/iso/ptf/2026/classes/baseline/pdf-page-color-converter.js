@@ -970,15 +970,15 @@ export class PDFPageColorConverter extends CompositeColorConverter {
         // Set the new color space based on output type
         if (result.colorSpace === 'CMYK') {
             dict.set(PDFName.of('ColorSpace'), PDFName.of('DeviceCMYK'));
+        } else if (result.colorSpace === 'Gray') {
+            dict.set(PDFName.of('ColorSpace'), PDFName.of('DeviceGray'));
         } else if (result.colorSpace === 'Lab' && this.#currentLabDescriptor) {
-            // For Lab output, use the Lab color space array (or its reference)
             if (this.#currentLabDescriptor.ref) {
                 dict.set(PDFName.of('ColorSpace'), this.#currentLabDescriptor.ref);
             } else {
                 dict.set(PDFName.of('ColorSpace'), this.#currentLabDescriptor.resource);
             }
         } else {
-            // Default to DeviceRGB for RGB output
             dict.set(PDFName.of('ColorSpace'), PDFName.of('DeviceRGB'));
         }
 

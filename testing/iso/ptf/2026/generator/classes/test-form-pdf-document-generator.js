@@ -326,9 +326,12 @@ export class TestFormPDFDocumentGenerator {
         await onProgress('preparing', 30, 'Parsing ICC profile\u2026');
         const iccProfileHeader = ICCService.parseICCHeaderFromSource(iccProfileBuffer);
 
-        if (iccProfileHeader.colorSpace !== 'CMYK' && iccProfileHeader.colorSpace !== 'RGB') {
-            throw new Error(`Destination profile must be CMYK or RGB. Got: ${iccProfileHeader.colorSpace}`);
+        if (!/^(?:CMYK|RGB|Gray)$/i.test(iccProfileHeader.colorSpace)) {
+            throw new Error(`Destination profile must be CMYK, RGB, or Gray. Got: ${iccProfileHeader.colorSpace}`);
         }
+
+        const outputColorSpace = {'GRAY': 'Gray', 'RGB': 'RGB', 'CMYK': 'CMYK'}[iccProfileHeader.colorSpace];
+        if (!outputColorSpace) throw new Error(`Unmapped ICC profile color space: "${iccProfileHeader.colorSpace}"`);
 
         console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] ICC profile:`, {
             colorSpace: iccProfileHeader.colorSpace,
@@ -448,9 +451,9 @@ export class TestFormPDFDocumentGenerator {
             // XMP stays unchanged → preflight RUL30 "Producer mismatch".
             // Re-run #ensureXMPMetadata after the conversion to rewrite the
             // XMP Producer entry with the post-conversion Info.Producer value.
-            if (docketPDFBuffer && iccProfileHeader.colorSpace === 'RGB') {
+            if (docketPDFBuffer && (outputColorSpace === 'RGB' || outputColorSpace === 'Gray')) {
                 const docketDocument = await PDFDocument.load(docketPDFBuffer, { updateMetadata: false });
-                await this.#convertDeviceColorToOutputIntent(docketDocument, iccProfileBuffer, iccProfileHeader.colorSpace);
+                await this.#convertDeviceColorToOutputIntent(docketDocument, iccProfileBuffer, outputColorSpace);
                 await this.#ensureXMPMetadata(docketDocument, iccProfileHeader);
                 docketPDFBuffer = /** @type {ArrayBuffer} */ (
                     (await docketDocument.save({ addDefaultPage: false, updateFieldAppearances: false })).buffer
@@ -508,7 +511,7 @@ export class TestFormPDFDocumentGenerator {
 
         const preConverter = new AssetPagePreConverter({
             outputProfile: iccProfileBuffer,
-            outputColorSpace: iccProfileHeader.colorSpace,
+            outputColorSpace,
             outputBitsPerComponent: this.#outputBitsPerComponent,
             colorSpaceResolver,
             renderingIntent: singlePass.intentPass.renderingIntent,
@@ -608,8 +611,8 @@ export class TestFormPDFDocumentGenerator {
             // ----------------------------------------------------------------
             // 6b. Add color space prologue to page Contents for PDF/X-4
             // ----------------------------------------------------------------
-            if (iccProfileHeader.colorSpace === 'RGB' || iccProfileHeader.colorSpace === 'CMYK') {
-                this.#addPDFX4Prologue(assembledDocument, iccProfileHeader.colorSpace);
+            if (outputColorSpace === 'RGB' || outputColorSpace === 'CMYK' || outputColorSpace === 'Gray') {
+                this.#addPDFX4Prologue(assembledDocument, outputColorSpace);
             }
 
             // ----------------------------------------------------------------
@@ -623,10 +626,15 @@ export class TestFormPDFDocumentGenerator {
                     singlePass.intentPass.label, assemblyPlan.profileCategoryLabel,
                 );
 
-                // Convert slug Device* content (DeviceGray fills/labels/QR) to
-                // output intent color space when required (RGB output intent).
-                // Same converter pipeline as asset pages — no bespoke slug path.
-                await this.#convertDeviceColorToOutputIntent(slugsDocument, iccProfileBuffer, iccProfileHeader.colorSpace);
+                // Convert slug Device* content to output intent color space when
+                // required. GhostScript generates slugs using the target color
+                // space (via ProcessColorModel), so conversion is only needed
+                // when the slug's native Device space differs from the output
+                // intent. For RGB output: DeviceGray slugs → DeviceRGB.
+                // For CMYK/Gray: slugs are already in the target space — skip.
+                if (outputColorSpace === 'RGB') {
+                    await this.#convertDeviceColorToOutputIntent(slugsDocument, iccProfileBuffer, outputColorSpace);
+                }
 
                 // Post-conversion slug stream integrity check
                 for (const [sRef, sObj] of slugsDocument.context.enumerateIndirectObjects()) {
@@ -876,7 +884,7 @@ export class TestFormPDFDocumentGenerator {
                 // Create pre-converter with pass-specific rendering intent
                 const passPreConverter = new AssetPagePreConverter({
                     outputProfile: iccProfileBuffer,
-                    outputColorSpace: iccProfileHeader.colorSpace,
+                    outputColorSpace: {'GRAY': 'Gray', 'RGB': 'RGB', 'CMYK': 'CMYK'}[iccProfileHeader.colorSpace],
                     outputBitsPerComponent: this.#outputBitsPerComponent,
                     colorSpaceResolver,
                     renderingIntent: pass.intentPass.renderingIntent,
@@ -925,7 +933,9 @@ export class TestFormPDFDocumentGenerator {
                             pass.manifest.pages, iccProfileBuffer, iccProfileHeader, userMetadata,
                             passLabel, assemblyPlan.profileCategoryLabel,
                         );
-                        await this.#convertDeviceColorToOutputIntent(slugsDocument, iccProfileBuffer, iccProfileHeader.colorSpace);
+                        if ({'GRAY': 'Gray', 'RGB': 'RGB', 'CMYK': 'CMYK'}[iccProfileHeader.colorSpace] === 'RGB') {
+                            await this.#convertDeviceColorToOutputIntent(slugsDocument, iccProfileBuffer, 'RGB');
+                        }
                         await PDFService.embedSlugsIntoPDFDocument(assembledDocument, slugsDocument);
                         // slugsDocument goes out of scope here
                     }
@@ -1031,7 +1041,9 @@ export class TestFormPDFDocumentGenerator {
             fullSlugsDocument = await this.#generateSlugsPDF(
                 manifest.pages, iccProfileBuffer, iccProfileHeader, userMetadata,
             );
-            await this.#convertDeviceColorToOutputIntent(fullSlugsDocument, iccProfileBuffer, iccProfileHeader.colorSpace);
+            if ({'GRAY': 'Gray', 'RGB': 'RGB', 'CMYK': 'CMYK'}[iccProfileHeader.colorSpace] === 'RGB') {
+                await this.#convertDeviceColorToOutputIntent(fullSlugsDocument, iccProfileBuffer, 'RGB');
+            }
         }
 
         // ------------------------------------------------------------------
@@ -1072,7 +1084,7 @@ export class TestFormPDFDocumentGenerator {
             // Create a fresh pre-converter for this chain
             const chainPreConverter = new AssetPagePreConverter({
                 outputProfile: iccProfileBuffer,
-                outputColorSpace: iccProfileHeader.colorSpace,
+                outputColorSpace: {'GRAY': 'Gray', 'RGB': 'RGB', 'CMYK': 'CMYK'}[iccProfileHeader.colorSpace],
                 outputBitsPerComponent: this.#outputBitsPerComponent,
                 colorSpaceResolver,
                 debugging: this.#debugging,
@@ -1338,7 +1350,7 @@ export class TestFormPDFDocumentGenerator {
         console.time('replaceTransarencyBlendingSpaceInPDFDocument');
         await PDFService.replaceTransarencyBlendingSpaceInPDFDocument(
             document,
-            `Device${iccProfileHeader.colorSpace}`,
+            {'GRAY': 'DeviceGray', 'RGB': 'DeviceRGB', 'CMYK': 'DeviceCMYK'}[iccProfileHeader.colorSpace],
         );
         console.timeEnd('replaceTransarencyBlendingSpaceInPDFDocument');
 
@@ -1393,12 +1405,14 @@ export class TestFormPDFDocumentGenerator {
      * that execute in the default graphics state.
      *
      * @param {PDFDocument} document - Document to modify in place
-     * @param {'RGB' | 'CMYK'} colorSpace - Output intent color space
+     * @param {'RGB' | 'CMYK' | 'Gray'} colorSpace - Output intent color space
      */
     #addPDFX4Prologue(document, colorSpace) {
         const prologueText = colorSpace === 'CMYK'
             ? '0 0 0 1 k 0 0 0 1 K\n'
-            : '0 0 0 rg 0 0 0 RG\n';
+            : colorSpace === 'Gray'
+                ? '0 g 0 G\n'
+                : '0 0 0 rg 0 0 0 RG\n';
         const prologueBytes = new TextEncoder().encode(prologueText);
         const prologueStream = document.context.flateStream(prologueBytes);
         const prologueRef = document.context.register(prologueStream);
@@ -1436,10 +1450,10 @@ export class TestFormPDFDocumentGenerator {
      * @returns {Promise<void>}
      */
     async #convertDeviceColorToOutputIntent(document, iccProfileBuffer, outputColorSpace) {
-        // Only RGB output intents require converting GhostScript Device content.
-        // CMYK output intents accept DeviceCMYK (K-only) and DeviceGray per PDF/X-4.
-        // Gray output intents accept DeviceGray — source is already compatible.
-        if (outputColorSpace !== 'RGB') return;
+        // RGB output intents: convert Device CMYK/Gray → RGB
+        // CMYK output intents: DeviceCMYK and DeviceGray are permitted — skip
+        // Gray output intents: convert Device RGB/CMYK → Gray (DeviceGray is native)
+        if (outputColorSpace !== 'RGB' && outputColorSpace !== 'Gray') return;
 
         // Pre-check: log stream formats in the document
         for (const [ref, obj] of document.context.enumerateIndirectObjects()) {
@@ -1469,9 +1483,9 @@ export class TestFormPDFDocumentGenerator {
             defaultSourceProfileForDeviceRGB: undefined,
             defaultSourceProfileForDeviceCMYK: undefined,
             defaultSourceProfileForDeviceGray: undefined,
-            convertDeviceRGB: true,
-            convertDeviceCMYK: true,
-            convertDeviceGray: true,
+            convertDeviceRGB: outputColorSpace !== 'RGB',
+            convertDeviceCMYK: outputColorSpace !== 'CMYK',
+            convertDeviceGray: outputColorSpace !== 'Gray',
             useLegacyContentStreamParsing: false,
         });
 
@@ -1813,7 +1827,7 @@ export class TestFormPDFDocumentGenerator {
 
             const preConverter = new AssetPagePreConverter({
                 outputProfile: iccProfileBuffer,
-                outputColorSpace: iccProfileHeader.colorSpace,
+                outputColorSpace: {'GRAY': 'Gray', 'RGB': 'RGB', 'CMYK': 'CMYK'}[iccProfileHeader.colorSpace],
                 outputBitsPerComponent: this.#outputBitsPerComponent,
                 colorSpaceResolver,
                 renderingIntent: pass.renderingIntent,

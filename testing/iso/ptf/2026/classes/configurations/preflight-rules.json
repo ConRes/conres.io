@@ -228,6 +228,25 @@
       ]
     },
     {
+      "categoryId": "output-intent",
+      "displayName": "Output Intent",
+      "description": "PDF/X-4 output intent profile requirements.",
+      "rules": [
+        {
+          "ruleId": "output-intent-profile-not-printer",
+          "pdfxReference": "RUL178",
+          "displayName": "Output intent ICC profile is not a printer profile",
+          "description": "The ICC profile embedded in the PDF/X output intent has a device class other than 'prtr' (printer). PDF/X-4 requires the output intent profile to be a printer profile. Monitor (mntr) or scanner (scnr) profiles are not valid for PDF/X-4 output intents.",
+          "scope": "document",
+          "severity": { "default": "error" },
+          "conditions": [
+            { "property": "OUTPUTINTENT::ProfileDeviceClass", "expected": "prtr" }
+          ],
+          "logic": "and"
+        }
+      ]
+    },
+    {
       "categoryId": "font",
       "displayName": "Font Embedding",
       "description": "PDF/X-4 requires all fonts used for visible text to be embedded.",

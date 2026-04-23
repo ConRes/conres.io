@@ -339,13 +339,16 @@ export class TestFormGeneratorAppElement extends HTMLElement {
 
         const cs = profileInfo.colorSpace?.toUpperCase();
         const desc = profileInfo.description ?? 'Unknown';
-        const key = cs === 'GRAY' ? 'gray'
+        const isNonPrinter = profileInfo.deviceClass && !/^pr(?:tr|inter)$/i.test(profileInfo.deviceClass);
+        const key = isNonPrinter ? 'nonPrinter'
+            : cs === 'GRAY' ? 'gray'
             : cs === 'CMYK' && profileInfo.profileCategory === 'CMYK-MaxGCR' ? 'cmykMaxGCR'
             : cs === 'CMYK' ? 'cmyk'
             : cs === 'RGB' ? 'rgb'
             : 'default';
 
-        this.#applyGuidance(guidance, fields[key], null, { description: desc });
+        const deviceClassLabel = (profileInfo.deviceClass ?? 'unknown').toLowerCase();
+        this.#applyGuidance(guidance, fields[key], null, { description: desc, deviceClass: deviceClassLabel });
     }
 
     /** @type {boolean} */
@@ -899,7 +902,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                 );
                 previewCategory = analysis.profileCategory;
                 this.#detectedProfileColorSpace = header.colorSpace;
-                this.#updateProfileGuidance({ colorSpace: header.colorSpace, description: header.description, profileCategory: previewCategory });
+                this.#updateProfileGuidance({ colorSpace: header.colorSpace, description: header.description, profileCategory: previewCategory, deviceClass: header.deviceClass });
 
                 console.log(`${CONTEXT_PREFIX} [TestFormGeneratorAppElement] Auto preview: profile category = ${previewCategory}`);
             } catch (error) {
@@ -1199,8 +1202,8 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             // Check profile color space directly from ICC header bytes
             const profileBytes = new Uint8Array(await iccProfileFile.arrayBuffer());
             const colorSpaceSig = String.fromCharCode(profileBytes[16], profileBytes[17], profileBytes[18], profileBytes[19]).trim();
-            if (colorSpaceSig === 'GRAY') {
-                validationErrors.push('Gray profiles are not yet supported. Please use a RGB or CMYK output profile.');
+            if (!/^(?:CMYK|RGB|GRAY)$/i.test(colorSpaceSig)) {
+                validationErrors.push(`Unsupported profile color space: ${colorSpaceSig}. Please use a RGB, CMYK, or Gray output profile.`);
             }
         }
 

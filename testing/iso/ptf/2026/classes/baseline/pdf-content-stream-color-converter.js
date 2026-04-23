@@ -558,7 +558,7 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
         const config = /** @type {PDFContentStreamColorConverterConfiguration} */ (this.configuration);
         const effectiveConvertDeviceRGB = config.convertDeviceRGB ?? (config.pdfX4CompliantOutput && (config.destinationColorSpace === 'CMYK' || config.destinationColorSpace === 'Gray'));
         const effectiveConvertDeviceGray = config.convertDeviceGray ?? (config.pdfX4CompliantOutput && config.destinationColorSpace === 'RGB');
-        const effectiveConvertDeviceCMYK = config.convertDeviceCMYK ?? (config.pdfX4CompliantOutput && config.destinationColorSpace === 'RGB');
+        const effectiveConvertDeviceCMYK = config.convertDeviceCMYK ?? (config.pdfX4CompliantOutput && (config.destinationColorSpace === 'RGB' || config.destinationColorSpace === 'Gray'));
 
         // ── Early exit: check if any conversion is needed ──
         // Skip the decompress/tokenize/recompress pipeline if:
@@ -1011,7 +1011,8 @@ export class PDFContentStreamColorConverter extends LookupTableColorConverter {
             });
 
             // Place results at correct indices and convert to PDF format
-            const outputChannels = config.destinationColorSpace === 'CMYK' ? 4 : 3;
+            const outputChannels = config.destinationColorSpace === 'CMYK' ? 4
+                : config.destinationColorSpace === 'Gray' ? 1 : 3;
             if (config.destinationColorSpace === 'CMYK') {
                 for (let j = 0, offset = 0; j < indices.length; j++) {
                     results[indices[j]] = new Float32Array([
