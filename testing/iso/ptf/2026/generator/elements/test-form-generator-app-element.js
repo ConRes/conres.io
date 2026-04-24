@@ -120,6 +120,9 @@ export class TestFormGeneratorAppElement extends HTMLElement {
     /** @type {string | null} Detected ICC color space from last profile analysis */
     #detectedProfileColorSpace = null;
 
+    /** @type {string | null} Detected profile category from last profile analysis */
+    #detectedProfileCategory = null;
+
     /** @type {Record<string, any> | null} */
     #details = null;
 
@@ -325,7 +328,12 @@ export class TestFormGeneratorAppElement extends HTMLElement {
      * Updates guidance text for the output profile field.
      * @param {{ colorSpace?: string, description?: string, profileCategory?: string }} [profileInfo]
      */
+    /** @type {{ colorSpace?: string, description?: string, profileCategory?: string, deviceClass?: string } | null | undefined} */
+    #lastProfileInfo;
+
     #updateProfileGuidance(profileInfo) {
+        if (arguments.length > 0) this.#lastProfileInfo = profileInfo;
+        else profileInfo = this.#lastProfileInfo;
         const guidance = /** @type {HTMLElement | null} */ (this.querySelector('#output-profile-guidance'));
         if (!guidance || !this.#details) return;
 
@@ -339,13 +347,16 @@ export class TestFormGeneratorAppElement extends HTMLElement {
 
         const cs = profileInfo.colorSpace?.toUpperCase();
         const desc = profileInfo.description ?? 'Unknown';
-        const key = cs === 'GRAY' ? 'gray'
+        const isNonPrinter = profileInfo.deviceClass && !/^pr(?:tr|inter)$/i.test(profileInfo.deviceClass);
+        const key = isNonPrinter ? 'nonPrinter'
+            : cs === 'GRAY' ? 'gray'
             : cs === 'CMYK' && profileInfo.profileCategory === 'CMYK-MaxGCR' ? 'cmykMaxGCR'
             : cs === 'CMYK' ? 'cmyk'
             : cs === 'RGB' ? 'rgb'
             : 'default';
 
-        this.#applyGuidance(guidance, fields[key], null, { description: desc });
+        const deviceClassLabel = (profileInfo.deviceClass ?? 'unknown').toLowerCase();
+        this.#applyGuidance(guidance, fields[key], null, { description: desc, deviceClass: deviceClassLabel });
     }
 
     /** @type {boolean} */
@@ -490,6 +501,10 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                 this.#updateRequiredState();
                 this.#persistState();
             });
+            // Persist when any input inside debugging details changes
+            debuggingDetails.addEventListener('change', () => {
+                this.#persistState();
+            });
         }
         this.#updateRequiredState();
 
@@ -515,7 +530,8 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         // Update auto state and profile guidance when ICC profile changes
         const iccProfileInput = this.querySelector('#icc-profile-input');
         if (iccProfileInput) {
-            iccProfileInput.addEventListener('change', () => {
+            iccProfileInput.addEventListener('change', async () => {
+                await this.#ensureFiltersPopulated();
                 this.#updateAutoState();
             });
         }
@@ -620,8 +636,8 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             state[`checkbox:${checkbox.id}`] = checkbox.checked;
         }
 
-        // Text and email inputs
-        for (const input of /** @type {NodeListOf<HTMLInputElement>} */ (this.querySelectorAll('input[type="text"][id], input[type="email"][id]'))) {
+        // Text, email, and number inputs
+        for (const input of /** @type {NodeListOf<HTMLInputElement>} */ (this.querySelectorAll('input[type="text"][id], input[type="email"][id], input[type="number"][id]'))) {
             if (input.value) state[`text:${input.id}`] = input.value;
         }
 
@@ -839,6 +855,8 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                     ` data-rendering-intent="${intent.renderingIntent}"` +
                     ` data-black-point-compensation="${intent.blackPointCompensation}"` +
                     ` data-label="${intent.label}"` +
+                    (intent.supportedProfileCategories
+                        ? ` data-supported-profile-categories="${intent.supportedProfileCategories.join(',')}"` : '') +
                     ` />${intent.label}</label>`
                 ).join('');
             }
@@ -895,24 +913,27 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                 );
                 previewCategory = analysis.profileCategory;
                 this.#detectedProfileColorSpace = header.colorSpace;
-                this.#updateProfileGuidance({ colorSpace: header.colorSpace, description: header.description, profileCategory: previewCategory });
+                this.#detectedProfileCategory = previewCategory;
+                this.#updateProfileGuidance({ colorSpace: header.colorSpace, description: header.description, profileCategory: previewCategory, deviceClass: header.deviceClass });
 
                 console.log(`${CONTEXT_PREFIX} [TestFormGeneratorAppElement] Auto preview: profile category = ${previewCategory}`);
             } catch (error) {
                 console.warn(`${CONTEXT_PREFIX} [TestFormGeneratorAppElement] Failed to analyze ICC profile for auto preview:`, error);
                 this.#detectedProfileColorSpace = null;
-                this.#updateProfileGuidance();
+                this.#detectedProfileCategory = null;
+                this.#updateProfileGuidance(null);
             }
         } else {
             this.#detectedProfileColorSpace = null;
-            this.#updateProfileGuidance();
+            this.#detectedProfileCategory = null;
+            this.#updateProfileGuidance(null);
         }
 
         const categoryDefinition = policyData.profileCategories[previewCategory];
         if (!categoryDefinition) return;
 
-        const includedTypes = new Set(categoryDefinition.includedColorSpaceTypes);
-        const excludedTypes = new Set(categoryDefinition.excludedColorSpaceTypes);
+        const includedTypes = new Set(categoryDefinition.includedLayoutColorSpaceTypes);
+        const excludedTypes = new Set(categoryDefinition.excludedLayoutColorSpaceTypes);
 
         // --- Color Spaces auto state ---
         const colorSpaceCheckboxes = /** @type {NodeListOf<HTMLInputElement>} */ (
@@ -952,9 +973,19 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                 (/** @type {{ label: string }} */ p) => p.label,
             ),
         );
+        const detectedCategory = this.#detectedProfileCategory;
         for (const checkbox of intentCheckboxes) {
             const label = checkbox.dataset.label ?? checkbox.value;
             checkbox.dataset.autoChecked = autoIntentLabels.has(label) ? 'true' : 'false';
+
+            const supported = checkbox.dataset.supportedProfileCategories;
+            if (supported) {
+                const isSupported = detectedCategory && new Set(supported.split(',')).has(detectedCategory);
+                checkbox.disabled = !isSupported;
+                if (!isSupported) checkbox.checked = false;
+            } else {
+                checkbox.disabled = false;
+            }
         }
 
         // Apply auto state to all sections currently in auto mode
@@ -981,6 +1012,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             this.querySelectorAll(`${containerSelector} input[type="checkbox"]`)
         );
         for (const checkbox of checkboxes) {
+            if (checkbox.disabled) continue;
             checkbox.checked = checkbox.dataset.autoChecked === 'true';
         }
     }
@@ -1077,6 +1109,30 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             ? /** @type {any} */ (/** @type {HTMLInputElement | null} */ (this.querySelector('input[name="processing-strategy"]:checked'))?.value ?? 'in-place')
             : 'in-place';
 
+        const convertContentStreams = isDebugging
+            ? (/** @type {HTMLInputElement | null} */ (this.querySelector('#content-streams-checkbox'))?.checked ?? true)
+            : true;
+
+        const convertImages = isDebugging
+            ? (/** @type {HTMLInputElement | null} */ (this.querySelector('#images-checkbox'))?.checked ?? true)
+            : true;
+
+        const useLegacyContentStreamParsing = isDebugging
+            ? (/** @type {HTMLInputElement | null} */ (this.querySelector('#legacy-content-stream-parsing-checkbox'))?.checked ?? false)
+            : false;
+
+        const concurrentSubsets = isDebugging
+            ? (/** @type {HTMLInputElement | null} */ (this.querySelector('#concurrent-subsets-checkbox'))?.checked ?? false)
+            : false;
+
+        const experimentalContentStreamConversion = isDebugging
+            ? (/** @type {HTMLInputElement | null} */ (this.querySelector('#experimental-content-stream-conversion-checkbox'))?.checked ?? false)
+            : false;
+
+        const interConversionDelay = isDebugging
+            ? parseInt(/** @type {HTMLInputElement | null} */ (this.querySelector('#inter-conversion-delay-input'))?.value ?? '500', 10) || 500
+            : 500;
+
         const includeOutputProfile = false;
 
         // ----------------------------------------------------------------
@@ -1143,7 +1199,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
 
             if (isIntentCustom) {
                 const intentCheckboxes = /** @type {NodeListOf<HTMLInputElement>} */ (
-                    this.querySelectorAll('#rendering-intent-checkboxes input[type="checkbox"]:checked')
+                    this.querySelectorAll('#rendering-intent-checkboxes input[type="checkbox"]:checked:not(:disabled)')
                 );
 
                 assemblyOverrides.renderingIntentOverrides = [...intentCheckboxes].map(cb => {
@@ -1171,8 +1227,8 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             // Check profile color space directly from ICC header bytes
             const profileBytes = new Uint8Array(await iccProfileFile.arrayBuffer());
             const colorSpaceSig = String.fromCharCode(profileBytes[16], profileBytes[17], profileBytes[18], profileBytes[19]).trim();
-            if (colorSpaceSig === 'GRAY') {
-                validationErrors.push('Gray profiles are not yet supported. Please use an sRGB or CMYK output profile.');
+            if (!/^(?:CMYK|RGB|GRAY)$/i.test(colorSpaceSig)) {
+                validationErrors.push(`Unsupported profile color space: ${colorSpaceSig}. Please use a RGB, CMYK, or Gray output profile.`);
             }
         }
 
@@ -1543,6 +1599,12 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                     testFormName,
                     outputProfileBasename,
                     environmentSuffix,
+                    convertImages,
+                    convertContentStreams,
+                    useLegacyContentStreamParsing,
+                    interConversionDelay,
+                    concurrentSubsets,
+                    experimentalContentStreamConversion,
                     handleProgress,
                     setCancelHandler: (handler) => { this.#cancelGeneration = handler; },
                     onDownloadProgress: (state) => {
@@ -1573,6 +1635,12 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                     testFormName,
                     outputProfileBasename,
                     environmentSuffix,
+                    convertImages,
+                    convertContentStreams,
+                    useLegacyContentStreamParsing,
+                    interConversionDelay,
+                    concurrentSubsets,
+                    experimentalContentStreamConversion,
                     handleProgress,
                     setCancelHandler: (handler) => { this.#cancelGeneration = handler; },
                     onDownloadProgress: (state) => {
@@ -1712,7 +1780,8 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         testFormVersion, resources, iccProfileBuffer, userMetadata,
         debugging, outputBitsPerComponent, useWorkers, processingStrategy,
         assemblyOverrides, includeOutputProfile, testFormName, outputProfileBasename, handleProgress, setCancelHandler, onDownloadProgress,
-        environmentSuffix,
+        environmentSuffix, convertImages, convertContentStreams, useLegacyContentStreamParsing, interConversionDelay, concurrentSubsets,
+        experimentalContentStreamConversion,
     }) {
         const generator = new TestFormPDFDocumentGenerator({
             testFormVersion,
@@ -1723,6 +1792,12 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             processingStrategy,
             assemblyOverrides,
             outputProfileName: outputProfileBasename,
+            convertImages,
+            convertContentStreams,
+            useLegacyContentStreamParsing,
+            interConversionDelay,
+            concurrentSubsets,
+            experimentalContentStreamConversion,
         });
 
         setCancelHandler?.(() => generator.abort?.());
@@ -1801,7 +1876,8 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         testFormVersion, resources, iccProfileBuffer, userMetadata,
         debugging, outputBitsPerComponent, useWorkers, processingStrategy,
         assemblyOverrides, includeOutputProfile, testFormName, outputProfileBasename, handleProgress, setCancelHandler, onDownloadProgress,
-        environmentSuffix,
+        environmentSuffix, convertImages, convertContentStreams, useLegacyContentStreamParsing, interConversionDelay, concurrentSubsets,
+        experimentalContentStreamConversion,
     }) {
         const workerURL = new URL('../bootstrap-worker-entrypoint.js', import.meta.url).href;
 
@@ -1927,6 +2003,12 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                         processingStrategy,
                         assemblyOverrides,
                         outputProfileName: outputProfileBasename,
+                        convertImages,
+                        convertContentStreams,
+                        useLegacyContentStreamParsing,
+                        interConversionDelay,
+                        concurrentSubsets,
+                        experimentalContentStreamConversion,
                     },
                     [iccProfileCopy],
                 );

@@ -866,7 +866,7 @@ class TestFormGenerator {
                     if (iccProfileHeader) {
                         console.time('PDFService.setOutputIntentForPDFDocument');
 
-                        PDFService.setOutputIntentForPDFDocument(testFormDocument, {
+                        await PDFService.setOutputIntentForPDFDocument(testFormDocument, {
                             // iccProfile: iccProfileBytes.slice(),
                             iccProfile: iccProfileReference,
                             identifier: iccProfileHeader.description || `ICCBased_${iccProfileHeader.colorSpace}`,

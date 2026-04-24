@@ -89,6 +89,12 @@ async function handleGenerate(data) {
             processingStrategy: data.processingStrategy,
             assemblyOverrides: data.assemblyOverrides,
             outputProfileName: data.outputProfileName,
+            convertImages: data.convertImages,
+            convertContentStreams: data.convertContentStreams,
+            useLegacyContentStreamParsing: data.useLegacyContentStreamParsing,
+            interConversionDelay: data.interConversionDelay,
+            concurrentSubsets: data.concurrentSubsets,
+            experimentalContentStreamConversion: data.experimentalContentStreamConversion,
         });
 
         const result = await generator.generate(

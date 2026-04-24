@@ -1,22 +1,22 @@
 {
     "settings":    {
         "colorManagement": {
-            "defaultSourceProfileForDeviceGray":       "../profiles/sGray.icc",
+            "defaultSourceProfileForDeviceGray":       null,
             "defaultSourceProfileForDeviceGrayPolicy": {
                 "preferOutputIntent":     true,
-                "preferEmbeded":          true,
+                "preferEmbeded":          false,
                 "preferGracefulFallback": false
             },
-            "defaultSourceProfileForDeviceRGB":        "../profiles/sRGB IEC61966-2.1.icc",
+            "defaultSourceProfileForDeviceRGB":        null,
             "defaultSourceProfileForDeviceRGBPolicy":  {
                 "preferOutputIntent":     true,
-                "preferEmbeded":          true,
+                "preferEmbeded":          false,
                 "preferGracefulFallback": false
             },
-            "defaultSourceProfileForDeviceCMYK":       "../profiles/eciCMYK v2.icc",
+            "defaultSourceProfileForDeviceCMYK":       null,
             "defaultSourceProfileForDeviceCMYKPolicy": {
                 "preferOutputIntent":     true,
-                "preferEmbeded":          true,
+                "preferEmbeded":          false,
                 "preferGracefulFallback": false
             }
         }

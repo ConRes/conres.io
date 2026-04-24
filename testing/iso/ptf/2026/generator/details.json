@@ -52,7 +52,11 @@
                 "warn": false
             },
             "gray": {
-                "text": "Gray profiles are not yet fully supported. Use an sRGB output profile for now — Gray support is in development.",
+                "text": "Gray profile detected: {{description}}. The test form will be converted to grayscale.",
+                "warn": false
+            },
+            "nonPrinter": {
+                "text": "{{description}} is a {{deviceClass}} profile, not a printer profile. PDF/X-4 output intents require a printer (prtr) profile for conformance. The test form will still be generated, but may fail preflight validation.",
                 "warn": true
             }
         },

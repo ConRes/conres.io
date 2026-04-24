@@ -16,6 +16,7 @@
 import {
     PDFDocument, StandardFonts,
     PDFName, PDFString, PDFHexString, PDFDict, PDFArray, PDFRef, PDFRawStream,
+    decodePDFRawStream,
 } from '../../packages/pdf-lib/pdf-lib.esm.js';
 
 import {
@@ -200,6 +201,33 @@ export class TestFormPDFDocumentGenerator {
     /** @type {'in-place' | 'separate-chains' | 'recombined-chains'} */
     #processingStrategy;
 
+    /** @type {ArrayBuffer | null | undefined} Resolved from manifest settings.colorManagement during generate() */
+    #defaultSourceProfileForDeviceRGB;
+
+    /** @type {ArrayBuffer | null | undefined} */
+    #defaultSourceProfileForDeviceCMYK;
+
+    /** @type {ArrayBuffer | null | undefined} */
+    #defaultSourceProfileForDeviceGray;
+
+    /** @type {boolean} */
+    #convertImages;
+
+    /** @type {boolean} */
+    #convertContentStreams;
+
+    /** @type {boolean} */
+    #useLegacyContentStreamParsing;
+
+    /** @type {number} */
+    #interConversionDelay;
+
+    /** @type {boolean} */
+    #concurrentSubsets;
+
+    /** @type {boolean} */
+    #experimentalContentStreamConversion;
+
     /** @type {import('./assembly-policy-resolver.js').AssemblyUserOverrides | undefined} */
     #assemblyOverrides;
 
@@ -226,7 +254,7 @@ export class TestFormPDFDocumentGenerator {
      * @param {import('./assembly-policy-resolver.js').AssemblyUserOverrides} [options.assemblyOverrides] - User overrides for layout/colorSpace/intent filtering
      * @param {string} [options.outputProfileName] - ICC profile filename (for slug metadata)
      */
-    constructor({ testFormVersion, resources, debugging = false, outputBitsPerComponent, useWorkers = false, processingStrategy = 'in-place', assemblyOverrides, outputProfileName }) {
+    constructor({ testFormVersion, resources, debugging = false, outputBitsPerComponent, useWorkers = false, processingStrategy = 'in-place', assemblyOverrides, outputProfileName, convertImages = true, convertContentStreams = true, useLegacyContentStreamParsing = false, interConversionDelay = 500, concurrentSubsets = false, experimentalContentStreamConversion = false }) {
         this.#testFormVersion = testFormVersion;
         this.#debugging = debugging;
         this.#outputBitsPerComponent = outputBitsPerComponent;
@@ -234,6 +262,12 @@ export class TestFormPDFDocumentGenerator {
         this.#processingStrategy = processingStrategy;
         this.#assemblyOverrides = assemblyOverrides;
         this.#outputProfileName = outputProfileName;
+        this.#convertImages = convertImages;
+        this.#convertContentStreams = convertContentStreams;
+        this.#useLegacyContentStreamParsing = useLegacyContentStreamParsing;
+        this.#interConversionDelay = interConversionDelay;
+        this.#concurrentSubsets = concurrentSubsets;
+        this.#experimentalContentStreamConversion = experimentalContentStreamConversion;
         this.#cache = globalThis.caches?.open?.('conres-testforms');
 
         if (resources) {
@@ -292,9 +326,12 @@ export class TestFormPDFDocumentGenerator {
         await onProgress('preparing', 30, 'Parsing ICC profile\u2026');
         const iccProfileHeader = ICCService.parseICCHeaderFromSource(iccProfileBuffer);
 
-        if (iccProfileHeader.colorSpace !== 'CMYK' && iccProfileHeader.colorSpace !== 'RGB') {
-            throw new Error(`Destination profile must be CMYK or RGB. Got: ${iccProfileHeader.colorSpace}`);
+        if (!/^(?:CMYK|RGB|Gray)$/i.test(iccProfileHeader.colorSpace)) {
+            throw new Error(`Destination profile must be CMYK, RGB, or Gray. Got: ${iccProfileHeader.colorSpace}`);
         }
+
+        const outputColorSpace = {'GRAY': 'Gray', 'RGB': 'RGB', 'CMYK': 'CMYK'}[iccProfileHeader.colorSpace];
+        if (!outputColorSpace) throw new Error(`Unmapped ICC profile color space: "${iccProfileHeader.colorSpace}"`);
 
         console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] ICC profile:`, {
             colorSpace: iccProfileHeader.colorSpace,
@@ -349,6 +386,40 @@ export class TestFormPDFDocumentGenerator {
         );
 
         // ----------------------------------------------------------------
+        // 3c-ii. Resolve default source profiles for Device color spaces
+        // ----------------------------------------------------------------
+        const colorManagement = manifest.settings?.colorManagement;
+
+        /**
+         * Resolves a defaultSourceProfileForDevice* value from manifest JSON
+         * to the converter's expected type: ArrayBuffer | null | undefined.
+         *
+         * @param {string | null | undefined} profilePath
+         * @returns {Promise<ArrayBuffer | null | undefined>}
+         */
+        const resolveDefaultSourceProfile = async (profilePath) => {
+            if (profilePath === null) return null;
+            if (profilePath === undefined) return undefined;
+            const url = resolveProfileURL(profilePath);
+            const response = await fetch(url);
+            if (!response.ok) {
+                console.warn(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Failed to fetch default source profile: ${url} (${response.status})`);
+                return undefined;
+            }
+            return response.arrayBuffer();
+        };
+
+        this.#defaultSourceProfileForDeviceRGB = await resolveDefaultSourceProfile(
+            colorManagement?.defaultSourceProfileForDeviceRGB,
+        );
+        this.#defaultSourceProfileForDeviceCMYK = await resolveDefaultSourceProfile(
+            colorManagement?.defaultSourceProfileForDeviceCMYK,
+        );
+        this.#defaultSourceProfileForDeviceGray = await resolveDefaultSourceProfile(
+            colorManagement?.defaultSourceProfileForDeviceGray,
+        );
+
+        // ----------------------------------------------------------------
         // 3d. Generate docket PDF (litmus test — must succeed before main job)
         // ----------------------------------------------------------------
         /** @type {ArrayBuffer | null} */
@@ -367,6 +438,28 @@ export class TestFormPDFDocumentGenerator {
             );
 
             console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Docket PDF generated: ${docketPDFBuffer ? (docketPDFBuffer.byteLength / 1024).toFixed(1) + ' KB' : 'null'}`);
+
+            // Convert docket Device* content to output intent color space when
+            // required (RGB output intent). The same converter pipeline used for
+            // asset pages applies here — no bespoke docket-specific conversion.
+            //
+            // PDFDocumentColorConverter appends `(Color-Engine <version>)` to
+            // Info.Producer on every invocation. The docket arrives with
+            // Info.Producer and XMP.Producer already aligned (done by
+            // #postProcessDocument inside #generateDocketPDF). Running the
+            // converter here desyncs them — Info.Producer gets the suffix,
+            // XMP stays unchanged → preflight RUL30 "Producer mismatch".
+            // Re-run #ensureXMPMetadata after the conversion to rewrite the
+            // XMP Producer entry with the post-conversion Info.Producer value.
+            if (docketPDFBuffer && (outputColorSpace === 'RGB' || outputColorSpace === 'Gray')) {
+                const docketDocument = await PDFDocument.load(docketPDFBuffer, { updateMetadata: false });
+                await this.#convertDeviceColorToOutputIntent(docketDocument, iccProfileBuffer, outputColorSpace);
+                await this.#ensureXMPMetadata(docketDocument, iccProfileHeader);
+                docketPDFBuffer = /** @type {ArrayBuffer} */ (
+                    (await docketDocument.save({ addDefaultPage: false, updateFieldAppearances: false })).buffer
+                );
+                console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Docket PDF converted to ${iccProfileHeader.colorSpace}: ${(docketPDFBuffer.byteLength / 1024).toFixed(1)} KB`);
+            }
 
             // Deliver docket immediately — UI downloads it before main job starts
             if (docketPDFBuffer && callbacks.onDocketReady) {
@@ -418,14 +511,23 @@ export class TestFormPDFDocumentGenerator {
 
         const preConverter = new AssetPagePreConverter({
             outputProfile: iccProfileBuffer,
-            outputColorSpace: iccProfileHeader.colorSpace,
+            outputColorSpace,
             outputBitsPerComponent: this.#outputBitsPerComponent,
             colorSpaceResolver,
             renderingIntent: singlePass.intentPass.renderingIntent,
             blackPointCompensation: singlePass.intentPass.blackPointCompensation,
             debugging: this.#debugging,
             useWorkers: this.#useWorkers,
-            interConversionDelay: 500,
+            interConversionDelay: this.#interConversionDelay,
+            defaultSourceProfileForDeviceRGB: this.#defaultSourceProfileForDeviceRGB,
+            defaultSourceProfileForDeviceCMYK: this.#defaultSourceProfileForDeviceCMYK,
+            defaultSourceProfileForDeviceGray: this.#defaultSourceProfileForDeviceGray,
+            convertImages: this.#convertImages,
+            convertContentStreams: this.#convertContentStreams,
+            useLegacyContentStreamParsing: this.#useLegacyContentStreamParsing,
+            concurrentSubsets: this.#concurrentSubsets,
+            experimentalPaintOpInsertion: this.#experimentalContentStreamConversion,
+            pdfX4CompliantOutput: true,
         });
 
         // Use filtered manifest from assembly plan
@@ -443,11 +545,48 @@ export class TestFormPDFDocumentGenerator {
             console.timeEnd('Pre-conversion and assembly');
             console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Assembled document: ${assembledDocument.getPageCount()} pages`);
 
+            // ── Pre-flush stream integrity check ──
+            // Validate FlateDecode streams in BOTH the source asset document
+            // AND the assembled document. The pre-converter modifies the asset
+            // document's streams in place; flush()/embedPdf reads those streams
+            // for embedded page finalization. If any are corrupt, flush crashes.
+            {
+                for (const [label, doc] of [['asset', assetDocument], ['assembled', assembledDocument]]) {
+                    let checked = 0;
+                    const failures = [];
+                    for (const [ref, obj] of doc.context.enumerateIndirectObjects()) {
+                        if (!(obj instanceof PDFRawStream)) continue;
+                        const filter = obj.dict.lookup(PDFName.of('Filter'));
+                        if (!(filter instanceof PDFName) || filter.encodedName !== '/FlateDecode') continue;
+                        if (!obj.contents || obj.contents.length === 0) continue;
+                        checked++;
+                        try {
+                            decodePDFRawStream(obj);
+                        } catch (err) {
+                            const subtype = obj.dict.lookup(PDFName.of('Subtype'));
+                            failures.push(`${ref} (${subtype?.encodedName ?? 'no subtype'}, ${obj.contents.length}B): ${err.message}`);
+                        }
+                    }
+                    console.log(`${CONTEXT_PREFIX} [StreamCheck] ${label}: ${checked} streams, ${failures.length} failures`);
+                    if (failures.length > 0) {
+                        for (const f of failures) console.error(`${CONTEXT_PREFIX} [StreamCheck] FAIL [${label}]: ${f}`);
+                        throw new Error(`Stream integrity [${label}]: ${failures.length} corrupt stream(s) — ${failures[0]}`);
+                    }
+                }
+            }
+
             // Flush pending embeds so that lazy PDFEmbeddedPage objects
             // finalize their Form XObjects into the context. Without this,
             // removeOrphanedObjects would delete the source pages' content
             // streams that the embedders still need to decode.
-            await assembledDocument.flush();
+            console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] flush() starting...`);
+            try {
+                await assembledDocument.flush();
+                console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] flush() completed`);
+            } catch (flushErr) {
+                console.error(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] flush() THREW: ${flushErr.message}\n${flushErr.stack}`);
+                throw flushErr;
+            }
 
             // Remove orphaned objects left behind by removePage
             const { removedCount } = PDFService.removeOrphanedObjects(assembledDocument);
@@ -470,6 +609,13 @@ export class TestFormPDFDocumentGenerator {
             await onProgress('converting', 78, 'Color conversion complete');
 
             // ----------------------------------------------------------------
+            // 6b. Add color space prologue to page Contents for PDF/X-4
+            // ----------------------------------------------------------------
+            if (outputColorSpace === 'RGB' || outputColorSpace === 'CMYK' || outputColorSpace === 'Gray') {
+                this.#addPDFX4Prologue(assembledDocument, outputColorSpace);
+            }
+
+            // ----------------------------------------------------------------
             // 7. Generate and embed slugs (single-document path)
             // ----------------------------------------------------------------
             if (userMetadata) {
@@ -479,6 +625,27 @@ export class TestFormPDFDocumentGenerator {
                     effectiveManifest.pages, iccProfileBuffer, iccProfileHeader, userMetadata,
                     singlePass.intentPass.label, assemblyPlan.profileCategoryLabel,
                 );
+
+                // Convert slug Device* content to output intent color space when
+                // required. GhostScript generates slugs using the target color
+                // space (via ProcessColorModel), so conversion is only needed
+                // when the slug's native Device space differs from the output
+                // intent. For RGB output: DeviceGray slugs → DeviceRGB.
+                // For CMYK/Gray: slugs are already in the target space — skip.
+                if (outputColorSpace === 'RGB') {
+                    await this.#convertDeviceColorToOutputIntent(slugsDocument, iccProfileBuffer, outputColorSpace);
+                }
+
+                // Post-conversion slug stream integrity check
+                for (const [sRef, sObj] of slugsDocument.context.enumerateIndirectObjects()) {
+                    if (!(sObj instanceof PDFRawStream)) continue;
+                    const sFilter = sObj.dict.lookup(PDFName.of('Filter'));
+                    if (!(sFilter instanceof PDFName) || sFilter.encodedName !== '/FlateDecode') continue;
+                    if (!sObj.contents || sObj.contents.length === 0) { console.error(`${CONTEXT_PREFIX} [SlugCheck] EMPTY: ${sRef}`); continue; }
+                    try { decodePDFRawStream(sObj); }
+                    catch (err) { console.error(`${CONTEXT_PREFIX} [SlugCheck] CORRUPT: ${sRef} (${sObj.contents.length}B): ${err.message}`); }
+                }
+                console.log(`${CONTEXT_PREFIX} [SlugCheck] done`);
 
                 await onProgress('slugs', 88, `Embedding slugs (${effectiveManifest.pages.length} pages)\u2026`);
                 await PDFService.embedSlugsIntoPDFDocument(assembledDocument, slugsDocument);
@@ -717,14 +884,22 @@ export class TestFormPDFDocumentGenerator {
                 // Create pre-converter with pass-specific rendering intent
                 const passPreConverter = new AssetPagePreConverter({
                     outputProfile: iccProfileBuffer,
-                    outputColorSpace: iccProfileHeader.colorSpace,
+                    outputColorSpace: {'GRAY': 'Gray', 'RGB': 'RGB', 'CMYK': 'CMYK'}[iccProfileHeader.colorSpace],
                     outputBitsPerComponent: this.#outputBitsPerComponent,
                     colorSpaceResolver,
                     renderingIntent: pass.intentPass.renderingIntent,
                     blackPointCompensation: pass.intentPass.blackPointCompensation,
                     debugging: this.#debugging,
                     useWorkers: this.#useWorkers,
-                    interConversionDelay: 500,
+                    interConversionDelay: this.#interConversionDelay,
+                    defaultSourceProfileForDeviceRGB: this.#defaultSourceProfileForDeviceRGB,
+                    defaultSourceProfileForDeviceCMYK: this.#defaultSourceProfileForDeviceCMYK,
+                    defaultSourceProfileForDeviceGray: this.#defaultSourceProfileForDeviceGray,
+                    convertImages: this.#convertImages,
+                    convertContentStreams: this.#convertContentStreams,
+                    useLegacyContentStreamParsing: this.#useLegacyContentStreamParsing,
+                    concurrentSubsets: this.#concurrentSubsets,
+                    pdfX4CompliantOutput: true,
                 });
 
                 try {
@@ -758,6 +933,9 @@ export class TestFormPDFDocumentGenerator {
                             pass.manifest.pages, iccProfileBuffer, iccProfileHeader, userMetadata,
                             passLabel, assemblyPlan.profileCategoryLabel,
                         );
+                        if ({'GRAY': 'Gray', 'RGB': 'RGB', 'CMYK': 'CMYK'}[iccProfileHeader.colorSpace] === 'RGB') {
+                            await this.#convertDeviceColorToOutputIntent(slugsDocument, iccProfileBuffer, 'RGB');
+                        }
                         await PDFService.embedSlugsIntoPDFDocument(assembledDocument, slugsDocument);
                         // slugsDocument goes out of scope here
                     }
@@ -863,6 +1041,9 @@ export class TestFormPDFDocumentGenerator {
             fullSlugsDocument = await this.#generateSlugsPDF(
                 manifest.pages, iccProfileBuffer, iccProfileHeader, userMetadata,
             );
+            if ({'GRAY': 'Gray', 'RGB': 'RGB', 'CMYK': 'CMYK'}[iccProfileHeader.colorSpace] === 'RGB') {
+                await this.#convertDeviceColorToOutputIntent(fullSlugsDocument, iccProfileBuffer, 'RGB');
+            }
         }
 
         // ------------------------------------------------------------------
@@ -903,12 +1084,20 @@ export class TestFormPDFDocumentGenerator {
             // Create a fresh pre-converter for this chain
             const chainPreConverter = new AssetPagePreConverter({
                 outputProfile: iccProfileBuffer,
-                outputColorSpace: iccProfileHeader.colorSpace,
+                outputColorSpace: {'GRAY': 'Gray', 'RGB': 'RGB', 'CMYK': 'CMYK'}[iccProfileHeader.colorSpace],
                 outputBitsPerComponent: this.#outputBitsPerComponent,
                 colorSpaceResolver,
                 debugging: this.#debugging,
                 useWorkers: this.#useWorkers,
-                interConversionDelay: 500,
+                interConversionDelay: this.#interConversionDelay,
+                defaultSourceProfileForDeviceRGB: this.#defaultSourceProfileForDeviceRGB,
+                defaultSourceProfileForDeviceCMYK: this.#defaultSourceProfileForDeviceCMYK,
+                defaultSourceProfileForDeviceGray: this.#defaultSourceProfileForDeviceGray,
+                convertImages: this.#convertImages,
+                convertContentStreams: this.#convertContentStreams,
+                useLegacyContentStreamParsing: this.#useLegacyContentStreamParsing,
+                concurrentSubsets: this.#concurrentSubsets,
+                pdfX4CompliantOutput: true,
             });
 
             try {
@@ -1161,7 +1350,7 @@ export class TestFormPDFDocumentGenerator {
         console.time('replaceTransarencyBlendingSpaceInPDFDocument');
         await PDFService.replaceTransarencyBlendingSpaceInPDFDocument(
             document,
-            `Device${iccProfileHeader.colorSpace}`,
+            {'GRAY': 'DeviceGray', 'RGB': 'DeviceRGB', 'CMYK': 'DeviceCMYK'}[iccProfileHeader.colorSpace],
         );
         console.timeEnd('replaceTransarencyBlendingSpaceInPDFDocument');
 
@@ -1189,6 +1378,125 @@ export class TestFormPDFDocumentGenerator {
      * @param {ArrayBuffer} iccProfileBuffer
      * @param {ArrayBuffer} manifestBuffer
      */
+    /**
+     * Convert Device* color (content streams + images) in a GhostScript-generated
+     * PDF (docket or slugs) to match the output intent color space.
+     *
+     * Docket and slug PDFs are produced by GhostScript and contain DeviceCMYK
+     * (K-only text/strokes) and DeviceGray (slug fills/labels) content. For RGB
+     * output intents, this content violates PDF/X-4 conformance unless converted
+     * to DeviceRGB. For CMYK output intents, PDF/X-4 permits DeviceGray and the
+     * DeviceCMYK content is already compatible — no conversion needed. For Gray
+     * output intents, content is already DeviceGray.
+     *
+     * Uses the same `PDFDocumentColorConverter` pipeline as asset pages, with
+     * `defaultSourceProfileForDevice*: null` so Device color routes through
+     * `TraditionalPostScriptColorConverter`.
+     */
+
+    /**
+     * Add a PDF/X-4 prologue stream to each page's Contents array.
+     *
+     * Per PDF 1.7 §7.8.2, a page's Contents may be an array of streams
+     * that are concatenated in order. Prepending a tiny stream that sets
+     * the output intent's native color space overrides the PDF default
+     * (DeviceGray) at the page level. Form XObjects invoked via `Do`
+     * inherit this state, eliminating preflight hits from paint ops
+     * that execute in the default graphics state.
+     *
+     * @param {PDFDocument} document - Document to modify in place
+     * @param {'RGB' | 'CMYK' | 'Gray'} colorSpace - Output intent color space
+     */
+    #addPDFX4Prologue(document, colorSpace) {
+        const prologueText = colorSpace === 'CMYK'
+            ? '0 0 0 1 k 0 0 0 1 K\n'
+            : colorSpace === 'Gray'
+                ? '0 g 0 G\n'
+                : '0 0 0 rg 0 0 0 RG\n';
+        const prologueBytes = new TextEncoder().encode(prologueText);
+        const prologueStream = document.context.flateStream(prologueBytes);
+        const prologueRef = document.context.register(prologueStream);
+
+        for (let i = 0; i < document.getPageCount(); i++) {
+            const page = document.getPage(i);
+            const pageLeaf = document.context.lookup(page.ref);
+            const existingContents = pageLeaf.get(PDFName.of('Contents'));
+
+            const contentsArray = PDFArray.withContext(document.context);
+            contentsArray.push(prologueRef);
+
+            if (existingContents instanceof PDFRef) {
+                const resolved = document.context.lookup(existingContents);
+                if (resolved instanceof PDFArray) {
+                    for (let j = 0; j < resolved.size(); j++) contentsArray.push(resolved.get(j));
+                } else {
+                    contentsArray.push(existingContents);
+                }
+            } else if (existingContents instanceof PDFArray) {
+                for (let j = 0; j < existingContents.size(); j++) contentsArray.push(existingContents.get(j));
+            }
+
+            pageLeaf.set(PDFName.of('Contents'), contentsArray);
+        }
+
+        console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Added Device${colorSpace} prologue to ${document.getPageCount()} pages`);
+    }
+
+    /**
+     *
+     * @param {PDFDocument} document - Document to convert in place
+     * @param {ArrayBuffer} iccProfileBuffer - Output intent ICC profile
+     * @param {string} outputColorSpace - Output intent color space ('RGB' | 'CMYK' | 'Gray')
+     * @returns {Promise<void>}
+     */
+    async #convertDeviceColorToOutputIntent(document, iccProfileBuffer, outputColorSpace) {
+        // RGB output intents: convert Device CMYK/Gray → RGB
+        // CMYK output intents: DeviceCMYK and DeviceGray are permitted — skip
+        // Gray output intents: convert Device RGB/CMYK → Gray (DeviceGray is native)
+        if (outputColorSpace !== 'RGB' && outputColorSpace !== 'Gray') return;
+
+        // Pre-check: log stream formats in the document
+        for (const [ref, obj] of document.context.enumerateIndirectObjects()) {
+            if (!(obj instanceof PDFRawStream)) continue;
+            const filter = obj.dict.lookup(PDFName.of('Filter'));
+            if (!(filter instanceof PDFName) || filter.encodedName !== '/FlateDecode') continue;
+            if (!obj.contents || obj.contents.length === 0) continue;
+            const b0 = obj.contents[0], b1 = obj.contents[1];
+            const sub = obj.dict.lookup(PDFName.of('Subtype'));
+            console.log(`${CONTEXT_PREFIX} [convertDeviceColor] Pre-check ${ref}: ${sub?.encodedName ?? 'stream'} ${obj.contents.length}B bytes=[0x${b0.toString(16)},0x${b1.toString(16)}]`);
+        }
+
+        const { PDFDocumentColorConverter } = await import('../../classes/baseline/pdf-document-color-converter.js');
+
+        const converter = new PDFDocumentColorConverter({
+            renderingIntent: 'relative-colorimetric',
+            blackPointCompensation: true,
+            useAdaptiveBPCClamping: false,
+            destinationProfile: iccProfileBuffer,
+            destinationColorSpace: /** @type {import('../../classes/baseline/color-converter.js').ColorType} */ (outputColorSpace),
+            outputBitsPerComponent: 8,
+            convertImages: true,
+            convertContentStreams: true,
+            useWorkers: false,
+            verbose: false,
+            // Trigger the TPS path inside image + content-stream converters
+            defaultSourceProfileForDeviceRGB: undefined,
+            defaultSourceProfileForDeviceCMYK: undefined,
+            defaultSourceProfileForDeviceGray: undefined,
+            convertDeviceRGB: outputColorSpace !== 'RGB',
+            convertDeviceCMYK: outputColorSpace !== 'CMYK',
+            convertDeviceGray: outputColorSpace !== 'Gray',
+            useLegacyContentStreamParsing: false,
+        });
+
+        try {
+            await converter.ensureReady();
+            await converter.convertColor({ pdfDocument: document });
+        } finally {
+            converter.dispose();
+        }
+    }
+
     async #postProcessDocument(document, iccProfileHeader, iccProfileBuffer, manifestBuffer, attachmentName = 'test-form.manifest.json') {
         // Always use the user's destination ICC profile for the output intent
         // (not a source profile extracted from the document)
@@ -1519,14 +1827,22 @@ export class TestFormPDFDocumentGenerator {
 
             const preConverter = new AssetPagePreConverter({
                 outputProfile: iccProfileBuffer,
-                outputColorSpace: iccProfileHeader.colorSpace,
+                outputColorSpace: {'GRAY': 'Gray', 'RGB': 'RGB', 'CMYK': 'CMYK'}[iccProfileHeader.colorSpace],
                 outputBitsPerComponent: this.#outputBitsPerComponent,
                 colorSpaceResolver,
                 renderingIntent: pass.renderingIntent,
                 blackPointCompensation: pass.blackPointCompensation,
                 debugging: this.#debugging,
                 useWorkers: false,
-                interConversionDelay: 0,
+                interConversionDelay: this.#interConversionDelay,
+                defaultSourceProfileForDeviceRGB: this.#defaultSourceProfileForDeviceRGB,
+                defaultSourceProfileForDeviceCMYK: this.#defaultSourceProfileForDeviceCMYK,
+                defaultSourceProfileForDeviceGray: this.#defaultSourceProfileForDeviceGray,
+                convertImages: this.#convertImages,
+                convertContentStreams: this.#convertContentStreams,
+                useLegacyContentStreamParsing: this.#useLegacyContentStreamParsing,
+                concurrentSubsets: this.#concurrentSubsets,
+                pdfX4CompliantOutput: true,
             });
 
             try {
@@ -1703,17 +2019,26 @@ export class TestFormPDFDocumentGenerator {
             if (settings) {
                 fields.push({ label: 'Debugging', value: settings.debugging ? 'Enabled' : 'Disabled' });
                 fields.push({
-                    label: 'Workers', inline: [
+                    label: 'Workflow', inline: [
                         { checkbox: true, checked: settings.useWorkers, value: 'Bootstrap' },
                         { checkbox: true, checked: settings.useWorkers, value: 'Parallel' },
+                        { checkbox: true, checked: settings.concurrentSubsets === true, value: 'Concurrent' },
+                        { value: `${settings.interConversionDelay ?? 500}ms delay` },
                     ]
                 });
                 const strategy = settings.processingStrategy ?? 'in-place';
                 fields.push({
-                    label: 'Strategy', inline: [
+                    label: 'Assembly', inline: [
                         { radio: true, selected: strategy === 'in-place', value: 'In-Place' },
                         { radio: true, selected: strategy === 'recombined-chains', value: 'Recombined' },
                         { radio: true, selected: strategy === 'separate-chains', value: 'Separate' },
+                    ]
+                });
+                fields.push({
+                    label: 'Contents', inline: [
+                        { checkbox: true, checked: settings.convertContentStreams !== false, value: 'Streams' },
+                        { checkbox: true, checked: settings.convertImages !== false, value: 'Images' },
+                        { checkbox: true, checked: settings.useLegacyContentStreamParsing === true, value: 'Legacy Parser' },
                     ]
                 });
             }
@@ -1920,6 +2245,10 @@ export class TestFormPDFDocumentGenerator {
                             }
                             page.drawText(item.value, { x: inlineX + controlSize + 2, y, size: fontSize, font, color: kBlack });
                             inlineX += controlSize + 2 + font.widthOfTextAtSize(item.value, fontSize) + 6;
+                        } else if ('value' in item) {
+                            // Plain text inline item
+                            page.drawText(item.value, { x: inlineX, y, size: fontSize, font, color: kBlack });
+                            inlineX += font.widthOfTextAtSize(item.value, fontSize) + 6;
                         }
                     }
                 } else {
@@ -2080,6 +2409,11 @@ export class TestFormPDFDocumentGenerator {
                 useWorkers: this.#useWorkers,
                 processingStrategy: this.#processingStrategy,
                 assemblyOverrides: this.#assemblyOverrides ?? null,
+                convertImages: this.#convertImages,
+                convertContentStreams: this.#convertContentStreams,
+                useLegacyContentStreamParsing: this.#useLegacyContentStreamParsing,
+                interConversionDelay: this.#interConversionDelay,
+                concurrentSubsets: this.#concurrentSubsets,
             },
             assembly: assemblyPlan ? {
                 profileCategory: assemblyPlan.profileCategory,
@@ -2216,16 +2550,29 @@ export class TestFormPDFDocumentGenerator {
             }
         }
 
+        // Consume the response body BEFORE attempting cache storage.
+        // response.clone() for cache.put() would duplicate the entire body
+        // in memory — for a 1.5 GB PDF, this causes Safari to double its
+        // memory usage and triggers QuotaExceededError anyway.
+        const responseBuffer = await response.arrayBuffer();
+        resolve(responseBuffer);
+
         if (cache) {
-            // Delete stale entry first to free disk space before writing the new one.
-            // Chrome's Cache backend can throw UnknownError when it must hold both
-            // the old and new entry simultaneously on a constrained disk.
-            if (cachedResponse) await cache.delete(url);
-            await cache.put(url, response.clone()).catch(cacheStorageError => {
+            // Attempt to cache the response for future reuse.
+            // Construct a new Response from the already-consumed buffer —
+            // this avoids cloning the original response stream.
+            try {
+                if (cachedResponse) await cache.delete(url);
+                await cache.put(url, new Response(responseBuffer, {
+                    headers: response.headers,
+                    status: response.status,
+                    statusText: response.statusText,
+                }));
+            } catch (cacheStorageError) {
+                // QuotaExceededError in Safari, UnknownError in Chrome on constrained disk
                 console.warn(CONTEXT_PREFIX, cacheStorageError);
-            });
+            }
         }
-        resolve(await response.arrayBuffer());
 
         return promise;
     }

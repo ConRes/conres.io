@@ -72,6 +72,7 @@
  *   width: number,
  *   height: number,
  *   colorSpace: import('./color-converter.js').ColorType,
+ *   pdfColorSpaceType?: import('./pdf-image-color-converter.js').PDFColorSpaceType,
  *   bitsPerComponent: import('./color-conversion-policy.js').BitDepth,
  *   inputBitsPerComponent?: import('./color-conversion-policy.js').BitDepth,
  *   outputBitsPerComponent?: import('./color-conversion-policy.js').BitDepth,
@@ -555,6 +556,11 @@ export class WorkerPool {
         // Transform task: transfer the input array buffer (unique per task)
         if (message.inputArray?.buffer instanceof ArrayBuffer) {
             transferables.push(message.inputArray.buffer);
+        }
+
+        // Content stream streaming task: transfer compressed contents
+        if (message.compressedContents instanceof Uint8Array && message.compressedContents.buffer instanceof ArrayBuffer) {
+            transferables.push(message.compressedContents.buffer);
         }
 
         return transferables;

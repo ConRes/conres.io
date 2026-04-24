@@ -15,39 +15,68 @@
             }
         },
         {
+            "name": "2026-04-16 - ConRes - ISO PTF - CR1 (F10a) Assets - Maps",
+            "resources": {
+                "assets" : "../../assets/2026-04-16 - ConRes - ISO PTF - CR1 (F10a) Assets - Maps.pdf",
+                "manifest": "../../assets/2026-04-16 - ConRes - ISO PTF - CR1 (F10a) Assets - Maps/manifest.json"
+            },
+            "debugging": true
+        },
+        {
+            "name": "2026-04-16 - ConRes - ISO PTF - CR1 (F10a) Assets - Maps (Partially Decalibrated)",
+            "resources": {
+                "assets" : "../../assets/2026-04-16 - ConRes - ISO PTF - CR1 (F10a) Assets - Maps (Partially Decalibrated).pdf",
+                "manifest": "../../assets/2026-04-16 - ConRes - ISO PTF - CR1 (F10a) Assets - Maps (Partially Decalibrated)/manifest.json"
+            },
+            "debugging": true
+        },
+        {
+            "name": "2026-04-16 - ConRes - ISO PTF - CR1 (F10a) Assets - Maps (Fully Decalibrated)",
+            "resources": {
+                "assets" : "../../assets/2026-04-16 - ConRes - ISO PTF - CR1 (F10a) Assets - Maps (Fully Decalibrated).pdf",
+                "manifest": "../../assets/2026-04-16 - ConRes - ISO PTF - CR1 (F10a) Assets - Maps (Fully Decalibrated)/manifest.json"
+            },
+            "debugging": true
+        },
+        {
             "name": "2026-03-20 - ConRes - ISO PTF - CR1 (F9f) Assets",
             "resources": {
                 "assets" : "../../assets/2026-03-20 - ConRes - ISO PTF - CR1 (F9f) Assets.pdf",
                 "manifest": "../../assets/2026-03-20 - ConRes - ISO PTF - CR1 (F9f) Assets/manifest.json"
-            }
+            },
+            "debugging": true
         },
         {
             "name": "2026-03-20 - ConRes - ISO PTF - CR1 (F9f) Assets (8-bit)",
             "resources": {
                 "assets" : "../../assets/2026-03-20 - ConRes - ISO PTF - CR1 (F9f) Assets (8-bit).pdf",
                 "manifest": "../../assets/2026-03-20 - ConRes - ISO PTF - CR1 (F9f) Assets (8-bit)/manifest.json"
-            }
+            },
+            "debugging": true
         },
         {
             "name": "2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets",
             "resources": {
                 "assets" : "../../assets/2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets.pdf",
                 "manifest": "../../assets/2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets/manifest.json"
-            }
+            },
+            "debugging": true
         },
         {
             "name": "2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets (8-bit)",
             "resources": {
                 "assets" : "../../assets/2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets (8-bit).pdf",
                 "manifest": "../../assets/2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets (8-bit)/manifest.json"
-            }
+            },
+            "debugging": true
         },
         {
             "name": "2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets - Maps",
             "resources": {
                 "assets" : "../../assets/2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets - Maps.pdf",
                 "manifest": "../../assets/2026-02-14 - ConRes - ISO PTF - CR1 (F9e) Assets - Maps/manifest.json"
-            }
+            },
+            "debugging": true
         }
     ]
 }

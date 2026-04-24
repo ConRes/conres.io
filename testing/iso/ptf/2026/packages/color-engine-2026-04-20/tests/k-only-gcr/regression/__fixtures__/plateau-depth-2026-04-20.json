@@ -1,0 +1,416 @@
+{
+  "threshold": 99,
+  "generatedFrom": "packages/color-engine/tests/references/baseline-lists-x16e-2026-04-20-full-r2",
+  "entries": {
+    "Enhanced|Canon iPR C10000VP series Coated MGCR v1.2": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|Canon iPR C10000VP series Uncoated MGCR v1.2": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|Canon imagePRESS V1000 series Coated M1 v1.1": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|Canon iPR V1000 series 6 20250926115401 (Created by PRISMAsync)": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|Canon iPR V1000 series 7 20251114120057 (Created by PRISMAsync)": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|Canon imagePRESS V1000 series Uncoated M1 v1.1": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|Coated FOGRA27 (ISO 12647-2:2004)": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|Coated FOGRA39 (ISO 12647-2:2004)": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|Coated GRACoL 2006 (ISO 12647-2:2004)": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|Euroscale Coated v2": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|Euroscale Uncoated v2": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|Eurostandard (Coated), 9%, GCR, Maximum": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|FOGRA39, 100% GCR": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|GRACoL2006_Coated1v2.icc": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|Generic CMYK Profile": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|Indigo_ArtoSilk_matte-4C_neu.icc": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|ISO Coated": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|ISO Coated v2 (ECI)": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|Japan Color 2001 Coated": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|Japan Color 2001 Uncoated": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|Japan Color 2002 Newspaper": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|Japan Color 2003 Web Coated": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|Japan Color 2011 Coated": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|Japan Web Coated (Ad)": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|Photoshop AM175 R5 FOGRA59": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|Photoshop AM175 R5 eciCMYKv2": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|Photoshop FM1200 R5 FOGRA59": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|Photoshop FM1200 R5 eciCMYKv2": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|Photoshop 4 Default CMYK": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|Photoshop 5 Default CMYK": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|SWOP (Coated), 20%, GCR, Maximum": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|SWOP2006_Coated3v2": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|SWOP2006_Coated5v2": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|US Newsprint (SNAP 2007)": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|U.S. Sheetfed Coated v2": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|U.S. Sheetfed Uncoated v2": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|U.S. Web Coated (SWOP) v2": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|U.S. Web Uncoated v2": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|Uncoated FOGRA29 (ISO 12647-2:2004)": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|Web Coated FOGRA28 (ISO 12647-2:2004)": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Enhanced|eciCMYK v2": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Standard|Canon iPR C10000VP series Coated MGCR v1.2": {
+      "plateauDepth": 0,
+      "kLast": 97.64706,
+      "rowLength": 23
+    },
+    "Standard|Canon iPR C10000VP series Uncoated MGCR v1.2": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Standard|Canon imagePRESS V1000 series Coated M1 v1.1": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Standard|Canon iPR V1000 series 6 20250926115401 (Created by PRISMAsync)": {
+      "plateauDepth": 2,
+      "kLast": 99.60784,
+      "rowLength": 23
+    },
+    "Standard|Canon iPR V1000 series 7 20251114120057 (Created by PRISMAsync)": {
+      "plateauDepth": 2,
+      "kLast": 99.60784,
+      "rowLength": 23
+    },
+    "Standard|Canon imagePRESS V1000 series Uncoated M1 v1.1": {
+      "plateauDepth": 1,
+      "kLast": 99.21569,
+      "rowLength": 23
+    },
+    "Standard|Coated FOGRA27 (ISO 12647-2:2004)": {
+      "plateauDepth": 1,
+      "kLast": 99.21569,
+      "rowLength": 23
+    },
+    "Standard|Coated FOGRA39 (ISO 12647-2:2004)": {
+      "plateauDepth": 0,
+      "kLast": 97.2549,
+      "rowLength": 23
+    },
+    "Standard|Coated GRACoL 2006 (ISO 12647-2:2004)": {
+      "plateauDepth": 0,
+      "kLast": 96.07843,
+      "rowLength": 23
+    },
+    "Standard|Euroscale Coated v2": {
+      "plateauDepth": 0,
+      "kLast": 87.84314,
+      "rowLength": 23
+    },
+    "Standard|Euroscale Uncoated v2": {
+      "plateauDepth": 0,
+      "kLast": 90.98039,
+      "rowLength": 23
+    },
+    "Standard|Eurostandard (Coated), 9%, GCR, Maximum": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Standard|FOGRA39, 100% GCR": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Standard|GRACoL2006_Coated1v2.icc": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Standard|Generic CMYK Profile": {
+      "plateauDepth": 0,
+      "kLast": 80,
+      "rowLength": 23
+    },
+    "Standard|Indigo_ArtoSilk_matte-4C_neu.icc": {
+      "plateauDepth": 1,
+      "kLast": 99.21569,
+      "rowLength": 23
+    },
+    "Standard|ISO Coated": {
+      "plateauDepth": 0,
+      "kLast": 97.2549,
+      "rowLength": 23
+    },
+    "Standard|ISO Coated v2 (ECI)": {
+      "plateauDepth": 0,
+      "kLast": 92.54902,
+      "rowLength": 23
+    },
+    "Standard|Japan Color 2001 Coated": {
+      "plateauDepth": 0,
+      "kLast": 78.82353,
+      "rowLength": 23
+    },
+    "Standard|Japan Color 2001 Uncoated": {
+      "plateauDepth": 0,
+      "kLast": 76.07843,
+      "rowLength": 23
+    },
+    "Standard|Japan Color 2002 Newspaper": {
+      "plateauDepth": 0,
+      "kLast": 91.37255,
+      "rowLength": 23
+    },
+    "Standard|Japan Color 2003 Web Coated": {
+      "plateauDepth": 0,
+      "kLast": 79.60784,
+      "rowLength": 23
+    },
+    "Standard|Japan Color 2011 Coated": {
+      "plateauDepth": 0,
+      "kLast": 78.82353,
+      "rowLength": 23
+    },
+    "Standard|Japan Web Coated (Ad)": {
+      "plateauDepth": 0,
+      "kLast": 77.64706,
+      "rowLength": 23
+    },
+    "Standard|Photoshop AM175 R5 FOGRA59": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Standard|Photoshop AM175 R5 eciCMYKv2": {
+      "plateauDepth": 2,
+      "kLast": 99.21569,
+      "rowLength": 23
+    },
+    "Standard|Photoshop FM1200 R5 FOGRA59": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Standard|Photoshop FM1200 R5 eciCMYKv2": {
+      "plateauDepth": 2,
+      "kLast": 99.21569,
+      "rowLength": 23
+    },
+    "Standard|Photoshop 4 Default CMYK": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Standard|Photoshop 5 Default CMYK": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Standard|SWOP (Coated), 20%, GCR, Maximum": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Standard|SWOP2006_Coated3v2": {
+      "plateauDepth": 2,
+      "kLast": 100,
+      "rowLength": 23
+    },
+    "Standard|SWOP2006_Coated5v2": {
+      "plateauDepth": 2,
+      "kLast": 99.60784,
+      "rowLength": 23
+    },
+    "Standard|US Newsprint (SNAP 2007)": {
+      "plateauDepth": 0,
+      "kLast": 67.45098,
+      "rowLength": 23
+    },
+    "Standard|U.S. Sheetfed Coated v2": {
+      "plateauDepth": 0,
+      "kLast": 83.52941,
+      "rowLength": 23
+    },
+    "Standard|U.S. Sheetfed Uncoated v2": {
+      "plateauDepth": 0,
+      "kLast": 92.54902,
+      "rowLength": 23
+    },
+    "Standard|U.S. Web Coated (SWOP) v2": {
+      "plateauDepth": 0,
+      "kLast": 88.23529,
+      "rowLength": 23
+    },
+    "Standard|U.S. Web Uncoated v2": {
+      "plateauDepth": 0,
+      "kLast": 92.54902,
+      "rowLength": 23
+    },
+    "Standard|Uncoated FOGRA29 (ISO 12647-2:2004)": {
+      "plateauDepth": 0,
+      "kLast": 85.88235,
+      "rowLength": 23
+    },
+    "Standard|Web Coated FOGRA28 (ISO 12647-2:2004)": {
+      "plateauDepth": 0,
+      "kLast": 97.2549,
+      "rowLength": 23
+    },
+    "Standard|eciCMYK v2": {
+      "plateauDepth": 0,
+      "kLast": 88.23529,
+      "rowLength": 23
+    }
+  }
+}

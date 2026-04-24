@@ -36,7 +36,7 @@ import { CONTEXT_PREFIX } from '../../services/helpers/runtime.js';
 
 /**
  * Profile category identifier.
- * @typedef {'Gray' | 'RGB' | 'CMYK' | 'CMYK-MaxGCR'} ProfileCategory
+ * @typedef {'RGB' | 'CMYK' | 'CMYK-MaxGCR'} ProfileCategory
  */
 
 /**

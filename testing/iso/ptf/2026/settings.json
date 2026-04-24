@@ -5,19 +5,19 @@
                 "profileSearchLocations": [
                     "tests/fixtures/profiles"
                 ],
-                "defaultSourceProfileForDeviceGray": "sGray.icc",
+                "defaultSourceProfileForDeviceGray": "./resources/profiles/sGray.icc",
                 "defaultSourceProfileForDeviceGrayPolicy": {
                     "preferOutputIntent": true,
                     "preferEmbeded": true,
                     "preferGracefulFallback": false
                 },
-                "defaultSourceProfileForDeviceRGB": "sRGB IEC61966-2.1.icc",
+                "defaultSourceProfileForDeviceRGB": "./resources/profiles/sRGB IEC61966-2.1.icc",
                 "defaultSourceProfileForDeviceRGBPolicy": {
                     "preferOutputIntent": true,
                     "preferEmbeded": true,
                     "preferGracefulFallback": false
                 },
-                "defaultSourceProfileForDeviceCMYK": "eciCMYK v2.icc",
+                "defaultSourceProfileForDeviceCMYK": "./resources/profiles/eciCMYK v2.icc",
                 "defaultSourceProfileForDeviceCMYKPolicy": {
                     "preferOutputIntent": true,
                     "preferEmbeded": true,

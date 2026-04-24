@@ -24,6 +24,8 @@ import {
     PDFNumber,
 } from '../../packages/pdf-lib/pdf-lib.esm.js';
 
+import { inflate } from '../../packages/pako/dist/pako.mjs';
+
 /**
  * @typedef {{
  *   ruleId: string,
@@ -55,7 +57,7 @@ import {
  *
  * @typedef {{
  *   property: string,
- *   expected: boolean,
+ *   expected: boolean | string,
  * }} RuleCondition
  *
  * @typedef {{
@@ -68,6 +70,7 @@ import {
  *   conditions: RuleCondition[],
  *   logic: 'and' | 'or' | 'none',
  *   fixId?: string,
+ *   guard?: RuleCondition,
  * }} RuleDefinition
  *
  * @typedef {{
@@ -92,7 +95,7 @@ export class PDFPreflightValidator {
     /** @type {RulesConfiguration} */
     #rules;
 
-    /** @type {Map<string, (target: *, context: *) => boolean>} */
+    /** @type {Map<string, (target: *, context: *) => boolean | string | null>} */
     #evaluators = new Map();
 
     /** @type {boolean} */
@@ -100,6 +103,9 @@ export class PDFPreflightValidator {
 
     /** @type {string | null} */
     #loadError = null;
+
+    /** @type {{ hasDeviceCMYK: boolean, hasDeviceRGB: boolean, hasDeviceGray: boolean } | null} */
+    #colorSpaceScanCache = null;
 
     /**
      * @param {PDFDocument | null} pdfDocument
@@ -188,6 +194,22 @@ export class PDFPreflightValidator {
     #evaluateDocumentRule(rule, severity) {
         if (!this.#document && !this.#loadFailed) {
             return this.#makeFinding(rule, 'skipped', severity, null, { reason: 'No document loaded' });
+        }
+
+        // Guard condition: if present, evaluate first — skip rule if guard is not met
+        if (rule.guard) {
+            const guardEvaluator = this.#evaluators.get(rule.guard.property);
+            if (guardEvaluator) {
+                const guardResult = guardEvaluator(this.#document, { loadFailed: this.#loadFailed, loadError: this.#loadError });
+                if (guardResult !== rule.guard.expected) {
+                    return this.#makeFinding(rule, 'skipped', severity, null, {
+                        reason: `Guard not met: ${rule.guard.property}`,
+                        guardProperty: rule.guard.property,
+                        guardExpected: rule.guard.expected,
+                        guardActual: guardResult,
+                    });
+                }
+            }
         }
 
         const conditionResults = rule.conditions.map(cond => {
@@ -573,6 +595,44 @@ export class PDFPreflightValidator {
             if (!producerMatch) return false; // XMP has no Producer at all
             return producerMatch[1] === infoProducer;
         });
+
+        // --- Color Space Compatibility ---
+        evaluators.set('OUTPUTINTENT::ProfileColorSpace', (doc) => {
+            const profile = this.#getDestOutputProfile(doc);
+            if (!profile) return null;
+            try {
+                let contents = profile.getContents();
+
+                // Decompress if FlateDecode
+                const filter = profile.dict.get(PDFName.of('Filter'));
+                if (filter instanceof PDFName && filter.encodedName === '/FlateDecode') {
+                    contents = inflate(contents);
+                }
+
+                if (contents.byteLength < 20) return null;
+                // ICC header bytes 16-19: color space signature (ASCII)
+                const signature = String.fromCharCode(contents[16], contents[17], contents[18], contents[19]);
+                switch (signature) {
+                    case 'CMYK': return 'CMYK';
+                    case 'RGB ': return 'RGB';
+                    case 'GRAY': return 'Gray';
+                    case 'Lab ': return 'Lab';
+                    default: return null;
+                }
+            } catch {
+                return null;
+            }
+        });
+
+        evaluators.set('DOC::HasDeviceCMYK', (doc) => {
+            return this.#scanDocumentColorSpaces(doc).hasDeviceCMYK;
+        });
+        evaluators.set('DOC::HasDeviceRGB', (doc) => {
+            return this.#scanDocumentColorSpaces(doc).hasDeviceRGB;
+        });
+        evaluators.set('DOC::HasDeviceGray', (doc) => {
+            return this.#scanDocumentColorSpaces(doc).hasDeviceGray;
+        });
     }
 
     // ========================================================================
@@ -618,5 +678,257 @@ export class PDFPreflightValidator {
         const profile = doc.context.lookup(profileRef);
         if (profile instanceof PDFRawStream) return profile;
         return null;
+    }
+
+    // ========================================================================
+    // Private: Document Color Space Scanning
+    // ========================================================================
+
+    /**
+     * Scan document for Device color space usage. Cached per validator instance.
+     *
+     * Checks three locations per page:
+     *   1. Resources/ColorSpace dict values (PDFName entries like /DeviceCMYK)
+     *   2. Image XObject ColorSpace entries
+     *   3. Content stream operators (k/K, rg/RG, g/G) — implicit Device colors
+     *
+     * Also checks Form XObject Resources recursively.
+     *
+     * @param {PDFDocument | null} doc
+     * @returns {{ hasDeviceCMYK: boolean, hasDeviceRGB: boolean, hasDeviceGray: boolean }}
+     */
+    #scanDocumentColorSpaces(doc) {
+        if (this.#colorSpaceScanCache) return this.#colorSpaceScanCache;
+
+        const result = { hasDeviceCMYK: false, hasDeviceRGB: false, hasDeviceGray: false };
+        if (!doc) {
+            this.#colorSpaceScanCache = result;
+            return result;
+        }
+
+        const visitedRefs = new Set();
+
+        /**
+         * Check a ColorSpace dict value for Device color space names.
+         * @param {*} csValue
+         * @param {PDFDocument} doc
+         */
+        const checkColorSpaceValue = (csValue, doc) => {
+            // Direct PDFName: /DeviceCMYK, /DeviceRGB, /DeviceGray
+            if (csValue instanceof PDFName) {
+                const name = csValue.encodedName;
+                if (name === '/DeviceCMYK') result.hasDeviceCMYK = true;
+                else if (name === '/DeviceRGB') result.hasDeviceRGB = true;
+                else if (name === '/DeviceGray') result.hasDeviceGray = true;
+                return;
+            }
+            // PDFRef — resolve and check
+            if (csValue instanceof PDFRef) {
+                const resolved = doc.context.lookup(csValue);
+                checkColorSpaceValue(resolved, doc);
+                return;
+            }
+            // PDFArray: first element is the color space type name
+            // e.g., [/Indexed /DeviceRGB 255 <hex>] or [/ICCBased <ref>]
+            if (csValue instanceof PDFArray && csValue.size() > 0) {
+                const csType = csValue.lookup(0);
+                if (csType instanceof PDFName) {
+                    const typeName = csType.encodedName;
+                    if (typeName === '/DeviceCMYK') result.hasDeviceCMYK = true;
+                    else if (typeName === '/DeviceRGB') result.hasDeviceRGB = true;
+                    else if (typeName === '/DeviceGray') result.hasDeviceGray = true;
+                    // For /Indexed, the base color space is the second element
+                    else if (typeName === '/Indexed' && csValue.size() > 1) {
+                        checkColorSpaceValue(csValue.get(1), doc);
+                    }
+                    // For /Separation or /DeviceN, the alternate is the third element
+                    // (Phase B — not checked here)
+                }
+            }
+        };
+
+        /** @type {PDFRef[]} */
+        const formXObjectStreamRefs = [];
+
+        /**
+         * Scan a Resources dict for Device color space usage.
+         * @param {PDFDict} resources
+         * @param {PDFDocument} doc
+         */
+        const scanResources = (resources, doc) => {
+            // Check Resources/ColorSpace dict
+            const csDict = resources.lookup(PDFName.of('ColorSpace'));
+            if (csDict instanceof PDFDict) {
+                for (const [, value] of csDict.entries()) {
+                    checkColorSpaceValue(value, doc);
+                }
+            }
+
+            // Check XObject dict for Image and Form XObjects
+            const xobjDict = resources.lookup(PDFName.of('XObject'));
+            if (xobjDict instanceof PDFDict) {
+                for (const [, xobjValue] of xobjDict.entries()) {
+                    const xobjRef = xobjValue instanceof PDFRef ? xobjValue : null;
+                    const xobj = xobjRef ? doc.context.lookup(xobjRef) : xobjValue;
+                    if (!(xobj instanceof PDFRawStream) && !(xobj instanceof PDFStream)) continue;
+                    const xobjDictInner = xobj.dict;
+                    if (!xobjDictInner) continue;
+
+                    const subtype = xobjDictInner.get(PDFName.of('Subtype'));
+
+                    // Image XObject — check ColorSpace
+                    if (subtype instanceof PDFName && subtype.encodedName === '/Image') {
+                        const imgCs = xobjDictInner.get(PDFName.of('ColorSpace'));
+                        if (imgCs) checkColorSpaceValue(imgCs, doc);
+                    }
+
+                    // Form XObject — recurse into Resources and collect for stream scanning
+                    if (subtype instanceof PDFName && subtype.encodedName === '/Form') {
+                        const refKey = xobjRef ? xobjRef.toString() : null;
+                        if (refKey && visitedRefs.has(refKey)) continue;
+                        if (refKey) visitedRefs.add(refKey);
+                        const formResources = xobjDictInner.lookup(PDFName.of('Resources'));
+                        if (formResources instanceof PDFDict) {
+                            scanResources(formResources, doc);
+                        }
+                        // Collect Form XObject ref for content stream scanning
+                        if (xobjRef) formXObjectStreamRefs.push(xobjRef);
+                    }
+                }
+            }
+        };
+
+        // Scan all pages
+        const pages = doc.getPages();
+        for (const page of pages) {
+            const resources = page.node.lookup(PDFName.of('Resources'));
+            if (resources instanceof PDFDict) {
+                scanResources(resources, doc);
+            }
+
+            // Early exit if all three are found
+            if (result.hasDeviceCMYK && result.hasDeviceRGB && result.hasDeviceGray) break;
+        }
+
+        // If resource scan did not find all Device color spaces, scan content streams
+        // for implicit Device operators (k/K, rg/RG, g/G) and cs/CS with Device names
+        if (!result.hasDeviceCMYK || !result.hasDeviceRGB || !result.hasDeviceGray) {
+            // Scan page content streams
+            for (const page of pages) {
+                this.#scanPageContentStreams(page, doc, result);
+                if (result.hasDeviceCMYK && result.hasDeviceRGB && result.hasDeviceGray) break;
+            }
+        }
+
+        // Also scan Form XObject content streams (slugs, stamps, etc.)
+        if (!result.hasDeviceCMYK || !result.hasDeviceRGB || !result.hasDeviceGray) {
+            for (const ref of formXObjectStreamRefs) {
+                this.#scanStreamRef(ref, doc, result);
+                if (result.hasDeviceCMYK && result.hasDeviceRGB && result.hasDeviceGray) break;
+            }
+        }
+
+        this.#colorSpaceScanCache = result;
+        return result;
+    }
+
+    /**
+     * Scan a page's content streams for implicit Device color operators.
+     *
+     * Operators k/K, rg/RG, g/G implicitly set both the color space and
+     * color value without appearing in Resources/ColorSpace. This scan
+     * decompresses each content stream and checks for operator presence.
+     *
+     * @param {import('../../packages/pdf-lib/pdf-lib.esm.js').PDFPage} page
+     * @param {PDFDocument} doc
+     * @param {{ hasDeviceCMYK: boolean, hasDeviceRGB: boolean, hasDeviceGray: boolean }} result
+     */
+    #scanPageContentStreams(page, doc, result) {
+        const contentsRef = page.node.get(PDFName.of('Contents'));
+        if (!contentsRef) return;
+
+        /** @type {PDFRef[]} */
+        const streamRefs = [];
+        if (contentsRef instanceof PDFRef) {
+            const resolved = doc.context.lookup(contentsRef);
+            if (resolved instanceof PDFArray) {
+                for (let i = 0; i < resolved.size(); i++) {
+                    const ref = resolved.get(i);
+                    if (ref instanceof PDFRef) streamRefs.push(ref);
+                }
+            } else {
+                streamRefs.push(contentsRef);
+            }
+        } else if (contentsRef instanceof PDFArray) {
+            for (let i = 0; i < contentsRef.size(); i++) {
+                const ref = contentsRef.get(i);
+                if (ref instanceof PDFRef) streamRefs.push(ref);
+            }
+        }
+
+        for (const ref of streamRefs) {
+            this.#scanStreamRef(ref, doc, result);
+            if (result.hasDeviceCMYK && result.hasDeviceRGB && result.hasDeviceGray) return;
+        }
+    }
+
+    /**
+     * Decompress and scan a single stream ref for Device color operators.
+     *
+     * @param {PDFRef} ref
+     * @param {PDFDocument} doc
+     * @param {{ hasDeviceCMYK: boolean, hasDeviceRGB: boolean, hasDeviceGray: boolean }} result
+     */
+    #scanStreamRef(ref, doc, result) {
+        const stream = doc.context.lookup(ref);
+        if (!(stream instanceof PDFRawStream)) return;
+
+        try {
+            let bytes = stream.getContents();
+            const filter = stream.dict.get(PDFName.of('Filter'));
+            if (filter instanceof PDFName && filter.encodedName === '/FlateDecode') {
+                bytes = inflate(bytes);
+            }
+            let text = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                text += String.fromCharCode(bytes[i]);
+            }
+            this.#scanTextForDeviceOperators(text, result);
+        } catch {
+            // Stream decode failure — skip silently
+        }
+    }
+
+    /**
+     * Scan a content stream text for Device color operators.
+     *
+     * Detects both implicit operators (g/G, rg/RG, k/K) and explicit
+     * Device color space selection via cs/CS operator.
+     *
+     * @param {string} text - Decoded content stream text
+     * @param {{ hasDeviceCMYK: boolean, hasDeviceRGB: boolean, hasDeviceGray: boolean }} result
+     */
+    #scanTextForDeviceOperators(text, result) {
+        // Implicit operators: k/K, rg/RG, g/G
+        if (!result.hasDeviceCMYK && /(?:^|[\s\n])[-.\d]+\s+[-.\d]+\s+[-.\d]+\s+[-.\d]+\s+[kK]\b/.test(text)) {
+            result.hasDeviceCMYK = true;
+        }
+        if (!result.hasDeviceRGB && /(?:^|[\s\n])[-.\d]+\s+[-.\d]+\s+[-.\d]+\s+(?:rg|RG)\b/.test(text)) {
+            result.hasDeviceRGB = true;
+        }
+        if (!result.hasDeviceGray && /(?:^|[\s\n])[-.\d]+\s+[gG]\b/.test(text)) {
+            result.hasDeviceGray = true;
+        }
+
+        // Explicit cs/CS operator with Device color space name
+        if (!result.hasDeviceCMYK && /\/DeviceCMYK\s+(?:cs|CS)\b/.test(text)) {
+            result.hasDeviceCMYK = true;
+        }
+        if (!result.hasDeviceRGB && /\/DeviceRGB\s+(?:cs|CS)\b/.test(text)) {
+            result.hasDeviceRGB = true;
+        }
+        if (!result.hasDeviceGray && /\/DeviceGray\s+(?:cs|CS)\b/.test(text)) {
+            result.hasDeviceGray = true;
+        }
     }
 }

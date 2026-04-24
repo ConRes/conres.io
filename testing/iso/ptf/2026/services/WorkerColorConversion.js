@@ -205,7 +205,7 @@ async function getImageColorSpaceInfo(dict, context) {
                             return null;
                         } else if (n === 3) {
                             return {
-                                type: 'ICCBased-RGB',
+                                type: 'ICCBasedRGB',
                                 components: 3,
                                 inputFormat: bpc === 16 ? TYPE_RGB_16 : TYPE_RGB_8,
                                 sourceProfile: profileData,
@@ -213,7 +213,7 @@ async function getImageColorSpaceInfo(dict, context) {
                             };
                         } else if (n === 4) {
                             // CMYK - skip conversion
-                            return { type: 'ICCBased-CMYK', components: 4, inputFormat: TYPE_CMYK_8 };
+                            return { type: 'ICCBasedCMYK', components: 4, inputFormat: TYPE_CMYK_8 };
                         }
                     }
                 }

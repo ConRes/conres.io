@@ -1,15 +1,11 @@
-# Simple workflow for deploying static content to GitHub Pages
+# Deploy static content to GitHub Pages with LFS manifest for Cloudflare Worker
 name: Deploy static content to Pages
 
 on:
-  # Runs on pushes targeting the default branch
   push:
     branches: ["master"]
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
   pages: write
@@ -29,42 +25,256 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # Ensure we fetch the full history/lfs pointers if needed
           lfs: false
+          fetch-depth: 0
 
-      # NEW STEP: Resolve symbolic links before uploading
-      # This replaces the symlink with the actual file (or LFS pointer) it points to.
-      - name: Dereference Symbolic Links with Safety Guards
-        timeout-minutes: 5 
+      - name: Generate LFS asset manifest
+        run: |
+          python3 << 'MANIFEST_SCRIPT'
+          import json, os, subprocess, re
+          from pathlib import Path
+
+          EXTENSIONS = {'.pdf', '.icc', '.icm', '.tif', '.tiff'}
+
+          manifest = {
+              "committish": os.environ.get("GITHUB_SHA", ""),
+              "assets": {}
+          }
+
+          # 1. Capture symlinks from git tree (before rsync flattens them)
+          symlink_targets = {}
+          result = subprocess.run(
+              ["git", "ls-tree", "-r", "HEAD"],
+              capture_output=True, text=True
+          )
+          for line in result.stdout.splitlines():
+              meta, path = line.split("\t", 1)
+              mode = meta.split()[0]
+              if mode == "120000":
+                  target = subprocess.run(
+                      ["git", "cat-file", "-p", f"HEAD:{path}"],
+                      capture_output=True, text=True
+                  ).stdout.strip()
+                  symlink_targets[path] = target
+
+          # 2. Get LFS tracked files with OIDs and sizes
+          lfs_map = {}
+          result = subprocess.run(
+              ["git", "lfs", "ls-files", "--long"],
+              capture_output=True, text=True
+          )
+          for line in result.stdout.splitlines():
+              parts = line.split(None, 2)
+              if len(parts) >= 3:
+                  oid = parts[0]
+                  path = parts[2]
+                  lfs_map[path] = oid
+
+          # Get sizes from LFS pointer files
+          lfs_sizes = {}
+          for path in lfs_map:
+              try:
+                  with open(path) as f:
+                      for pline in f:
+                          if pline.startswith("size "):
+                              lfs_sizes[path] = int(pline.split()[1])
+                              break
+              except Exception:
+                  pass
+
+          # 3. Get last-modified from git log per file
+          def get_last_modified(filepath):
+              result = subprocess.run(
+                  ["git", "log", "-1", "--format=%aI", "--", filepath],
+                  capture_output=True, text=True
+              )
+              return result.stdout.strip() or None
+
+          # 4. Resolve ALL symlink segments in a path (chained symlinks)
+          def resolve_canonical(filepath):
+              resolved = filepath
+              changed = True
+              depth = 0
+              while changed and depth < 10:
+                  changed = False
+                  depth += 1
+                  parts = Path(resolved).parts
+                  for sym_path, sym_target in symlink_targets.items():
+                      sym_parts = Path(sym_path).parts
+                      if parts[:len(sym_parts)] == sym_parts:
+                          parent = str(Path(sym_path).parent)
+                          resolved_base = str(Path(parent, sym_target))
+                          resolved_base = str(Path(resolved_base).resolve().relative_to(Path(".").resolve()))
+                          remaining = os.path.join(*parts[len(sym_parts):]) if len(parts) > len(sym_parts) else ""
+                          resolved = os.path.join(resolved_base, remaining) if remaining else resolved_base
+                          changed = True
+                          break
+              return resolved
+
+          # 5. Walk all matching files
+          for root, dirs, files in os.walk(".", followlinks=True):
+              # Skip hidden directories
+              dirs[:] = [d for d in dirs if not d.startswith(".")]
+              for fname in files:
+                  ext = os.path.splitext(fname)[1].lower()
+                  if ext not in EXTENSIONS:
+                      continue
+                  filepath = os.path.join(root, fname)[2:]  # strip ./
+                  canonical = resolve_canonical(filepath)
+                  asset_key = filepath.lower()
+                  canonical_key = canonical.lower()
+
+                  # Symlink entry — only has canonicalPathname
+                  if canonical != filepath:
+                      manifest["assets"][asset_key] = {
+                          "pathname": filepath,
+                          "canonicalPathname": canonical_key
+                      }
+
+                  # Canonical entry — has full metadata
+                  if canonical_key not in manifest["assets"] or "committish" not in manifest["assets"].get(canonical_key, {}):
+                      entry = {
+                          "pathname": canonical,
+                          "committish": os.environ.get("GITHUB_SHA", "")[:12],
+                          "lastModified": get_last_modified(canonical),
+                      }
+                      oid = lfs_map.get(canonical)
+                      if oid:
+                          entry["oid"] = oid
+                          entry["size"] = lfs_sizes.get(canonical)
+                      else:
+                          try:
+                              entry["size"] = os.path.getsize(canonical)
+                          except Exception:
+                              pass
+                      manifest["assets"][canonical_key] = entry
+
+          with open("assets.json", "w") as f:
+              json.dump(manifest, f, separators=(",", ":"))
+
+          lfs_count = sum(1 for e in manifest["assets"].values() if "oid" in e)
+          sym_count = sum(1 for e in manifest["assets"].values() if "canonicalPathname" in e)
+          print(f"Manifest: {len(manifest['assets'])} entries ({lfs_count} LFS, {sym_count} symlinks)")
+          MANIFEST_SCRIPT
+
+      - name: Dereference symbolic links
+        timeout-minutes: 5
         run: |
           MAX_SIZE=512000
           echo "Starting dereference..."
-          
-          # 1. Create flattened copy, EXCLUDING system/config folders
+
           mkdir ../flattened_site
           rsync -aL . ../flattened_site/ \
             --exclude '.git' \
             --exclude '.github' \
             --exclude '.vscode' \
             --exclude '.yarn'
-          
-          # 2. Check the size
+
           NEW_SIZE=$(du -sk ../flattened_site | cut -f1)
           echo "New site size: ${NEW_SIZE}KB"
-          
+
           if [ "$NEW_SIZE" -gt "$MAX_SIZE" ]; then
             echo "ERROR: Site too large!"
             exit 1
           fi
-          
-          # 3. Clean the workspace of everything EXCEPT the system folders 
-          # so we don't try to move them back on top of themselves.
+
           find . -maxdepth 1 ! -name '.git' ! -name '.github' ! -name '.' -exec rm -rf {} +
-          
-          # 4. Move the flattened files back
+
           shopt -s dotglob
           mv ../flattened_site/* .
           echo "Symlinks resolved successfully."
+
+      - name: Update Cloudflare worker routes
+        if: env.CF_API_TOKEN != ''
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_WORKER_NAME: conres-io-lfs
+          CF_ZONE_NAME: conres.io
+        run: |
+          python3 << 'ROUTES_SCRIPT'
+          import json, os, urllib.request, urllib.error
+
+          TOKEN = os.environ["CF_API_TOKEN"]
+          WORKER = os.environ["CF_WORKER_NAME"]
+          ZONE_NAME = os.environ["CF_ZONE_NAME"]
+          HEADERS = {
+              "Authorization": f"Bearer {TOKEN}",
+              "Content-Type": "application/json"
+          }
+
+          # Derive zone ID from API
+          req = urllib.request.Request(
+              f"https://api.cloudflare.com/client/v4/zones?name={ZONE_NAME}",
+              headers=HEADERS
+          )
+          zones = json.loads(urllib.request.urlopen(req).read())
+          ZONE = zones["result"][0]["id"]
+          print(f"Zone: {ZONE_NAME} ({ZONE})")
+
+          BASE = f"https://api.cloudflare.com/client/v4/zones/{ZONE}/workers/routes"
+
+          with open("assets.json") as f:
+              manifest = json.load(f)
+
+          # Compute minimal route prefixes from LFS entries
+          prefixes = set()
+          for key, entry in manifest["assets"].items():
+              if "oid" in entry:
+                  parts = entry["pathname"].split("/")
+                  # Use directory containing the file as the route prefix
+                  directory = "/".join(parts[:-1])
+                  prefixes.add(f"www.conres.io/{directory}/*")
+              elif "canonicalPathname" in entry:
+                  # Symlink paths also need routes
+                  parts = entry["pathname"].split("/")
+                  directory = "/".join(parts[:-1])
+                  prefixes.add(f"www.conres.io/{directory}/*")
+
+          # Deduplicate — if a parent prefix covers children, keep the parent
+          desired = sorted(prefixes)
+          print(f"Desired routes ({len(desired)}):")
+          for r in desired:
+              print(f"  {r}")
+
+          # List existing routes for this worker
+          req = urllib.request.Request(BASE, headers=HEADERS)
+          resp = json.loads(urllib.request.urlopen(req).read())
+          existing = {}
+          for r in resp.get("result", []):
+              if r.get("script") == WORKER:
+                  existing[r["pattern"]] = r["id"]
+
+          print(f"\nExisting routes ({len(existing)}):")
+          for p in existing:
+              print(f"  {p}")
+
+          # Delete routes no longer needed
+          for pattern, route_id in existing.items():
+              if pattern not in desired:
+                  print(f"\nDeleting: {pattern}")
+                  req = urllib.request.Request(
+                      f"{BASE}/{route_id}", method="DELETE", headers=HEADERS
+                  )
+                  try:
+                      urllib.request.urlopen(req)
+                  except urllib.error.HTTPError as e:
+                      print(f"  Error: {e.code} {e.read().decode()}")
+
+          # Create missing routes
+          for pattern in desired:
+              if pattern not in existing:
+                  print(f"\nCreating: {pattern}")
+                  data = json.dumps({"pattern": pattern, "script": WORKER}).encode()
+                  req = urllib.request.Request(
+                      BASE, data=data, headers=HEADERS, method="POST"
+                  )
+                  try:
+                      urllib.request.urlopen(req)
+                  except urllib.error.HTTPError as e:
+                      print(f"  Error: {e.code} {e.read().decode()}")
+
+          print(f"\nRoutes updated.")
+          ROUTES_SCRIPT
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -72,9 +282,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload the modified workspace
           path: '.'
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4 # Note: v4 is currently the stable standard
+        uses: actions/deploy-pages@v4

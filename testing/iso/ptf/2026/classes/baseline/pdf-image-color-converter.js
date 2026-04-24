@@ -10,6 +10,7 @@
  */
 
 import { ImageColorConverter, PIXEL_FORMATS, RENDERING_INTENTS, INTENT_MAP } from './image-color-converter.js';
+import { TraditionalPostScriptColorConverter } from './traditional-postscript-color-converter.js';
 import { CONTEXT_PREFIX } from '../../services/helpers/runtime.js';
 
 // Coerce Lab absolute-zero pixels (L=0, a=-128, b=-128) to Lab 0/0/0 before transform.
@@ -46,6 +47,12 @@ const COERCE_LAB_ABSOLUTE_ZERO_PIXELS = true;
  * - `inputEndianness`: Explicit endianness for input (overrides endianness)
  * - `outputEndianness`: Explicit endianness for output (overrides endianness)
  *
+ * @typedef {'DeviceRGB' | 'DeviceCMYK' | 'DeviceGray'
+ *          | 'ICCBasedRGB' | 'ICCBasedCMYK' | 'ICCBasedGray'
+ *          | 'Lab' | 'Indexed'} PDFColorSpaceType
+ */
+
+/**
  * @typedef {{
  *   streamRef: any,
  *   streamData: Uint8Array,
@@ -53,6 +60,7 @@ const COERCE_LAB_ABSOLUTE_ZERO_PIXELS = true;
  *   width: number,
  *   height: number,
  *   colorSpace: import('./color-converter.js').ColorType,
+ *   pdfColorSpaceType?: PDFColorSpaceType,
  *   bitsPerComponent: import('./color-conversion-policy.js').BitDepth | 1 | 2 | 4,
  *   inputBitsPerComponent?: import('./color-conversion-policy.js').BitDepth,
  *   outputBitsPerComponent?: import('./color-conversion-policy.js').BitDepth,
@@ -127,6 +135,14 @@ export class PDFImageColorConverter extends ImageColorConverter {
 
     /** @type {Promise<void>} */
     #compressionReady;
+
+    /**
+     * Lazily-constructed TraditionalPostScriptColorConverter, used when
+     * a Device source color space has no resolved ICC profile.
+     *
+     * @type {TraditionalPostScriptColorConverter | null}
+     */
+    #tps = null;
 
     // ========================================
     // Constructor
@@ -213,6 +229,20 @@ export class PDFImageColorConverter extends ImageColorConverter {
         const config = this.configuration;
         const { streamRef, streamData, isCompressed, width, height, colorSpace, bitsPerComponent } = input;
         const pixelCount = width * height;
+
+        // ====================================================================
+        // Device color space with no resolved source profile → PostScript math.
+        //
+        // MVP scope: 8-bit and 16-bit input; 8-bit or 16-bit output per config.
+        // Full resolver (Task C) with preferOutputIntent / preferEmbeded /
+        // preferGracefullFallback is not yet in this path — for now any Device*
+        // source that arrives without a sourceProfile goes to TPS.
+        // ====================================================================
+        const isDeviceSource = typeof input.pdfColorSpaceType === 'string'
+            && input.pdfColorSpaceType.startsWith('Device');
+        if (isDeviceSource && !input.sourceProfile) {
+            return this.#convertViaPostScriptMath(input, context);
+        }
 
         // Log if verbose
         if (config.verbose) {
@@ -506,6 +536,179 @@ export class PDFImageColorConverter extends ImageColorConverter {
     // ========================================
 
     /**
+     * Convert a Device-source image via traditional PostScript math.
+     *
+     * Used when `pdfColorSpaceType` is `Device*` and the input carries no
+     * resolved source ICC profile. Mirrors the decompress/transform/compress
+     * shape of the ICC path but routes the transform through
+     * `TraditionalPostScriptColorConverter` instead of the ICC super-class.
+     *
+     * Supports 8-bit and 16-bit (big-endian per ISO 32000) input.
+     * Output bit depth follows `configuration.outputBitsPerComponent` when
+     * set, otherwise matches input bit depth. Output is written big-endian
+     * for PDF conformance.
+     *
+     * @param {PDFImageColorConverterInput} input
+     * @param {import('./color-converter.js').ColorConverterContext} context
+     * @returns {Promise<PDFImageColorConverterResult>}
+     */
+    async #convertViaPostScriptMath(input, context) {
+        const config = this.configuration;
+        const { streamRef, streamData, isCompressed, width, height, colorSpace, bitsPerComponent } = input;
+        const pixelCount = width * height;
+
+        if (bitsPerComponent !== 8 && bitsPerComponent !== 16) {
+            throw new Error(
+                `PDFImageColorConverter: Device-without-profile path supports 8-bit or 16-bit input; ` +
+                `got ${bitsPerComponent}-bit for image ${streamRef}`,
+            );
+        }
+
+        const effectiveOutputBits = /** @type {8 | 16} */ (
+            config.outputBitsPerComponent ?? bitsPerComponent
+        );
+        if (effectiveOutputBits !== 8 && effectiveOutputBits !== 16) {
+            throw new Error(
+                `PDFImageColorConverter: Device-without-profile path supports 8-bit or 16-bit output; ` +
+                `got ${effectiveOutputBits}-bit for image ${streamRef}`,
+            );
+        }
+
+        if (config.verbose) {
+            console.log(
+                `${CONTEXT_PREFIX} [PDFImageColorConverter] Device-without-profile → PS math for ${streamRef} ` +
+                `(${width}×${height}, ${colorSpace}, ${bitsPerComponent}-bit → ${effectiveOutputBits}-bit)`,
+            );
+        }
+
+        const parentSpan = context?.parentSpan;
+
+        // Decompress if needed — reuses the ICC-path helper.
+        let pixelData = streamData;
+        if (isCompressed) {
+            const decodeSpan = this.diagnostics.startNestedSpan(parentSpan, 'decode', {
+                ref: String(streamRef),
+                compressedSize: streamData.length,
+            });
+            try {
+                pixelData = await this.#decompress(streamData);
+                this.diagnostics.updateSpan(decodeSpan, { decompressedSize: pixelData.length });
+            } finally {
+                this.diagnostics.endSpan(decodeSpan);
+            }
+        }
+
+        // Unpack raw bytes → Float32Array [0..1].
+        // PDF 16-bit images are big-endian per ISO 32000 — read via DataView.
+        let floats;
+        if (bitsPerComponent === 8) {
+            floats = new Float32Array(pixelData.length);
+            for (let i = 0; i < pixelData.length; i++) {
+                floats[i] = pixelData[i] / 255;
+            }
+        } else {
+            // 16-bit, big-endian
+            const samples = pixelData.byteLength >>> 1;
+            floats = new Float32Array(samples);
+            const view = new DataView(pixelData.buffer, pixelData.byteOffset, pixelData.byteLength);
+            for (let i = 0; i < samples; i++) {
+                floats[i] = view.getUint16(i * 2, /* littleEndian */ false) / 65535;
+            }
+        }
+
+        // Compose TPS lazily with the shared colorEngineProvider so its base-class
+        // initialiser resolves immediately (TPS doesn't use the engine itself).
+        if (!this.#tps) {
+            this.#tps = new TraditionalPostScriptColorConverter(
+                {
+                    renderingIntent: config.renderingIntent,
+                    blackPointCompensation: config.blackPointCompensation,
+                    useAdaptiveBPCClamping: config.useAdaptiveBPCClamping,
+                    destinationColorSpace: config.destinationColorSpace,
+                    verbose: config.verbose,
+                },
+                { colorEngineProvider: this.colorEngineProvider ?? undefined },
+            );
+        }
+
+        const transformSpan = this.diagnostics.startNestedSpan(parentSpan, 'transform-ps-math', {
+            ref: String(streamRef),
+            colorSpace,
+            width,
+            height,
+            bitsPerComponent,
+        });
+        /** @type {import('./traditional-postscript-color-converter.js').TraditionalPostScriptColorConverterResult} */
+        let tpsResult;
+        try {
+            tpsResult = await this.#tps.convertColor({
+                pixelBuffer: floats,
+                width,
+                height,
+                colorSpace: /** @type {import('./traditional-postscript-color-converter.js').DeviceColorType} */ (colorSpace),
+            });
+            this.diagnostics.updateSpan(transformSpan, {
+                pixels: pixelCount,
+                inputSize: floats.length,
+                outputSize: tpsResult.pixelBuffer.length,
+            });
+        } finally {
+            this.diagnostics.endSpan(transformSpan);
+        }
+
+        // Pack Float32 → output bytes at `effectiveOutputBits`, big-endian per ISO 32000.
+        /** @type {Uint8Array} */
+        let outputData;
+        if (effectiveOutputBits === 8) {
+            outputData = new Uint8Array(tpsResult.pixelBuffer.length);
+            for (let i = 0; i < tpsResult.pixelBuffer.length; i++) {
+                let v = tpsResult.pixelBuffer[i];
+                if (v < 0) v = 0;
+                else if (v > 1) v = 1;
+                outputData[i] = Math.round(v * 255);
+            }
+        } else {
+            outputData = new Uint8Array(tpsResult.pixelBuffer.length * 2);
+            for (let i = 0; i < tpsResult.pixelBuffer.length; i++) {
+                let v = tpsResult.pixelBuffer[i];
+                if (v < 0) v = 0;
+                else if (v > 1) v = 1;
+                const u = Math.round(v * 65535);
+                outputData[i * 2] = (u >> 8) & 0xFF;       // high byte first (big-endian)
+                outputData[i * 2 + 1] = u & 0xFF;
+            }
+        }
+
+        // Compress output if configured — same path as the ICC branch.
+        let outputBuffer = outputData;
+        let outputCompressed = false;
+        if (config.compressOutput && this.#compression) {
+            const encodeSpan = this.diagnostics.startNestedSpan(parentSpan, 'encode', {
+                ref: String(streamRef),
+                uncompressedSize: outputData.length,
+            });
+            try {
+                outputBuffer = await this.#compress(outputData);
+                outputCompressed = true;
+                this.diagnostics.updateSpan(encodeSpan, { compressedSize: outputBuffer.length });
+            } finally {
+                this.diagnostics.endSpan(encodeSpan);
+            }
+        }
+
+        return {
+            streamRef,
+            streamData: outputBuffer,
+            isCompressed: outputCompressed,
+            width,
+            height,
+            colorSpace: /** @type {import('./color-converter.js').ColorType} */ (config.destinationColorSpace),
+            bitsPerComponent: effectiveOutputBits,
+            pixelCount,
+        };
+    }
+
+    /**
      * Decompresses FlateDecode data.
      * @param {Uint8Array} data
      * @returns {Promise<Uint8Array>}
@@ -722,6 +925,7 @@ export class PDFImageColorConverter extends ImageColorConverter {
             width: input.width,
             height: input.height,
             colorSpace: input.colorSpace,
+            pdfColorSpaceType: input.pdfColorSpaceType,
             bitsPerComponent: input.bitsPerComponent,
             inputBitsPerComponent: input.inputBitsPerComponent,
             outputBitsPerComponent: input.outputBitsPerComponent ?? this.configuration.outputBitsPerComponent,

@@ -3,8 +3,8 @@
         "Gray": {
             "description": "Gray output profile",
             "profileColorSpace": "Gray",
-            "includedColorSpaceTypes": ["Gray", "Lab"],
-            "excludedColorSpaceTypes": ["DeviceN"],
+            "includedLayoutColorSpaceTypes": ["Gray", "Lab"],
+            "excludedLayoutColorSpaceTypes": ["DeviceN"],
             "renderingIntentPasses": [
                 {
                     "renderingIntent": "relative-colorimetric",
@@ -17,8 +17,8 @@
         "RGB": {
             "description": "RGB output profile",
             "profileColorSpace": "RGB",
-            "includedColorSpaceTypes": ["RGB", "Gray", "Lab"],
-            "excludedColorSpaceTypes": ["DeviceN"],
+            "includedLayoutColorSpaceTypes": ["RGB", "Gray", "Lab"],
+            "excludedLayoutColorSpaceTypes": ["DeviceN"],
             "renderingIntentPasses": [
                 {
                     "renderingIntent": "relative-colorimetric",
@@ -31,8 +31,8 @@
         "CMYK-MaxGCR": {
             "description": "CMYK output profile with Maximum GCR",
             "profileColorSpace": "CMYK",
-            "includedColorSpaceTypes": ["RGB", "Gray", "Lab", "DeviceN"],
-            "excludedColorSpaceTypes": [],
+            "includedLayoutColorSpaceTypes": ["RGB", "Gray", "Lab", "DeviceN"],
+            "excludedLayoutColorSpaceTypes": [],
             "renderingIntentPasses": [
                 {
                     "renderingIntent": "relative-colorimetric",
@@ -45,8 +45,8 @@
         "CMYK": {
             "description": "CMYK output profile (non-Max GCR)",
             "profileColorSpace": "CMYK",
-            "includedColorSpaceTypes": ["RGB", "Gray", "Lab", "DeviceN"],
-            "excludedColorSpaceTypes": [],
+            "includedLayoutColorSpaceTypes": ["RGB", "Gray", "Lab", "DeviceN"],
+            "excludedLayoutColorSpaceTypes": [],
             "renderingIntentPasses": [
                 {
                     "renderingIntent": "relative-colorimetric",
@@ -106,11 +106,6 @@
             "label": "Relative Colorimetric"
         },
         {
-            "renderingIntent": "relative-colorimetric",
-            "blackPointCompensation": true,
-            "label": "Relative Colorimetric with Blackpoint Compensation"
-        },
-        {
             "renderingIntent": "absolute-colorimetric",
             "blackPointCompensation": false,
             "label": "Absolute Colorimetric"
@@ -121,9 +116,15 @@
             "label": "Saturation"
         },
         {
+            "renderingIntent": "relative-colorimetric",
+            "blackPointCompensation": true,
+            "label": "Relative Colorimetric with Blackpoint Compensation"
+        },
+        {
             "renderingIntent": "preserve-k-only-relative-colorimetric-gcr",
             "blackPointCompensation": true,
-            "label": "K-Only GCR with Blackpoint Compensation"
+            "label": "K-Only GCR with Blackpoint Compensation",
+            "supportedProfileCategories": ["CMYK"]
         }
     ]
 }
