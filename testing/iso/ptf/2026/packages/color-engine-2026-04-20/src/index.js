@@ -154,7 +154,7 @@ export class ColorEngine {
    */
   #pushParametersToWASM() {
     this.#ensureReady();
-    this.#module.setEngineParameters();
+    this.#module.setEngineParameters?.();
   }
 
   /**

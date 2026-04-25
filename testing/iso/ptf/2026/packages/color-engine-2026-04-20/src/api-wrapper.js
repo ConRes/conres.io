@@ -212,7 +212,8 @@ Module['createGray2Profile'] = function () {
 // Engine parameters — JS `engine.setParameters(…)` validates then forwards here.
 // The bag is empty in the 2026-04-20 drop-in; the binding shape exists as
 // the extension point for future parameters.
-Module['setEngineParameters']   = Module.cwrap('setEngineParameters',   null, []);
-Module['resetEngineParameters'] = Module.cwrap('resetEngineParameters', null, []);
+// Firefox earlier than 123 doesn't support cwrap with no args, so we provide a dummy signature to avoid errors. The implementation will ignore the arguments anyway.
+// if (typeof Module._setEngineParameters === 'function') Module['setEngineParameters'] = Module.cwrap('setEngineParameters', null, []);
+// if (typeof Module._resetEngineParameters === 'function') Module['resetEngineParameters'] = Module.cwrap('resetEngineParameters', null, []);
 
 console.log('Little-CMS API wrapper initialized');

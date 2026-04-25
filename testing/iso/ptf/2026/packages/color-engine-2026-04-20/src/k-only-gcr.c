@@ -41,17 +41,15 @@
  * WASM-exported API contract.
  */
 
-EMSCRIPTEN_KEEPALIVE
-void setEngineParameters(void)
-{
-    /* no parameters */
-}
+// EMSCRIPTEN_KEEPALIVE
+// void setEngineParameters(void)
+// {
+// }
 
-EMSCRIPTEN_KEEPALIVE
-void resetEngineParameters(void)
-{
-    /* no parameters */
-}
+// EMSCRIPTEN_KEEPALIVE
+// void resetEngineParameters(void)
+// {
+// }
 
 // Structure for shadow curve points
 typedef struct {
