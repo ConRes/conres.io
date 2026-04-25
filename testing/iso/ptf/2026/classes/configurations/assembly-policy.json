@@ -106,11 +106,6 @@
             "label": "Relative Colorimetric"
         },
         {
-            "renderingIntent": "relative-colorimetric",
-            "blackPointCompensation": true,
-            "label": "Relative Colorimetric with Blackpoint Compensation"
-        },
-        {
             "renderingIntent": "absolute-colorimetric",
             "blackPointCompensation": false,
             "label": "Absolute Colorimetric"
@@ -121,9 +116,15 @@
             "label": "Saturation"
         },
         {
+            "renderingIntent": "relative-colorimetric",
+            "blackPointCompensation": true,
+            "label": "Relative Colorimetric with Blackpoint Compensation"
+        },
+        {
             "renderingIntent": "preserve-k-only-relative-colorimetric-gcr",
             "blackPointCompensation": true,
-            "label": "K-Only GCR with Blackpoint Compensation"
+            "label": "K-Only GCR with Blackpoint Compensation",
+            "supportedProfileCategories": ["CMYK"]
         }
     ]
 }

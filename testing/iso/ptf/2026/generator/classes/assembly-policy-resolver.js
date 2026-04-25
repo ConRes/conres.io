@@ -35,6 +35,7 @@ import { safeDynamicImport } from '../../helpers/imports.js';
  *   renderingIntent: RenderingIntent,
  *   blackPointCompensation: boolean,
  *   label: string,
+ *   supportedProfileCategories?: string[],
  * }} IntentPass
  */
 

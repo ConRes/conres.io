@@ -120,6 +120,9 @@ export class TestFormGeneratorAppElement extends HTMLElement {
     /** @type {string | null} Detected ICC color space from last profile analysis */
     #detectedProfileColorSpace = null;
 
+    /** @type {string | null} Detected profile category from last profile analysis */
+    #detectedProfileCategory = null;
+
     /** @type {Record<string, any> | null} */
     #details = null;
 
@@ -852,6 +855,8 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                     ` data-rendering-intent="${intent.renderingIntent}"` +
                     ` data-black-point-compensation="${intent.blackPointCompensation}"` +
                     ` data-label="${intent.label}"` +
+                    (intent.supportedProfileCategories
+                        ? ` data-supported-profile-categories="${intent.supportedProfileCategories.join(',')}"` : '') +
                     ` />${intent.label}</label>`
                 ).join('');
             }
@@ -908,16 +913,19 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                 );
                 previewCategory = analysis.profileCategory;
                 this.#detectedProfileColorSpace = header.colorSpace;
+                this.#detectedProfileCategory = previewCategory;
                 this.#updateProfileGuidance({ colorSpace: header.colorSpace, description: header.description, profileCategory: previewCategory, deviceClass: header.deviceClass });
 
                 console.log(`${CONTEXT_PREFIX} [TestFormGeneratorAppElement] Auto preview: profile category = ${previewCategory}`);
             } catch (error) {
                 console.warn(`${CONTEXT_PREFIX} [TestFormGeneratorAppElement] Failed to analyze ICC profile for auto preview:`, error);
                 this.#detectedProfileColorSpace = null;
+                this.#detectedProfileCategory = null;
                 this.#updateProfileGuidance(null);
             }
         } else {
             this.#detectedProfileColorSpace = null;
+            this.#detectedProfileCategory = null;
             this.#updateProfileGuidance(null);
         }
 
@@ -965,9 +973,19 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                 (/** @type {{ label: string }} */ p) => p.label,
             ),
         );
+        const detectedCategory = this.#detectedProfileCategory;
         for (const checkbox of intentCheckboxes) {
             const label = checkbox.dataset.label ?? checkbox.value;
             checkbox.dataset.autoChecked = autoIntentLabels.has(label) ? 'true' : 'false';
+
+            const supported = checkbox.dataset.supportedProfileCategories;
+            if (supported) {
+                const isSupported = detectedCategory && new Set(supported.split(',')).has(detectedCategory);
+                checkbox.disabled = !isSupported;
+                if (!isSupported) checkbox.checked = false;
+            } else {
+                checkbox.disabled = false;
+            }
         }
 
         // Apply auto state to all sections currently in auto mode
@@ -994,6 +1012,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             this.querySelectorAll(`${containerSelector} input[type="checkbox"]`)
         );
         for (const checkbox of checkboxes) {
+            if (checkbox.disabled) continue;
             checkbox.checked = checkbox.dataset.autoChecked === 'true';
         }
     }
@@ -1180,7 +1199,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
 
             if (isIntentCustom) {
                 const intentCheckboxes = /** @type {NodeListOf<HTMLInputElement>} */ (
-                    this.querySelectorAll('#rendering-intent-checkboxes input[type="checkbox"]:checked')
+                    this.querySelectorAll('#rendering-intent-checkboxes input[type="checkbox"]:checked:not(:disabled)')
                 );
 
                 assemblyOverrides.renderingIntentOverrides = [...intentCheckboxes].map(cb => {
