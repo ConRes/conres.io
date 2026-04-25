@@ -3,6 +3,6 @@ exports[`Color Conversion Matrix > Level 0: full document conversion 1`] = `
   "pageCount": 3,
   "totalStreamsConverted": 3,
   "totalImagesConverted": 2,
-  "errorCount": 1
+  "errorCount": 0
 }
 `;

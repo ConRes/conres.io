@@ -1,7 +1,7 @@
 {
   "metadata": {
     "fixture": "color-conversion-matrix.pdf",
-    "generated": "2026-04-08T15:20:24.486Z",
+    "generated": "2026-04-25T11:23:01.922Z",
     "destinationProfile": "eciCMYK v2",
     "renderingIntent": "relative-colorimetric",
     "blackPointCompensation": true
@@ -12,13 +12,13 @@
       "streams": [
         {
           "ref": "11 0 R",
-          "hash": "31ef9125d3008825",
+          "hash": "4970026e424280e2",
           "operatorCounts": {
             "cs/CS": 6,
             "sc/SC/scn/SCN": 0,
-            "g/G": 2,
-            "rg/RG": 3,
-            "k/K": 8
+            "g/G": 1,
+            "rg/RG": 1,
+            "k/K": 11
           },
           "sampleValues": [
             [
@@ -37,12 +37,30 @@
               0,
               0,
               0,
+              0.5
+            ],
+            [
+              0,
+              1,
+              1,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
               1
             ],
             [
               0.6925,
               0.313115,
               0,
+              0
+            ],
+            [
+              1,
+              0,
+              1,
               0
             ],
             [
@@ -61,12 +79,6 @@
               0.5673,
               0.46273,
               0.460334,
-              0
-            ],
-            [
-              0.305638,
-              0.668376,
-              0.83859,
               0
             ]
           ]
