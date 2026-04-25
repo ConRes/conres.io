@@ -325,7 +325,12 @@ export class TestFormGeneratorAppElement extends HTMLElement {
      * Updates guidance text for the output profile field.
      * @param {{ colorSpace?: string, description?: string, profileCategory?: string }} [profileInfo]
      */
+    /** @type {{ colorSpace?: string, description?: string, profileCategory?: string, deviceClass?: string } | null | undefined} */
+    #lastProfileInfo;
+
     #updateProfileGuidance(profileInfo) {
+        if (arguments.length > 0) this.#lastProfileInfo = profileInfo;
+        else profileInfo = this.#lastProfileInfo;
         const guidance = /** @type {HTMLElement | null} */ (this.querySelector('#output-profile-guidance'));
         if (!guidance || !this.#details) return;
 
@@ -522,7 +527,8 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         // Update auto state and profile guidance when ICC profile changes
         const iccProfileInput = this.querySelector('#icc-profile-input');
         if (iccProfileInput) {
-            iccProfileInput.addEventListener('change', () => {
+            iccProfileInput.addEventListener('change', async () => {
+                await this.#ensureFiltersPopulated();
                 this.#updateAutoState();
             });
         }
@@ -908,11 +914,11 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             } catch (error) {
                 console.warn(`${CONTEXT_PREFIX} [TestFormGeneratorAppElement] Failed to analyze ICC profile for auto preview:`, error);
                 this.#detectedProfileColorSpace = null;
-                this.#updateProfileGuidance();
+                this.#updateProfileGuidance(null);
             }
         } else {
             this.#detectedProfileColorSpace = null;
-            this.#updateProfileGuidance();
+            this.#updateProfileGuidance(null);
         }
 
         const categoryDefinition = policyData.profileCategories[previewCategory];

@@ -133,6 +133,11 @@
             /* Reserved — currently unused. Warn text color is sufficient. */
         }
 
+        hgroup {
+            text-align: center;
+            margin: 3em auto 2em auto;
+        }
+
         hgroup>p {
             /* font-size: 1.25em; */
             font-weight: bold;
@@ -145,12 +150,7 @@
             padding: 0;
         }
 
-        hgroup:has(h1) {
-            text-align: center;
-            margin: 3em auto 2em auto;
-        }
-
-        hgroup:has(h1)+p {
+        hgroup+p {
             max-width: 35em;
             place-self: center;
             text-align: center;
@@ -486,9 +486,10 @@
                             <label class="full-row" for="legacy-content-stream-parsing-checkbox"><input type="checkbox"
                                     id="legacy-content-stream-parsing-checkbox"
                                     name="legacy-content-stream-parsing" />Legacy Content Stream Parsing</label>
-                            <label class="full-row" for="experimental-content-stream-conversion-checkbox"><input type="checkbox"
-                                    id="experimental-content-stream-conversion-checkbox"
-                                    name="experimental-content-stream-conversion" checked />Experimental Content Stream Conversion</label>
+                            <label class="full-row" for="experimental-content-stream-conversion-checkbox"><input
+                                    type="checkbox" id="experimental-content-stream-conversion-checkbox"
+                                    name="experimental-content-stream-conversion" checked />Experimental Content Stream
+                                Conversion</label>
                         </small>
                     </fieldset>
                 </details>
