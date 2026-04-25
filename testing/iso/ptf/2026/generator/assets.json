@@ -15,17 +15,17 @@
             }
         },
         {
-            "name": "2026-04-16 - ConRes - ISO PTF - CR1 (F10a) Assets - Maps (Decalibrated)",
+            "name": "2026-04-16 - ConRes - ISO PTF - CR1 (F10a) Assets - Maps (Partially Decalibrated)",
             "resources": {
-                "assets" : "../../assets/2026-04-16 - ConRes - ISO PTF - CR1 (F10a) Assets - Maps (Decalibrated).pdf",
-                "manifest": "../../assets/2026-04-16 - ConRes - ISO PTF - CR1 (F10a) Assets - Maps (Decalibrated)/manifest.json"
+                "assets" : "../../assets/2026-04-16 - ConRes - ISO PTF - CR1 (F10a) Assets - Maps (Partially Decalibrated).pdf",
+                "manifest": "../../assets/2026-04-16 - ConRes - ISO PTF - CR1 (F10a) Assets - Maps (Partially Decalibrated)/manifest.json"
             }
         },
         {
-            "name": "2026-04-16 - ConRes - ISO PTF - CR1 (F10a) Assets - Maps (Decalibrated) V2",
+            "name": "2026-04-16 - ConRes - ISO PTF - CR1 (F10a) Assets - Maps (Fully Decalibrated)",
             "resources": {
-                "assets" : "../../assets/2026-04-16 - ConRes - ISO PTF - CR1 (F10a) Assets - Maps (Decalibrated) V2.pdf",
-                "manifest": "../../assets/2026-04-16 - ConRes - ISO PTF - CR1 (F10a) Assets - Maps (Decalibrated) V2/manifest.json"
+                "assets" : "../../assets/2026-04-16 - ConRes - ISO PTF - CR1 (F10a) Assets - Maps (Fully Decalibrated).pdf",
+                "manifest": "../../assets/2026-04-16 - ConRes - ISO PTF - CR1 (F10a) Assets - Maps (Fully Decalibrated)/manifest.json"
             }
         },
         {
