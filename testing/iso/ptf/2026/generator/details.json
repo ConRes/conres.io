@@ -1,5 +1,8 @@
 {
-    "overview": {
+    "versions":      { 
+        "Generator": "F10a-2605-001"
+    },
+    "overview":      {
         "introduction": "Generate individualized PDF test forms for the ISO Contrast-Resolution perceptual round robin. Each page is marked with a unique QR code for traceability.",
         "requirements": [
             "A calibrated ICC profile for your specific device, colorants, substrate, and print settings.",
@@ -7,23 +10,23 @@
             "A modern web browser (Chrome, Firefox, or Safari)."
         ]
     },
-    "fields": {
+    "fields":        {
         "testFormVersion": {
-            "recommended": {
+            "recommended":         {
                 "text": "This is the current recommended version.",
                 "warn": false
             },
-            "nonRecommended": {
+            "nonRecommended":      {
                 "text": "A newer version is available: {{recommended}}. Older versions may produce results that are not comparable with other participants.",
                 "warn": true,
                 "highlight": true
             },
-            "eightBit": {
+            "eightBit":            {
                 "text": "The 8-bit variant is only used for troubleshooting on systems when generation with the 16-bit variant fails. Use the standard version unless you have a specific reason.",
                 "warn": true,
                 "highlight": true
             },
-            "maps": {
+            "maps":                {
                 "text": "The Maps variant includes only the map assets. Use the standard version for the full test form.",
                 "warn": true,
                 "highlight": true
@@ -34,12 +37,12 @@
                 "highlight": true
             }
         },
-        "outputProfile": {
-            "default": {
+        "outputProfile":   {
+            "default":    {
                 "text": "Select the ICC profile calibrated for your exact device, colorants, substrate, and print settings.",
                 "warn": true
             },
-            "cmyk": {
+            "cmyk":       {
                 "text": "CMYK profile detected: {{description}}. Two rendering passes will be generated (Relative Colorimetric and K-Only GCR).",
                 "warn": false
             },
@@ -47,11 +50,11 @@
                 "text": "CMYK Max GCR profile detected: {{description}}. Single rendering pass — this profile already maximizes black generation.",
                 "warn": false
             },
-            "rgb": {
+            "rgb":        {
                 "text": "RGB profile detected: {{description}}. The test form will be converted to this RGB color space.",
                 "warn": false
             },
-            "gray": {
+            "gray":       {
                 "text": "Gray profile detected: {{description}}. The test form will be converted to grayscale.",
                 "warn": false
             },
@@ -60,8 +63,8 @@
                 "warn": true
             }
         },
-        "outputBitDepth": {
-            "8-bit": {
+        "outputBitDepth":  {
+            "8-bit":  {
                 "text": "Standard precision — suitable for most printing systems.",
                 "warn": false
             },
@@ -69,13 +72,13 @@
                 "text": "Higher precision — use only when printing on systems with wide-gamut or high-dynamic-range. Due to browser limitations, you may need to use the separate chains ",
                 "warn": true
             },
-            "auto": {
+            "auto":   {
                 "text": "Each element retains its source bit depth. Mixed bit depths are possible across pages.",
                 "warn": true
             }
         },
-        "specifications": {
-            "withDocket": {
+        "specifications":  {
+            "withDocket":    {
                 "text": "Your email and generation timestamp are embedded in the slug QR codes. Device, colorants, substrate, and settings are stored in the docket PDF only — not in the QR codes.",
                 "warn": false
             },
@@ -84,8 +87,8 @@
                 "warn": false
             }
         },
-        "generation": {
-            "withDocket": {
+        "generation":      {
+            "withDocket":    {
                 "text": "The generator produces a docket PDF and test form PDF(s). The docket contains your ICC profile and all generation parameters. Submit the docket PDF digitally alongside your physical prints — do not print it.",
                 "warn": false
             },
@@ -95,11 +98,11 @@
             }
         }
     },
-    "docket": {
+    "docket":        {
         "explainer": "This docket contains the ICC profile and all parameters used to generate your test form. Keep this file and submit it digitally alongside your physical prints. Do not print the docket."
     },
     "documentation": {
-        "title": "Technical Documentation",
+        "title":    "Technical Documentation",
         "sections": [
             {
                 "heading": "Slug QR Codes",

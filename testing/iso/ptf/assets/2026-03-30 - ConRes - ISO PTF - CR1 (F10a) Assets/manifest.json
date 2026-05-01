@@ -404,70 +404,60 @@
         {
             "metadata": {
                 "title":      "P-40 Type Sizes",
-                "resolution": { "values": [ 1200 ], "unit": "ppi" },
                 "colorSpace": "sGray"
             }
         },
         {
             "metadata": {
                 "title":      "P-40 Type Sizes",
-                "resolution": { "values": [ 1200 ], "unit": "ppi" },
                 "colorSpace": "SepK"
             }
         },
         {
             "metadata": {
                 "title":      "P-45 Lissajou",
-                "resolution": { "values": [ 1200 ], "unit": "ppi" },
                 "colorSpace": "sGray"
             }
         },
         {
             "metadata": {
                 "title":      "P-45 Lissajou",
-                "resolution": { "values": [ 1200 ], "unit": "ppi" },
                 "colorSpace": "SepK"
             }
         },
         {
             "metadata": {
                 "title":      "P-CR21-1 ConRes TV25 vs TV75",
-                "resolution": { "values": [ 1200 ], "unit": "ppi" },
                 "colorSpace": "sRGB"
             }
         },
         {
             "metadata": {
                 "title":      "P-CR21-1 ConRes TV25 vs TV75",
-                "resolution": { "values": [ 1200 ], "unit": "ppi" },
                 "colorSpace": "sGray"
             }
         },
         {
             "metadata": {
                 "title":      "P-CR21-1 ConRes TV25 vs TV75",
-                "resolution": { "values": [ 1200 ], "unit": "ppi" },
                 "colorSpace": "Lab"
             }
         },
         {
             "metadata": {
                 "title":      "P-CR21-2 ConRes CR21 vs CR20",
-                "resolution": { "values": [ 1200 ], "unit": "ppi" },
                 "colorSpace": "sRGB"
             }
         },
         {
             "metadata": {
                 "title":      "P-CR21-2 ConRes CR21 vs CR20",
-                "resolution": { "values": [ 1200 ], "unit": "ppi" },
                 "colorSpace": "sGray"
             }
         },
         {
             "metadata": {
                 "title":      "P-CR21-2 ConRes CR21 vs CR20",
-                "resolution": { "values": [ 1200 ], "unit": "ppi" },
                 "colorSpace": "Lab"
             }
         }

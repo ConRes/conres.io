@@ -31,6 +31,7 @@ import { GhostscriptService } from '../../services/GhostscriptService.js';
 import { ManifestColorSpaceResolver } from './manifest-color-space-resolver.js';
 import { AssetPagePreConverter } from './asset-page-pre-converter.js';
 import { OutputProfileAnalyzer } from './output-profile-analyzer.js';
+import { VERSION as COLOR_ENGINE_VERSION } from '../../packages/color-engine/src/index.js';
 import { AssemblyPolicyResolver } from './assembly-policy-resolver.js';
 import { getEnvironmentDescriptor } from './environment-descriptor.js';
 
@@ -38,6 +39,8 @@ import { getEnvironmentDescriptor } from './environment-descriptor.js';
 // Constants
 // ============================================================================
 
+/** @type {import('pdf-lib').SaveOptions} */
+const SAVE_OPTIONS = { addDefaultPage: false, updateFieldAppearances: false, objectsPerTick: 20 };
 
 /**
  * Supported test form versions and their asset base names.
@@ -231,6 +234,12 @@ export class TestFormPDFDocumentGenerator {
     /** @type {import('./assembly-policy-resolver.js').AssemblyUserOverrides | undefined} */
     #assemblyOverrides;
 
+    /** @type {{ versions?: { Generator?: string } } | null} */
+    #generatorDetails = null;
+
+    /** @type {string | null} */
+    #printSetDigest = null;
+
     /** @type {string | undefined} */
     #outputProfileName;
 
@@ -294,6 +303,13 @@ export class TestFormPDFDocumentGenerator {
         // slug QR codes, and docket. All PDFs from the same generation share this
         // timestamp so they can be identified as a set without private details.
         this.#generationTimestamp = new Date().toISOString();
+        this.#printSetDigest = userMetadata?.email
+            ? await TestFormPDFDocumentGenerator.#generatePrintSetDigest(userMetadata.email, this.#generationTimestamp)
+            : null;
+
+        try {
+            this.#generatorDetails = await (await fetch(new URL('../details.json', import.meta.url).href)).json();
+        } catch { this.#generatorDetails = null; }
 
         // ----------------------------------------------------------------
         // 1. Load manifest
@@ -330,7 +346,7 @@ export class TestFormPDFDocumentGenerator {
             throw new Error(`Destination profile must be CMYK, RGB, or Gray. Got: ${iccProfileHeader.colorSpace}`);
         }
 
-        const outputColorSpace = {'GRAY': 'Gray', 'RGB': 'RGB', 'CMYK': 'CMYK'}[iccProfileHeader.colorSpace];
+        const outputColorSpace = ({ 'GRAY': 'Gray', 'RGB': 'RGB', 'CMYK': 'CMYK' })[iccProfileHeader.colorSpace];
         if (!outputColorSpace) throw new Error(`Unmapped ICC profile color space: "${iccProfileHeader.colorSpace}"`);
 
         console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] ICC profile:`, {
@@ -487,9 +503,9 @@ export class TestFormPDFDocumentGenerator {
         // ----------------------------------------------------------------
         if (this.#processingStrategy === 'separate-chains' || this.#processingStrategy === 'recombined-chains') {
             return this.#generateSeparateChains(
-                assetPDFBuffer, manifest, manifestBuffer,
+                assetPDFBuffer, manifestBuffer,
                 iccProfileBuffer, iccProfileHeader, colorSpaceResolver,
-                userMetadata, callbacks, docketPDFBuffer,
+                assemblyPlan, userMetadata, callbacks, docketPDFBuffer,
             );
         }
 
@@ -509,26 +525,7 @@ export class TestFormPDFDocumentGenerator {
         // ----------------------------------------------------------------
         const singlePass = assemblyPlan.generationPasses[0];
 
-        const preConverter = new AssetPagePreConverter({
-            outputProfile: iccProfileBuffer,
-            outputColorSpace,
-            outputBitsPerComponent: this.#outputBitsPerComponent,
-            colorSpaceResolver,
-            renderingIntent: singlePass.intentPass.renderingIntent,
-            blackPointCompensation: singlePass.intentPass.blackPointCompensation,
-            debugging: this.#debugging,
-            useWorkers: this.#useWorkers,
-            interConversionDelay: this.#interConversionDelay,
-            defaultSourceProfileForDeviceRGB: this.#defaultSourceProfileForDeviceRGB,
-            defaultSourceProfileForDeviceCMYK: this.#defaultSourceProfileForDeviceCMYK,
-            defaultSourceProfileForDeviceGray: this.#defaultSourceProfileForDeviceGray,
-            convertImages: this.#convertImages,
-            convertContentStreams: this.#convertContentStreams,
-            useLegacyContentStreamParsing: this.#useLegacyContentStreamParsing,
-            concurrentSubsets: this.#concurrentSubsets,
-            experimentalPaintOpInsertion: this.#experimentalContentStreamConversion,
-            pdfX4CompliantOutput: true,
-        });
+        const preConverter = this.#createPreConverter(iccProfileBuffer, outputColorSpace, colorSpaceResolver, singlePass.intentPass);
 
         // Use filtered manifest from assembly plan
         const effectiveManifest = singlePass.manifest;
@@ -575,45 +572,9 @@ export class TestFormPDFDocumentGenerator {
                 }
             }
 
-            // Flush pending embeds so that lazy PDFEmbeddedPage objects
-            // finalize their Form XObjects into the context. Without this,
-            // removeOrphanedObjects would delete the source pages' content
-            // streams that the embedders still need to decode.
-            console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] flush() starting...`);
-            try {
-                await assembledDocument.flush();
-                console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] flush() completed`);
-            } catch (flushErr) {
-                console.error(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] flush() THREW: ${flushErr.message}\n${flushErr.stack}`);
-                throw flushErr;
-            }
-
-            // Remove orphaned objects left behind by removePage
-            const { removedCount } = PDFService.removeOrphanedObjects(assembledDocument);
-            if (this.#debugging) {
-                console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Removed ${removedCount} orphaned objects`);
-            }
-
-            // Clear the context's cached push/pop graphics state content
-            // stream refs. These shared q/Q streams were created during
-            // flush() when asset page embeds called normalize(), and were
-            // inserted into the asset pages' Contents arrays. After
-            // removeOrphanedObjects() deletes them (they're only reachable
-            // from the removed asset pages), the cached refs become stale.
-            // Clearing them ensures getPushGraphicsStateContentStream() and
-            // getPopGraphicsStateContentStream() create fresh streams when
-            // slug pages are later embedded during save().
-            assembledDocument.context.pushGraphicsStateContentStreamRef = undefined;
-            assembledDocument.context.popGraphicsStateContentStreamRef = undefined;
+            await this.#finalizeAssembledDocument(assembledDocument, outputColorSpace);
 
             await onProgress('converting', 78, 'Color conversion complete');
-
-            // ----------------------------------------------------------------
-            // 6b. Add color space prologue to page Contents for PDF/X-4
-            // ----------------------------------------------------------------
-            if (outputColorSpace === 'RGB' || outputColorSpace === 'CMYK' || outputColorSpace === 'Gray') {
-                this.#addPDFX4Prologue(assembledDocument, outputColorSpace);
-            }
 
             // ----------------------------------------------------------------
             // 7. Generate and embed slugs (single-document path)
@@ -667,7 +628,7 @@ export class TestFormPDFDocumentGenerator {
             await new Promise(resolve => setTimeout(resolve, 500));
 
             const pdfBuffer = /** @type {ArrayBuffer} */ (
-                (await assembledDocument.save({ addDefaultPage: false, updateFieldAppearances: false, objectsPerTick: 20 })).buffer
+                (await assembledDocument.save(SAVE_OPTIONS)).buffer
             );
 
             const metadataJSON = this.#buildMetadataJSON(manifest, iccProfileHeader, iccProfileBuffer, userMetadata, assemblyPlan);
@@ -678,6 +639,70 @@ export class TestFormPDFDocumentGenerator {
         } finally {
             preConverter.dispose();
         }
+    }
+
+    // ====================================================================
+    // Shared helpers — single source of truth for cross-path operations
+    // ====================================================================
+
+    /**
+     * Creates an `AssetPagePreConverter` with all instance-level conversion
+     * settings. Only the per-pass rendering intent and optional overrides
+     * vary between call sites.
+     *
+     * @param {ArrayBuffer} outputProfile - Destination ICC profile bytes
+     * @param {'RGB' | 'CMYK' | 'Gray'} outputColorSpace
+     * @param {ManifestColorSpaceResolver} colorSpaceResolver
+     * @param {import('./assembly-policy-resolver.js').IntentPass} intentPass - Rendering intent and BPC from the assembly plan
+     * @param {{ useWorkers?: boolean }} [overrides] - Per-site overrides (e.g., docket hardcodes `useWorkers: false`)
+     * @returns {AssetPagePreConverter}
+     */
+    #createPreConverter(outputProfile, outputColorSpace, colorSpaceResolver, intentPass, overrides) {
+        return new AssetPagePreConverter({
+            outputProfile,
+            outputColorSpace,
+            outputBitsPerComponent: this.#outputBitsPerComponent,
+            colorSpaceResolver,
+            renderingIntent: intentPass.renderingIntent,
+            blackPointCompensation: intentPass.blackPointCompensation,
+            debugging: this.#debugging,
+            useWorkers: overrides?.useWorkers ?? this.#useWorkers,
+            interConversionDelay: this.#interConversionDelay,
+            defaultSourceProfileForDeviceRGB: this.#defaultSourceProfileForDeviceRGB,
+            defaultSourceProfileForDeviceCMYK: this.#defaultSourceProfileForDeviceCMYK,
+            defaultSourceProfileForDeviceGray: this.#defaultSourceProfileForDeviceGray,
+            convertImages: this.#convertImages,
+            convertContentStreams: this.#convertContentStreams,
+            useLegacyContentStreamParsing: this.#useLegacyContentStreamParsing,
+            concurrentSubsets: this.#concurrentSubsets,
+            experimentalPaintOpInsertion: this.#experimentalContentStreamConversion,
+            pdfX4CompliantOutput: true,
+        });
+    }
+
+    /**
+     * Post-assembly finalization: flush pending embeds, remove orphaned
+     * objects, clear stale cached graphics state refs, and prepend the
+     * PDF/X-4 color space prologue.
+     *
+     * Every path that calls `#assemblePages` must call this before
+     * slug embedding or post-processing.
+     *
+     * @param {PDFDocument} document - The assembled document (modified in place)
+     * @param {'RGB' | 'CMYK' | 'Gray'} outputColorSpace
+     */
+    async #finalizeAssembledDocument(document, outputColorSpace) {
+        await document.flush();
+
+        const { removedCount } = PDFService.removeOrphanedObjects(document);
+        if (this.#debugging) {
+            console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Removed ${removedCount} orphaned objects`);
+        }
+
+        document.context.pushGraphicsStateContentStreamRef = undefined;
+        document.context.popGraphicsStateContentStreamRef = undefined;
+
+        this.#addPDFX4Prologue(document, outputColorSpace);
     }
 
     /**
@@ -881,26 +906,12 @@ export class TestFormPDFDocumentGenerator {
                 // Load fresh asset document for this pass
                 let passDocument = await PDFDocument.load(assetPDFBuffer, { updateMetadata: false });
 
-                // Create pre-converter with pass-specific rendering intent
-                const passPreConverter = new AssetPagePreConverter({
-                    outputProfile: iccProfileBuffer,
-                    outputColorSpace: {'GRAY': 'Gray', 'RGB': 'RGB', 'CMYK': 'CMYK'}[iccProfileHeader.colorSpace],
-                    outputBitsPerComponent: this.#outputBitsPerComponent,
-                    colorSpaceResolver,
-                    renderingIntent: pass.intentPass.renderingIntent,
-                    blackPointCompensation: pass.intentPass.blackPointCompensation,
-                    debugging: this.#debugging,
-                    useWorkers: this.#useWorkers,
-                    interConversionDelay: this.#interConversionDelay,
-                    defaultSourceProfileForDeviceRGB: this.#defaultSourceProfileForDeviceRGB,
-                    defaultSourceProfileForDeviceCMYK: this.#defaultSourceProfileForDeviceCMYK,
-                    defaultSourceProfileForDeviceGray: this.#defaultSourceProfileForDeviceGray,
-                    convertImages: this.#convertImages,
-                    convertContentStreams: this.#convertContentStreams,
-                    useLegacyContentStreamParsing: this.#useLegacyContentStreamParsing,
-                    concurrentSubsets: this.#concurrentSubsets,
-                    pdfX4CompliantOutput: true,
-                });
+                const outputColorSpace = ({ 'GRAY': 'Gray', 'RGB': 'RGB', 'CMYK': 'CMYK' })[iccProfileHeader.colorSpace];
+
+                if (!outputColorSpace)
+                    throw new Error(`Unsupported ICC profile color space: "${iccProfileHeader.colorSpace}"`);
+
+                const passPreConverter = this.#createPreConverter(iccProfileBuffer, outputColorSpace, colorSpaceResolver, pass.intentPass);
 
                 try {
                     let assembledDocument = await this.#assemblePages(
@@ -917,15 +928,7 @@ export class TestFormPDFDocumentGenerator {
 
                     console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Pass "${passLabel}": ${assembledDocument.getPageCount()} pages assembled`);
 
-                    await assembledDocument.flush();
-
-                    const { removedCount } = PDFService.removeOrphanedObjects(assembledDocument);
-                    if (this.#debugging) {
-                        console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Pass "${passLabel}": removed ${removedCount} orphaned objects`);
-                    }
-
-                    assembledDocument.context.pushGraphicsStateContentStreamRef = undefined;
-                    assembledDocument.context.popGraphicsStateContentStreamRef = undefined;
+                    await this.#finalizeAssembledDocument(assembledDocument, outputColorSpace);
 
                     // Generate and embed slugs with pass-specific rendering intent label
                     if (userMetadata) {
@@ -933,7 +936,7 @@ export class TestFormPDFDocumentGenerator {
                             pass.manifest.pages, iccProfileBuffer, iccProfileHeader, userMetadata,
                             passLabel, assemblyPlan.profileCategoryLabel,
                         );
-                        if ({'GRAY': 'Gray', 'RGB': 'RGB', 'CMYK': 'CMYK'}[iccProfileHeader.colorSpace] === 'RGB') {
+                        if (outputColorSpace === 'RGB') {
                             await this.#convertDeviceColorToOutputIntent(slugsDocument, iccProfileBuffer, 'RGB');
                         }
                         await PDFService.embedSlugsIntoPDFDocument(assembledDocument, slugsDocument);
@@ -944,7 +947,7 @@ export class TestFormPDFDocumentGenerator {
                     await this.#postProcess(assembledDocument, iccProfileHeader, iccProfileBuffer, manifestBuffer);
 
                     const passPDFBuffer = /** @type {ArrayBuffer} */ (
-                        (await assembledDocument.save({ addDefaultPage: false, updateFieldAppearances: false, objectsPerTick: 20 })).buffer
+                        (await assembledDocument.save(SAVE_OPTIONS)).buffer
                     );
 
                     // Release the assembled document before delivering the buffer —
@@ -975,30 +978,39 @@ export class TestFormPDFDocumentGenerator {
     }
 
     /**
-     * Generates one PDF per layout color space group, calling `onChainOutput`
-     * for each completed chain PDF.
+     * Generates PDFs split by color space group (separate-chains) or
+     * recombined into a single PDF per intent pass (recombined-chains).
+     *
+     * For multi-intent profiles, the outer loop iterates rendering intent
+     * passes; the inner loop iterates color space groups. Each combination
+     * produces one PDF (separate) or one recombined PDF per intent pass.
      *
      * @param {ArrayBuffer} assetPDFBuffer - Raw asset PDF bytes (reloaded per chain)
-     * @param {TestFormManifest} manifest - Full manifest
      * @param {ArrayBuffer} manifestBuffer - Raw manifest bytes for attachment
      * @param {ArrayBuffer} iccProfileBuffer - Destination ICC profile bytes
      * @param {{ colorSpace: string, description: string }} iccProfileHeader
      * @param {ManifestColorSpaceResolver} colorSpaceResolver
+     * @param {import('./assembly-policy-resolver.js').AssemblyPlan} assemblyPlan
      * @param {UserMetadata | null} userMetadata
      * @param {GenerationCallbacks} callbacks
      * @returns {Promise<GenerationResult>}
      */
-    async #generateSeparateChains(assetPDFBuffer, manifest, manifestBuffer, iccProfileBuffer, iccProfileHeader, colorSpaceResolver, userMetadata, callbacks, docketPDFBuffer = null) {
+    async #generateSeparateChains(assetPDFBuffer, manifestBuffer, iccProfileBuffer, iccProfileHeader, colorSpaceResolver, assemblyPlan, userMetadata, callbacks, docketPDFBuffer = null) {
         const { onProgress = () => { }, onChainOutput } = callbacks;
         const recombine = this.#processingStrategy === 'recombined-chains';
+        const multiIntent = assemblyPlan.generationPasses.length > 1;
+
+        const manifest = assemblyPlan.generationPasses[0].manifest;
+        const outputColorSpace = ({'GRAY': 'Gray', 'RGB': 'RGB', 'CMYK': 'CMYK'})[iccProfileHeader.colorSpace];
 
         // ------------------------------------------------------------------
         // Discover color space groups from layouts (canonical names)
+        // Color space groups are the same across all intent passes \u2014 the
+        // manifest pages don't change, only the rendering intent does.
         // ------------------------------------------------------------------
         /** @type {Map<string, { pages: TestFormManifestPageEntry[], originalPageIndices: number[] }>} */
         const colorSpaceGroups = new Map();
 
-        // Use layout colorSpace names as canonical group keys
         const canonicalColorSpaces = [...new Set(manifest.layouts.map(
             (/** @type {{ colorSpace: string }} */ l) => l.colorSpace,
         ))];
@@ -1025,223 +1037,183 @@ export class TestFormPDFDocumentGenerator {
 
         console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] ${recombine ? 'Recombined' : 'Separate'} chains: color space groups:`, [...colorSpaceGroups.keys()]);
 
-        // ------------------------------------------------------------------
-        // Build metadata JSON before chains (available for immediate download)
-        // ------------------------------------------------------------------
-        const metadataJSON = this.#buildMetadataJSON(manifest, iccProfileHeader, iccProfileBuffer, userMetadata);
+        const metadataJSON = this.#buildMetadataJSON(manifest, iccProfileHeader, iccProfileBuffer, userMetadata, assemblyPlan);
 
-        // ------------------------------------------------------------------
-        // Generate full slugs PDF once (all pages) before the chain loop
-        // ------------------------------------------------------------------
-        /** @type {PDFDocument | null} */
-        let fullSlugsDocument = null;
-
-        if (userMetadata) {
-            await onProgress('slugs', 36, `Generating slugs PDF (${manifest.pages.length} pages)\u2026`);
-            fullSlugsDocument = await this.#generateSlugsPDF(
-                manifest.pages, iccProfileBuffer, iccProfileHeader, userMetadata,
-            );
-            if ({'GRAY': 'Gray', 'RGB': 'RGB', 'CMYK': 'CMYK'}[iccProfileHeader.colorSpace] === 'RGB') {
-                await this.#convertDeviceColorToOutputIntent(fullSlugsDocument, iccProfileBuffer, 'RGB');
-            }
-        }
-
-        // ------------------------------------------------------------------
-        // Per-chain loop
-        // ------------------------------------------------------------------
         const groupEntries = [...colorSpaceGroups.entries()];
         const totalGroups = groupEntries.length;
+        const totalPasses = assemblyPlan.generationPasses.length;
 
-        // Chains occupy 40-88% when recombining (recombination needs 88-95%), or 40-96% when separate
-        const chainProgressRange = recombine ? 48 : 56;
+        // ------------------------------------------------------------------
+        // Per-pass loop (outer) \u00d7 per-chain loop (inner)
+        // Single-intent profiles have one pass; multi-intent (e.g., CMYK
+        // non-MaxGCR) have two. Each pass uses a different rendering intent
+        // but the same color space groups.
+        // ------------------------------------------------------------------
+        for (let passIndex = 0; passIndex < totalPasses; passIndex++) {
+            const pass = assemblyPlan.generationPasses[passIndex];
+            const passLabel = pass.intentPass.label;
 
-        /** @type {({ buffer: ArrayBuffer, originalPageIndices: number[] } | null)[]} */
-        const chainOutputs = [];
-
-        for (let groupIndex = 0; groupIndex < totalGroups; groupIndex++) {
-            const [colorSpace, group] = groupEntries[groupIndex];
-
-            const chainProgressBase = 40 + Math.floor(groupIndex / totalGroups * chainProgressRange);
-            await onProgress('chains', chainProgressBase, `Processing chain ${groupIndex + 1} of ${totalGroups}: ${colorSpace} (${group.pages.length} pages)\u2026`);
-
-            console.time(`Chain: ${colorSpace}`);
-
-            // Filter layouts to only those matching this chain's canonical color space
-            const chainLayouts = manifest.layouts.filter(
-                (/** @type {{ colorSpace: string }} */ layoutEntry) => layoutEntry.colorSpace === colorSpace,
-            );
-
-            // Build filtered manifest (keep full assets array to preserve index alignment)
-            const filteredManifest = /** @type {TestFormManifest} */ ({
-                ...manifest,
-                pages: group.pages,
-                layouts: chainLayouts,
-            });
-
-            // Load fresh document for this chain
-            const chainDocument = await PDFDocument.load(assetPDFBuffer, { updateMetadata: false });
-
-            // Create a fresh pre-converter for this chain
-            const chainPreConverter = new AssetPagePreConverter({
-                outputProfile: iccProfileBuffer,
-                outputColorSpace: {'GRAY': 'Gray', 'RGB': 'RGB', 'CMYK': 'CMYK'}[iccProfileHeader.colorSpace],
-                outputBitsPerComponent: this.#outputBitsPerComponent,
-                colorSpaceResolver,
-                debugging: this.#debugging,
-                useWorkers: this.#useWorkers,
-                interConversionDelay: this.#interConversionDelay,
-                defaultSourceProfileForDeviceRGB: this.#defaultSourceProfileForDeviceRGB,
-                defaultSourceProfileForDeviceCMYK: this.#defaultSourceProfileForDeviceCMYK,
-                defaultSourceProfileForDeviceGray: this.#defaultSourceProfileForDeviceGray,
-                convertImages: this.#convertImages,
-                convertContentStreams: this.#convertContentStreams,
-                useLegacyContentStreamParsing: this.#useLegacyContentStreamParsing,
-                concurrentSubsets: this.#concurrentSubsets,
-                pdfX4CompliantOutput: true,
-            });
-
-            try {
-                // Convert and assemble this chain's pages
-                const chainProgressEnd = 40 + Math.floor((groupIndex + 1) / totalGroups * chainProgressRange);
-                const chainRange = chainProgressEnd - chainProgressBase;
-                const assembledDocument = await this.#assemblePages(
-                    chainPreConverter, chainDocument, filteredManifest,
-                    async (subPercent, subMessage) => {
-                        const scaledPercent = chainProgressBase + Math.floor(subPercent / 100 * chainRange);
-                        await onProgress('chains', scaledPercent, `Chain ${groupIndex + 1} of ${totalGroups} (${colorSpace}) \u2014 ${subMessage}`);
-                    },
-                );
-
-                console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Chain "${colorSpace}": ${assembledDocument.getPageCount()} pages assembled`);
-
-                // Flush pending embeds so that lazy PDFEmbeddedPage objects
-                // finalize their Form XObjects into the context. Without this,
-                // removeOrphanedObjects would delete the source pages' content
-                // streams that the embedders still need to decode.
-                await assembledDocument.flush();
-
-                // Remove orphaned objects left behind by removePage
-                // (asset pages removed from page tree but their streams/resources
-                // remain in PDFContext.indirectObjects until explicitly deleted)
-                const { removedCount } = PDFService.removeOrphanedObjects(assembledDocument);
-                if (this.#debugging) {
-                    console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Chain "${colorSpace}": removed ${removedCount} orphaned objects`);
-                }
-
-                // Clear the context's cached push/pop graphics state content
-                // stream refs — same issue as in-place path. See comment there.
-                assembledDocument.context.pushGraphicsStateContentStreamRef = undefined;
-                assembledDocument.context.popGraphicsStateContentStreamRef = undefined;
-
-                // Embed chain-specific slugs from the full slugs document
-                if (fullSlugsDocument) {
-                    for (let i = 0; i < assembledDocument.getPageCount(); i++) {
-                        const originalPageIndex = group.originalPageIndices[i];
-                        const [slugPage] = await assembledDocument.embedPdf(fullSlugsDocument, [originalPageIndex]);
-                        assembledDocument.getPage(i).drawPage(slugPage);
-                    }
-                }
-
-                if (recombine) {
-                    // Page-level post-processing only (survives copyPages)
-                    await this.#postProcessPages(assembledDocument, iccProfileHeader);
-
-                    const chainBuffer = /** @type {ArrayBuffer} */ (
-                        (await assembledDocument.save({ addDefaultPage: false, updateFieldAppearances: false, objectsPerTick: 20 })).buffer
-                    );
-
-                    console.timeEnd(`Chain: ${colorSpace}`);
-
-                    chainOutputs.push({ buffer: chainBuffer, originalPageIndices: group.originalPageIndices });
-                } else {
-                    // Full post-process for separate-chains (each chain is a standalone PDF)
-                    await this.#postProcess(assembledDocument, iccProfileHeader, iccProfileBuffer, manifestBuffer);
-
-                    const chainPDFBuffer = /** @type {ArrayBuffer} */ (
-                        (await assembledDocument.save({ addDefaultPage: false, updateFieldAppearances: false, objectsPerTick: 20 })).buffer
-                    );
-
-                    console.timeEnd(`Chain: ${colorSpace}`);
-
-                    // Deliver chain output (includes metadataJSON for first-chain download)
-                    if (onChainOutput) {
-                        await onChainOutput(colorSpace, chainPDFBuffer, metadataJSON);
-                    }
-                }
-            } finally {
-                chainPreConverter.dispose();
+            if (multiIntent) {
+                console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Pass ${passIndex + 1}/${totalPasses}: ${passLabel}`);
             }
 
-            // Yield for GC between chains
-            await new Promise(resolve => setTimeout(resolve, 500));
-        }
+            // Generate slugs per pass (slug text includes the intent label)
+            /** @type {PDFDocument | null} */
+            let fullSlugsDocument = null;
 
-        // ------------------------------------------------------------------
-        // Recombination phase (recombined-chains only)
-        // ------------------------------------------------------------------
-        if (recombine) {
-            await onProgress('recombining', 88, 'Recombining chains\u2026');
+            if (userMetadata) {
+                await onProgress('slugs', 36, `Generating slugs PDF (${manifest.pages.length} pages)\u2026`);
+                fullSlugsDocument = await this.#generateSlugsPDF(
+                    manifest.pages, iccProfileBuffer, iccProfileHeader, userMetadata,
+                    passLabel, assemblyPlan.profileCategoryLabel,
+                );
+                if (outputColorSpace === 'RGB') {
+                    await this.#convertDeviceColorToOutputIntent(fullSlugsDocument, iccProfileBuffer, 'RGB');
+                }
+            }
 
-            console.time('Recombination');
+            // Progress range for this pass's chains
+            const passProgressBase = 36 + Math.floor(passIndex / totalPasses * 52);
+            const passProgressEnd = 36 + Math.floor((passIndex + 1) / totalPasses * 52);
+            const passRange = passProgressEnd - passProgressBase;
+            const chainProgressRange = recombine ? Math.floor(passRange * 0.85) : passRange;
 
-            const targetDocument = await PDFDocument.create();
+            /** @type {({ buffer: ArrayBuffer, originalPageIndices: number[] } | null)[]} */
+            const chainOutputs = [];
 
-            // Resolved pages array: index = manifest page index, value = copied PDFPage
-            /** @type {(import('pdf-lib').PDFPage | undefined)[]} */
-            const resolvedPages = new Array(manifest.pages.length);
+            for (let groupIndex = 0; groupIndex < totalGroups; groupIndex++) {
+                const [colorSpace, group] = groupEntries[groupIndex];
 
-            for (let i = 0; i < chainOutputs.length; i++) {
-                const chainOutput = chainOutputs[i];
-                if (!chainOutput) continue;
+                const chainProgressBase = passProgressBase + Math.floor(groupIndex / totalGroups * chainProgressRange);
+                await onProgress('chains', chainProgressBase, `${multiIntent ? `Pass ${passIndex + 1}/${totalPasses} \u2014 ` : ''}Chain ${groupIndex + 1}/${totalGroups}: ${colorSpace} (${group.pages.length} pages)\u2026`);
 
-                const progressPercent = 88 + Math.floor((i + 1) / chainOutputs.length * 7);
-                await onProgress('recombining', progressPercent, `Recombining chain ${i + 1}/${chainOutputs.length}\u2026`);
+                console.time(`Chain: ${multiIntent ? passLabel + ' - ' : ''}${colorSpace}`);
 
-                // Load chain buffer as source document
-                const sourceDocument = await PDFDocument.load(chainOutput.buffer, { updateMetadata: false });
-                const sourcePageCount = sourceDocument.getPageCount();
-                const sourceIndices = Array.from({ length: sourcePageCount }, (_, j) => j);
+                const chainLayouts = manifest.layouts.filter(
+                    (/** @type {{ colorSpace: string }} */ layoutEntry) => layoutEntry.colorSpace === colorSpace,
+                );
 
-                // Copy all pages from source into target document's context
-                const copiedPages = await targetDocument.copyPages(sourceDocument, sourceIndices);
+                const filteredManifest = /** @type {TestFormManifest} */ ({
+                    ...manifest,
+                    pages: group.pages,
+                    layouts: chainLayouts,
+                });
 
-                // Map copied pages to their manifest positions
-                for (let j = 0; j < copiedPages.length; j++) {
-                    resolvedPages[chainOutput.originalPageIndices[j]] = copiedPages[j];
+                const chainDocument = await PDFDocument.load(assetPDFBuffer, { updateMetadata: false });
+                const chainPreConverter = this.#createPreConverter(iccProfileBuffer, outputColorSpace, colorSpaceResolver, pass.intentPass);
+
+                try {
+                    const chainProgressEnd = passProgressBase + Math.floor((groupIndex + 1) / totalGroups * chainProgressRange);
+                    const chainRange = chainProgressEnd - chainProgressBase;
+                    const assembledDocument = await this.#assemblePages(
+                        chainPreConverter, chainDocument, filteredManifest,
+                        async (subPercent, subMessage) => {
+                            const scaledPercent = chainProgressBase + Math.floor(subPercent / 100 * chainRange);
+                            await onProgress('chains', scaledPercent, `${multiIntent ? `(${passLabel}) ` : ''}Chain ${groupIndex + 1}/${totalGroups} (${colorSpace}) \u2014 ${subMessage}`);
+                        },
+                    );
+
+                    console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Chain "${colorSpace}": ${assembledDocument.getPageCount()} pages assembled`);
+
+                    await this.#finalizeAssembledDocument(assembledDocument, outputColorSpace);
+
+                    if (fullSlugsDocument) {
+                        for (let i = 0; i < assembledDocument.getPageCount(); i++) {
+                            const originalPageIndex = group.originalPageIndices[i];
+                            const [slugPage] = await assembledDocument.embedPdf(fullSlugsDocument, [originalPageIndex]);
+                            assembledDocument.getPage(i).drawPage(slugPage);
+                        }
+                    }
+
+                    if (recombine) {
+                        await this.#postProcessPages(assembledDocument, iccProfileHeader);
+
+                        const chainBuffer = /** @type {ArrayBuffer} */ (
+                            (await assembledDocument.save(SAVE_OPTIONS)).buffer
+                        );
+
+                        console.timeEnd(`Chain: ${multiIntent ? passLabel + ' - ' : ''}${colorSpace}`);
+
+                        chainOutputs.push({ buffer: chainBuffer, originalPageIndices: group.originalPageIndices });
+                    } else {
+                        await this.#postProcess(assembledDocument, iccProfileHeader, iccProfileBuffer, manifestBuffer);
+
+                        const chainPDFBuffer = /** @type {ArrayBuffer} */ (
+                            (await assembledDocument.save(SAVE_OPTIONS)).buffer
+                        );
+
+                        console.timeEnd(`Chain: ${multiIntent ? passLabel + ' - ' : ''}${colorSpace}`);
+
+                        if (onChainOutput) {
+                            const chainLabel = multiIntent ? `${passLabel} - ${colorSpace}` : colorSpace;
+                            await onChainOutput(chainLabel, chainPDFBuffer, metadataJSON);
+                        }
+                    }
+                } finally {
+                    chainPreConverter.dispose();
                 }
 
-                // Release chain buffer and source document for GC
-                chainOutputs[i] = null;
                 await new Promise(resolve => setTimeout(resolve, 500));
             }
 
-            // Add all pages in manifest order
-            for (let i = 0; i < resolvedPages.length; i++) {
-                const page = resolvedPages[i];
-                if (!page) {
-                    throw new Error(`Missing page at manifest index ${i} after recombination`);
+            // Recombination for this pass
+            if (recombine) {
+                const recombineBase = passProgressBase + chainProgressRange;
+                await onProgress('recombining', recombineBase, `${multiIntent ? `(${passLabel}) ` : ''}Recombining chains\u2026`);
+
+                console.time(`Recombination${multiIntent ? ': ' + passLabel : ''}`);
+
+                const targetDocument = await PDFDocument.create();
+
+                /** @type {(import('pdf-lib').PDFPage | undefined)[]} */
+                const resolvedPages = new Array(manifest.pages.length);
+
+                for (let i = 0; i < chainOutputs.length; i++) {
+                    const chainOutput = chainOutputs[i];
+                    if (!chainOutput) continue;
+
+                    const sourceDocument = await PDFDocument.load(chainOutput.buffer, { updateMetadata: false });
+                    const sourceIndices = Array.from({ length: sourceDocument.getPageCount() }, (_, j) => j);
+                    const copiedPages = await targetDocument.copyPages(sourceDocument, sourceIndices);
+
+                    for (let j = 0; j < copiedPages.length; j++) {
+                        resolvedPages[chainOutput.originalPageIndices[j]] = copiedPages[j];
+                    }
+
+                    chainOutputs[i] = null;
+                    await new Promise(resolve => setTimeout(resolve, 500));
                 }
-                targetDocument.addPage(page);
+
+                for (let i = 0; i < resolvedPages.length; i++) {
+                    const page = resolvedPages[i];
+                    if (!page) {
+                        throw new Error(`Missing page at manifest index ${i} after recombination`);
+                    }
+                    targetDocument.addPage(page);
+                }
+
+                console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Recombined document: ${targetDocument.getPageCount()} pages`);
+
+                await this.#postProcessDocument(targetDocument, iccProfileHeader, iccProfileBuffer, manifestBuffer);
+
+                console.timeEnd(`Recombination${multiIntent ? ': ' + passLabel : ''}`);
+
+                const recombinedBuffer = /** @type {ArrayBuffer} */ (
+                    (await targetDocument.save(SAVE_OPTIONS)).buffer
+                );
+
+                if (multiIntent) {
+                    if (onChainOutput) {
+                        await onChainOutput(passLabel, recombinedBuffer, metadataJSON);
+                    }
+                } else {
+                    await onProgress('saving', 95, 'Saving PDF\u2026');
+                    await onProgress('done', 100, 'Generation complete');
+                    return { pdfBuffer: recombinedBuffer, metadataJSON, docketPDFBuffer };
+                }
             }
 
-            console.log(`${CONTEXT_PREFIX} [TestFormPDFDocumentGenerator] Recombined document: ${targetDocument.getPageCount()} pages`);
-
-            // Document-level post-processing on the final recombined document
-            await this.#postProcessDocument(targetDocument, iccProfileHeader, iccProfileBuffer, manifestBuffer);
-
-            console.timeEnd('Recombination');
-
-            // Save final document
-            await onProgress('saving', 95, 'Saving PDF\u2026');
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            const pdfBuffer = /** @type {ArrayBuffer} */ (
-                (await targetDocument.save({ addDefaultPage: false, updateFieldAppearances: false, objectsPerTick: 20 })).buffer
-            );
-
-            await onProgress('done', 100, 'Generation complete');
-
-            return { pdfBuffer, metadataJSON, docketPDFBuffer };
+            await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
         await onProgress('done', 100, 'Generation complete');
@@ -1295,6 +1267,8 @@ export class TestFormPDFDocumentGenerator {
                 profileCategory: profileCategoryLabel,
                 outputProfileName: this.#outputProfileName,
                 timestamp: this.#generationTimestamp,
+                generatorVersion: this.#generatorDetails?.versions?.Generator,
+                digest: this.#printSetDigest,
             },
         );
 
@@ -1350,7 +1324,7 @@ export class TestFormPDFDocumentGenerator {
         console.time('replaceTransarencyBlendingSpaceInPDFDocument');
         await PDFService.replaceTransarencyBlendingSpaceInPDFDocument(
             document,
-            {'GRAY': 'DeviceGray', 'RGB': 'DeviceRGB', 'CMYK': 'DeviceCMYK'}[iccProfileHeader.colorSpace],
+            { 'GRAY': 'DeviceGray', 'RGB': 'DeviceRGB', 'CMYK': 'DeviceCMYK' }[iccProfileHeader.colorSpace],
         );
         console.timeEnd('replaceTransarencyBlendingSpaceInPDFDocument');
 
@@ -1825,25 +1799,10 @@ export class TestFormPDFDocumentGenerator {
             const assetPDFBuffer = await this.#loadAsset(null);
             const passAssetDocument = await PDFDocument.load(assetPDFBuffer, { updateMetadata: false });
 
-            const preConverter = new AssetPagePreConverter({
-                outputProfile: iccProfileBuffer,
-                outputColorSpace: {'GRAY': 'Gray', 'RGB': 'RGB', 'CMYK': 'CMYK'}[iccProfileHeader.colorSpace],
-                outputBitsPerComponent: this.#outputBitsPerComponent,
-                colorSpaceResolver,
-                renderingIntent: pass.renderingIntent,
-                blackPointCompensation: pass.blackPointCompensation,
-                debugging: this.#debugging,
-                useWorkers: false,
-                interConversionDelay: this.#interConversionDelay,
-                defaultSourceProfileForDeviceRGB: this.#defaultSourceProfileForDeviceRGB,
-                defaultSourceProfileForDeviceCMYK: this.#defaultSourceProfileForDeviceCMYK,
-                defaultSourceProfileForDeviceGray: this.#defaultSourceProfileForDeviceGray,
-                convertImages: this.#convertImages,
-                convertContentStreams: this.#convertContentStreams,
-                useLegacyContentStreamParsing: this.#useLegacyContentStreamParsing,
-                concurrentSubsets: this.#concurrentSubsets,
-                pdfX4CompliantOutput: true,
-            });
+            const preConverter = this.#createPreConverter(
+                iccProfileBuffer, ({ 'GRAY': 'Gray', 'RGB': 'RGB', 'CMYK': 'CMYK' })[iccProfileHeader.colorSpace],
+                colorSpaceResolver, pass, { useWorkers: false },
+            );
 
             try {
                 // Run conversion and assembly for this pass
@@ -1925,6 +1884,12 @@ export class TestFormPDFDocumentGenerator {
                 const nav = parsedMetadata.runtime.navigator;
                 fields.push({ label: 'Environment', value: `${nav.browser ?? ''} (${nav.os ?? ''})` });
             }
+            if (parsedMetadata.generator?.version) {
+                fields.push({ label: 'Generator', value: parsedMetadata.generator.version });
+            }
+            if (parsedMetadata.color?.engineVersion) {
+                fields.push({ label: 'Color Engine', value: parsedMetadata.color.engineVersion });
+            }
 
             fields.push(null); // Section break
 
@@ -1935,6 +1900,10 @@ export class TestFormPDFDocumentGenerator {
                 fields.push({ label: 'Substrate', value: userMetadata.substrate });
                 fields.push({ label: 'Settings', value: userMetadata.settings });
                 fields.push({ label: 'Email', value: userMetadata.email });
+                if (parsedMetadata.metadata?.digest) {
+                    const d = parsedMetadata.metadata.digest;
+                    fields.push({ label: 'Digest', value: `${d.slice(0, 3)}-${d.slice(3)}` });
+                }
             }
 
             fields.push(null); // Section break
@@ -1943,7 +1912,10 @@ export class TestFormPDFDocumentGenerator {
             if (parsedMetadata.color?.profile) {
                 const p = parsedMetadata.color.profile;
                 fields.push({ label: 'Output Profile', value: p.description ?? '' });
-                fields.push({ label: 'Color Space', value: p.colorSpace ?? '' });
+                const colorSpaceLabel = parsedMetadata.assembly?.profileCategoryLabel?.includes('Max-GCR')
+                    ? `${p.colorSpace ?? ''} (Max-GCR)`
+                    : p.colorSpace ?? '';
+                fields.push({ label: 'Color Space', value: colorSpaceLabel });
                 if (p.version) fields.push({ label: 'ICC Version', value: p.version });
                 if (p.deviceClass) fields.push({ label: 'Device Class', value: p.deviceClass });
                 if (p.connectionSpace) fields.push({ label: 'PCS', value: p.connectionSpace });
@@ -1955,9 +1927,6 @@ export class TestFormPDFDocumentGenerator {
             fields.push(null); // Section break
             if (settings) {
                 fields.push({ label: 'Output Bit Depth', value: settings.outputBitsPerComponent === 'auto' ? 'Same as Source' : `${settings.outputBitsPerComponent}-bit` });
-            }
-            if (parsedMetadata.assembly) {
-                fields.push({ label: 'Category', value: parsedMetadata.assembly.profileCategoryLabel ?? '' });
             }
             fields.push(null); // Section break
 
@@ -2023,7 +1992,7 @@ export class TestFormPDFDocumentGenerator {
                         { checkbox: true, checked: settings.useWorkers, value: 'Bootstrap' },
                         { checkbox: true, checked: settings.useWorkers, value: 'Parallel' },
                         { checkbox: true, checked: settings.concurrentSubsets === true, value: 'Concurrent' },
-                        { value: `${settings.interConversionDelay ?? 500}ms delay` },
+                        { value: `Inter-page delay: ${settings.interConversionDelay ?? 500}ms` },
                     ]
                 });
                 const strategy = settings.processingStrategy ?? 'in-place';
@@ -2039,6 +2008,7 @@ export class TestFormPDFDocumentGenerator {
                         { checkbox: true, checked: settings.convertContentStreams !== false, value: 'Streams' },
                         { checkbox: true, checked: settings.convertImages !== false, value: 'Images' },
                         { checkbox: true, checked: settings.useLegacyContentStreamParsing === true, value: 'Legacy Parser' },
+                        { checkbox: true, checked: settings.experimentalContentStreamConversion === true, value: 'Experimental Streams' },
                     ]
                 });
             }
@@ -2145,10 +2115,10 @@ export class TestFormPDFDocumentGenerator {
 
                 if ('radio' in field) {
                     const rX = valueColumnX;
-                    const rCenterY = y + controlSize * 0.45;
+                    const capHeight = fontSize * 0.72;
                     const radius = controlSize * 0.4;
+                    const rCenterY = y + capHeight / 2;
 
-                    // Outer circle
                     page.drawCircle({
                         x: rX + radius,
                         y: rCenterY,
@@ -2157,7 +2127,6 @@ export class TestFormPDFDocumentGenerator {
                         borderColor: kBlack,
                     });
 
-                    // Filled dot if selected
                     if (field.selected) {
                         page.drawCircle({
                             x: rX + radius,
@@ -2176,9 +2145,9 @@ export class TestFormPDFDocumentGenerator {
                     });
                 } else if ('checkbox' in field) {
                     const cbX = valueColumnX;
-                    const cbY = y + 0.5;
+                    const capHeight = fontSize * 0.72;
+                    const cbY = y + (capHeight - controlSize) / 2;
 
-                    // Outer box (hairline stroke)
                     page.drawRectangle({
                         x: cbX,
                         y: cbY,
@@ -2188,12 +2157,10 @@ export class TestFormPDFDocumentGenerator {
                         borderColor: kBlack,
                     });
 
-                    // Checkmark as single SVG path (joined strokes)
-                    // SVG Y-axis is top-down: 0=top, controlSize=bottom
                     if (field.checked) {
                         const s = controlSize;
                         page.drawSvgPath(
-                            `M ${s * 0.15} ${s * 0.55} L ${s * 0.4} ${s * 0.85} L ${s * 0.85} ${s * 0.2}`,
+                            `M ${s * 0.15} ${s * 0.50} L ${s * 0.4} ${s * 0.80} L ${s * 0.85} ${s * 0.15}`,
                             {
                                 x: cbX,
                                 y: cbY + controlSize,
@@ -2222,33 +2189,34 @@ export class TestFormPDFDocumentGenerator {
                         });
                     }
 
+                    const inlineCapHeight = fontSize * 0.72;
                     let inlineX = valueColumnX;
                     for (const item of field.inline) {
                         if ('radio' in item) {
                             const radius = controlSize * 0.4;
-                            const rCenterY = y + controlSize * 0.45;
+                            const rCenterY = y + inlineCapHeight / 2;
                             page.drawCircle({ x: inlineX + radius, y: rCenterY, size: radius, borderWidth: 0.4, borderColor: kBlack });
                             if (item.selected) {
                                 page.drawCircle({ x: inlineX + radius, y: rCenterY, size: radius * 0.5, color: kBlack });
                             }
                             page.drawText(item.value, { x: inlineX + radius * 2 + 2, y, size: fontSize, font, color: kBlack });
-                            inlineX += radius * 2 + 2 + font.widthOfTextAtSize(item.value, fontSize) + 6;
+                            inlineX += radius * 2 + 2 + font.widthOfTextAtSize(item.value, fontSize) + fontSize * 2;
                         } else if ('checkbox' in item) {
-                            const cbY = y + 0.5;
+                            const cbY = y + (inlineCapHeight - controlSize) / 2;
                             page.drawRectangle({ x: inlineX, y: cbY, width: controlSize, height: controlSize, borderWidth: 0.3, borderColor: kBlack });
                             if (item.checked) {
                                 const s = controlSize;
                                 page.drawSvgPath(
-                                    `M ${s * 0.15} ${s * 0.55} L ${s * 0.4} ${s * 0.85} L ${s * 0.85} ${s * 0.2}`,
+                                    `M ${s * 0.15} ${s * 0.50} L ${s * 0.4} ${s * 0.80} L ${s * 0.85} ${s * 0.15}`,
                                     { x: inlineX, y: cbY + controlSize, borderWidth: 0.6, borderColor: kBlack },
                                 );
                             }
                             page.drawText(item.value, { x: inlineX + controlSize + 2, y, size: fontSize, font, color: kBlack });
-                            inlineX += controlSize + 2 + font.widthOfTextAtSize(item.value, fontSize) + 6;
+                            inlineX += controlSize + 2 + font.widthOfTextAtSize(item.value, fontSize) + fontSize * 2;
                         } else if ('value' in item) {
                             // Plain text inline item
                             page.drawText(item.value, { x: inlineX, y, size: fontSize, font, color: kBlack });
-                            inlineX += font.widthOfTextAtSize(item.value, fontSize) + 6;
+                            inlineX += font.widthOfTextAtSize(item.value, fontSize) + fontSize * 2;
                         }
                     }
                 } else {
@@ -2386,6 +2354,37 @@ export class TestFormPDFDocumentGenerator {
      * @param {import('./assembly-policy-resolver.js').AssemblyPlan} [assemblyPlan]
      * @returns {string}
      */
+    static #CROCKFORD = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+
+    /**
+     * @param {string} email
+     * @param {string} timestamp - ISO 8601
+     * @returns {Promise<string>} 6-character Crockford Base32 digest
+     */
+    static async #generatePrintSetDigest(email, timestamp) {
+        const normalizedEmail = email.toLowerCase();
+        const truncatedTimestamp = timestamp.replace(/\.\d+Z$/, 'Z');
+        const C = TestFormPDFDocumentGenerator.#CROCKFORD;
+
+        const emailHash = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(normalizedEmail)));
+        const emailBits = (emailHash[0] << 4) | (emailHash[1] >>> 4);
+
+        const sessionHash = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${normalizedEmail}|${truncatedTimestamp}`)));
+        const sessionBits = (sessionHash[0] << 10) | (sessionHash[1] << 2) | (sessionHash[2] >>> 6);
+
+        let code = '';
+        for (let ch = 0; ch < 6; ch++) {
+            const e0 = (emailBits >>> (ch * 2)) & 1;
+            const e4 = (emailBits >>> (ch * 2 + 1)) & 1;
+            const s1 = (sessionBits >>> (ch * 3)) & 1;
+            const s2 = (sessionBits >>> (ch * 3 + 1)) & 1;
+            const s3 = (sessionBits >>> (ch * 3 + 2)) & 1;
+            const charValue = (e4 << 4) | (s3 << 3) | (s2 << 2) | (s1 << 1) | e0;
+            code = C[charValue] + code;
+        }
+        return code;
+    }
+
     #buildMetadataJSON(manifest, iccProfileHeader, iccProfileBuffer, userMetadata, assemblyPlan) {
         /** @satisfies {Parameters<uint8ArrayToBase64>[1]} */
         const base64Options = { 'alphabet': 'base64' };
@@ -2395,6 +2394,9 @@ export class TestFormPDFDocumentGenerator {
         return JSON.stringify({
             testFormVersion: this.#testFormVersion,
             generatedAt: this.#generationTimestamp,
+            generator: this.#generatorDetails?.versions
+                ? { version: this.#generatorDetails.versions.Generator }
+                : undefined,
             runtime: {
                 navigator: {
                     browser: `${environment.browser} ${environment.browserVersion}`,
@@ -2402,7 +2404,10 @@ export class TestFormPDFDocumentGenerator {
                     userAgent: environment.userAgent,
                 },
             },
-            metadata: userMetadata ? { slugs: userMetadata } : undefined,
+            metadata: userMetadata ? {
+                slugs: userMetadata,
+                digest: this.#printSetDigest,
+            } : undefined,
             settings: {
                 debugging: this.#debugging,
                 outputBitsPerComponent: this.#outputBitsPerComponent ?? 'auto',
@@ -2412,12 +2417,15 @@ export class TestFormPDFDocumentGenerator {
                 convertImages: this.#convertImages,
                 convertContentStreams: this.#convertContentStreams,
                 useLegacyContentStreamParsing: this.#useLegacyContentStreamParsing,
+                experimentalContentStreamConversion: this.#experimentalContentStreamConversion,
                 interConversionDelay: this.#interConversionDelay,
                 concurrentSubsets: this.#concurrentSubsets,
             },
             assembly: assemblyPlan ? {
                 profileCategory: assemblyPlan.profileCategory,
                 profileCategoryLabel: assemblyPlan.profileCategoryLabel,
+                includedLayoutColorSpaceTypes: assemblyPlan.includedLayoutColorSpaceTypes,
+                excludedLayoutColorSpaceTypes: assemblyPlan.excludedLayoutColorSpaceTypes,
                 multiPDF: assemblyPlan.multiPDF,
                 generationPasses: assemblyPlan.generationPasses.map(pass => ({
                     renderingIntent: pass.intentPass.renderingIntent,
@@ -2429,6 +2437,7 @@ export class TestFormPDFDocumentGenerator {
             } : undefined,
             manifest: manifest ?? undefined,
             color: {
+                engineVersion: `color-engine-${COLOR_ENGINE_VERSION}`,
                 profile: {
                     ...iccProfileHeader,
                     contents: {

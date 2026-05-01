@@ -240,6 +240,8 @@ export class AssemblyPolicyResolver {
         return {
             profileCategory,
             profileCategoryLabel,
+            includedLayoutColorSpaceTypes: categoryDefinition.includedLayoutColorSpaceTypes,
+            excludedLayoutColorSpaceTypes: categoryDefinition.excludedLayoutColorSpaceTypes,
             generationPasses,
             multiPDF,
         };
