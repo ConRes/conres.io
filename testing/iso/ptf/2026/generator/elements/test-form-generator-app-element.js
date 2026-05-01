@@ -208,6 +208,8 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                 document.querySelector('#documentation-modal')
             )?.showModal();
         });
+
+        this.#setupVerifyDigestModal();
     }
 
     /**
@@ -252,6 +254,77 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                 container.appendChild(footer);
             }
         }
+    }
+
+    /**
+     * Sets up the Verify Digest modal dialog.
+     */
+    #setupVerifyDigestModal() {
+        const CROCKFORD = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+        const CROCKFORD_DECODE = /** @type {Record<string, number>} */ ({});
+        for (let i = 0; i < CROCKFORD.length; i++) CROCKFORD_DECODE[CROCKFORD[i]] = i;
+        CROCKFORD_DECODE['I'] = 1; CROCKFORD_DECODE['L'] = 1;
+        CROCKFORD_DECODE['O'] = 0;
+
+        const button = this.querySelector('#verify-digest-button');
+        const dialog = /** @type {HTMLDialogElement | null} */ (document.querySelector('#verify-digest-modal'));
+        const emailInput = /** @type {HTMLInputElement | null} */ (document.querySelector('#verify-digest-email'));
+        const codeInput = /** @type {HTMLInputElement | null} */ (document.querySelector('#verify-digest-code'));
+        const resultOutput = /** @type {HTMLOutputElement | null} */ (document.querySelector('#verify-digest-result'));
+        const verifyButton = document.querySelector('#verify-digest-run');
+
+        if (!button || !dialog || !emailInput || !codeInput || !resultOutput || !verifyButton) return;
+
+        button.addEventListener('click', () => {
+            const formEmail = /** @type {HTMLInputElement | null} */ (this.querySelector('#email-input'));
+            if (formEmail?.value) emailInput.value = formEmail.value;
+            codeInput.value = '';
+            resultOutput.textContent = '';
+            resultOutput.style.background = '';
+            dialog.showModal();
+            codeInput.focus();
+        });
+
+        verifyButton.addEventListener('click', async () => {
+            const email = emailInput.value.trim().toLowerCase();
+            const rawCode = codeInput.value.trim().replace(/-/g, '').toUpperCase();
+            if (!email || rawCode.length !== 6) {
+                resultOutput.textContent = 'Enter a valid email and 6-character digest.';
+                resultOutput.style.background = '';
+                return;
+            }
+
+            const charValues = [];
+            for (let i = 0; i < 6; i++) {
+                const v = CROCKFORD_DECODE[rawCode[i]];
+                if (v === undefined) {
+                    resultOutput.textContent = `Invalid character: ${rawCode[i]}`;
+                    resultOutput.style.background = '';
+                    return;
+                }
+                charValues.push(v);
+            }
+            charValues.reverse();
+
+            let inputEmailBits = 0;
+            for (let ch = 0; ch < 6; ch++) {
+                const cv = charValues[ch];
+                inputEmailBits |= (cv & 1) << (ch * 2);
+                inputEmailBits |= ((cv >>> 4) & 1) << (ch * 2 + 1);
+            }
+
+            const emailHash = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(email)));
+            const expectedEmailBits = (emailHash[0] << 4) | (emailHash[1] >>> 4);
+
+            const emailMatch = (inputEmailBits & 0xFFF) === (expectedEmailBits & 0xFFF);
+
+            resultOutput.textContent = emailMatch
+                ? `Email verified — digest matches ${email}`
+                : `Email mismatch — digest does not belong to ${email}`;
+            resultOutput.style.background = emailMatch
+                ? 'color-mix(in srgb, CanvasText 10%, Canvas)'
+                : 'color-mix(in srgb, red 15%, Canvas)';
+        });
     }
 
     /**
@@ -941,9 +1014,11 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         );
         for (const checkbox of colorSpaceCheckboxes) {
             const type = checkbox.dataset.colorSpaceType ?? '';
-            const included = !excludedTypes.has(type)
+            const supported = !excludedTypes.has(type)
                 && (includedTypes.size === 0 || includedTypes.has(type));
-            checkbox.dataset.autoChecked = included ? 'true' : 'false';
+            checkbox.dataset.autoChecked = supported ? 'true' : 'false';
+            checkbox.disabled = !supported;
+            if (!supported) checkbox.checked = false;
         }
 
         // --- Layouts auto state ---
@@ -1093,45 +1168,31 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         )?.open ?? false;
 
         // ----------------------------------------------------------------
-        // Read worker checkboxes and processing strategy selection
-        // When debugging details is closed, use defaults (worker enabled, in-place)
+        // Read form controls.
+        // When debugging panel is open: read live DOM state (user's changes).
+        // When closed: read HTML-declared defaults (defaultChecked/defaultValue)
+        //   so that user tweaks during debugging don't leak into production runs.
         // ----------------------------------------------------------------
-        const useBootstrapWorker = isDebugging
-            ? (/** @type {HTMLInputElement | null} */ (this.querySelector('#bootstrap-worker-checkbox'))?.checked ?? true)
-            : true;
 
-        const useParallelWorkers = isDebugging
-            ? (/** @type {HTMLInputElement | null} */ (this.querySelector('#parallel-workers-checkbox'))?.checked ?? true)
-            : true;
+        /** @param {string} selector @returns {HTMLInputElement} */
+        const checkbox = (selector) => /** @type {HTMLInputElement} */ (this.querySelector(selector));
+
+        const useBootstrapWorker = isDebugging ? checkbox('#bootstrap-worker-checkbox').checked : checkbox('#bootstrap-worker-checkbox').defaultChecked;
+        const useParallelWorkers = isDebugging ? checkbox('#parallel-workers-checkbox').checked : checkbox('#parallel-workers-checkbox').defaultChecked;
+        const convertContentStreams = isDebugging ? checkbox('#content-streams-checkbox').checked : checkbox('#content-streams-checkbox').defaultChecked;
+        const convertImages = isDebugging ? checkbox('#images-checkbox').checked : checkbox('#images-checkbox').defaultChecked;
+        const useLegacyContentStreamParsing = isDebugging ? checkbox('#legacy-content-stream-parsing-checkbox').checked : checkbox('#legacy-content-stream-parsing-checkbox').defaultChecked;
+        const concurrentSubsets = isDebugging ? checkbox('#concurrent-subsets-checkbox').checked : checkbox('#concurrent-subsets-checkbox').defaultChecked;
+        const experimentalContentStreamConversion = isDebugging ? checkbox('#experimental-content-stream-conversion-checkbox').checked : checkbox('#experimental-content-stream-conversion-checkbox').defaultChecked;
 
         /** @type {'in-place' | 'separate-chains' | 'recombined-chains'} */
         const processingStrategy = isDebugging
-            ? /** @type {any} */ (/** @type {HTMLInputElement | null} */ (this.querySelector('input[name="processing-strategy"]:checked'))?.value ?? 'in-place')
-            : 'in-place';
-
-        const convertContentStreams = isDebugging
-            ? (/** @type {HTMLInputElement | null} */ (this.querySelector('#content-streams-checkbox'))?.checked ?? true)
-            : true;
-
-        const convertImages = isDebugging
-            ? (/** @type {HTMLInputElement | null} */ (this.querySelector('#images-checkbox'))?.checked ?? true)
-            : true;
-
-        const useLegacyContentStreamParsing = isDebugging
-            ? (/** @type {HTMLInputElement | null} */ (this.querySelector('#legacy-content-stream-parsing-checkbox'))?.checked ?? false)
-            : false;
-
-        const concurrentSubsets = isDebugging
-            ? (/** @type {HTMLInputElement | null} */ (this.querySelector('#concurrent-subsets-checkbox'))?.checked ?? false)
-            : false;
-
-        const experimentalContentStreamConversion = isDebugging
-            ? (/** @type {HTMLInputElement | null} */ (this.querySelector('#experimental-content-stream-conversion-checkbox'))?.checked ?? false)
-            : false;
+            ? /** @type {any} */ (/** @type {HTMLInputElement} */ (this.querySelector('input[name="processing-strategy"]:checked')).value)
+            : /** @type {any} */ (/** @type {HTMLInputElement} */ (this.querySelector('input[name="processing-strategy"][checked]')).value);
 
         const interConversionDelay = isDebugging
-            ? parseInt(/** @type {HTMLInputElement | null} */ (this.querySelector('#inter-conversion-delay-input'))?.value ?? '500', 10) || 500
-            : 500;
+            ? parseInt(/** @type {HTMLInputElement} */ (this.querySelector('#inter-conversion-delay-input')).value, 10) || 500
+            : parseInt(/** @type {HTMLInputElement} */ (this.querySelector('#inter-conversion-delay-input')).defaultValue, 10) || 500;
 
         const includeOutputProfile = false;
 
@@ -1358,8 +1419,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         // Extract output profile basename (strip extension) for download filenames
         const outputProfileBasename = iccProfileFile.name.replace(/\.[^.]+$/, '');
 
-        // When debugging, append browser/OS to filenames for parallel test identification
-        const environmentSuffix = isDebugging ? ` - ${getEnvironmentDescriptor().label}` : '';
+        const environmentSuffix = ` - ${getEnvironmentDescriptor().label}`;
 
         // ----------------------------------------------------------------
         // Progress rendering (shared by both paths)
@@ -1717,8 +1777,11 @@ export class TestFormGeneratorAppElement extends HTMLElement {
         // Docket is already downloaded via onDocketReady callback (before main job).
         // Only download metadata.json as fallback when no docket was generated.
 
+        const parsedMetadata = metadataJSON ? JSON.parse(metadataJSON) : {};
+        const digest = parsedMetadata.metadata?.digest;
+        const digestSuffix = digest ? ` - ${digest.slice(0, 3)}-${digest.slice(3)}` : '';
+
         if (pdfBuffer) {
-            const parsedMetadata = JSON.parse(metadataJSON);
             const intentLabel = parsedMetadata?.assembly?.renderingIntents?.[0]?.label ?? '';
             const downloadSuffix = `${outputProfileBasename}${intentLabel ? ` - ${intentLabel}` : ''}`;
 
@@ -1729,14 +1792,14 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             if (!docketPDFBuffer) {
                 await downloadArrayBufferAs(
                     new TextEncoder().encode(metadataJSON).buffer,
-                    `${testFormName} - ${downloadSuffix} - Metadata${environmentSuffix}.json`,
+                    `${testFormName} - ${downloadSuffix} - Metadata${digestSuffix}${environmentSuffix}.json`,
                     'application/json',
                 );
             }
 
             await downloadArrayBufferAs(
                 pdfBuffer,
-                `${testFormName} - ${downloadSuffix}${environmentSuffix}.pdf`,
+                `${testFormName} - ${downloadSuffix}${digestSuffix}${environmentSuffix}.pdf`,
                 'application/pdf',
             );
         }
@@ -1745,7 +1808,7 @@ export class TestFormGeneratorAppElement extends HTMLElement {
             if (!docketPDFBuffer) {
                 await downloadArrayBufferAs(
                     new TextEncoder().encode(metadataJSON).buffer,
-                    `${testFormName} - ${outputProfileBasename} - Metadata${environmentSuffix}.json`,
+                    `${testFormName} - ${outputProfileBasename} - Metadata${digestSuffix}${environmentSuffix}.json`,
                     'application/json',
                 );
             }
@@ -1817,9 +1880,11 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                     },
                     onDownloadProgress,
                     onDocketReady: async (docketPDFBuffer, metadataJSON) => {
+                        const digest = JSON.parse(metadataJSON).metadata?.digest;
+                        const digestSuffix = digest ? ` - ${digest.slice(0, 3)}-${digest.slice(3)}` : '';
                         await downloadArrayBufferAs(
                             docketPDFBuffer,
-                            `${testFormName} - ${outputProfileBasename} - Docket${environmentSuffix}.pdf`,
+                            `${testFormName} - ${outputProfileBasename} - Docket${digestSuffix}${environmentSuffix}.pdf`,
                             'application/pdf',
                         );
                     },
@@ -1830,9 +1895,11 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                             }
                             preChainDownloadsCompleted = true;
                         }
+                        const digest = JSON.parse(metadataJSON).metadata?.digest;
+                        const digestSuffix = digest ? ` - ${digest.slice(0, 3)}-${digest.slice(3)}` : '';
                         await downloadArrayBufferAs(
                             pdfBuffer,
-                            `${testFormName} - ${outputProfileBasename} - ${label}${environmentSuffix}.pdf`,
+                            `${testFormName} - ${outputProfileBasename} - ${label}${digestSuffix}${environmentSuffix}.pdf`,
                             'application/pdf',
                         );
                     },
@@ -1945,35 +2012,43 @@ export class TestFormGeneratorAppElement extends HTMLElement {
                             onDownloadProgress(data.state);
                             break;
 
-                        case 'docket-ready':
+                        case 'docket-ready': {
                             docketDelivered = true;
+                            const docketDigest = JSON.parse(data.metadataJSON).metadata?.digest;
+                            const docketDigestSuffix = docketDigest ? ` - ${docketDigest.slice(0, 3)}-${docketDigest.slice(3)}` : '';
                             await downloadArrayBufferAs(
                                 data.docketPDFBuffer,
-                                `${testFormName} - ${outputProfileBasename} - Docket${environmentSuffix}.pdf`,
+                                `${testFormName} - ${outputProfileBasename} - Docket${docketDigestSuffix}${environmentSuffix}.pdf`,
                                 'application/pdf',
                             );
                             break;
+                        }
 
-                        case 'chain-output':
+                        case 'chain-output': {
                             if (!preChainDownloadsCompleted) {
                                 if (debugging && includeOutputProfile) {
                                     await downloadArrayBufferAs(iccProfileBuffer, 'Output.icc', 'application/vnd.iccprofile');
                                 }
                                 if (!docketDelivered) {
+                                    const metaDigest = JSON.parse(data.metadataJSON).metadata?.digest;
+                                    const metaDigestSuffix = metaDigest ? ` - ${metaDigest.slice(0, 3)}-${metaDigest.slice(3)}` : '';
                                     await downloadArrayBufferAs(
                                         new TextEncoder().encode(data.metadataJSON).buffer,
-                                        `${testFormName} - ${outputProfileBasename} - Metadata${environmentSuffix}.json`,
+                                        `${testFormName} - ${outputProfileBasename} - Metadata${metaDigestSuffix}${environmentSuffix}.json`,
                                         'application/json',
                                     );
                                 }
                                 preChainDownloadsCompleted = true;
                             }
+                            const chainDigest = JSON.parse(data.metadataJSON).metadata?.digest;
+                            const chainDigestSuffix = chainDigest ? ` - ${chainDigest.slice(0, 3)}-${chainDigest.slice(3)}` : '';
                             await downloadArrayBufferAs(
                                 data.pdfBuffer,
-                                `${testFormName} - ${outputProfileBasename} - ${data.colorSpace}${environmentSuffix}.pdf`,
+                                `${testFormName} - ${outputProfileBasename} - ${data.colorSpace}${chainDigestSuffix}${environmentSuffix}.pdf`,
                                 'application/pdf',
                             );
                             break;
+                        }
 
                         case 'result':
                             resolve({

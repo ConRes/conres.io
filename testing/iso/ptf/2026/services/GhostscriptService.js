@@ -145,7 +145,7 @@ export class GhostscriptService {
      * Processes PostScript data with Ghostscript
      * @param {string} slugTemplateText - The slug template text
      * @param {{ pages: Array<{ metadata: { title?: string, variant?: string, colorSpace?: string, resolution?: { values?: number[], value?: number, unit?: string } } }> }} slugData - Data to inject into the template
-     * @param {{slugs?: Partial<Record<'device'|'colorants'|'substrate'|'settings'|'email', string>>, renderingIntent?: string, profileCategory?: string, outputProfileName?: string, timestamp?: string}} metadata - Metadata for the slug
+     * @param {{slugs?: Partial<Record<'device'|'colorants'|'substrate'|'settings'|'email', string>>, renderingIntent?: string, profileCategory?: string, outputProfileName?: string, timestamp?: string, generatorVersion?: string, digest?: string | null}} metadata - Metadata for the slug
      * @returns {string} - The processed PostScript
      */
     static processSlugTemplate(slugTemplateText, slugData, metadata) {
@@ -169,7 +169,7 @@ export class GhostscriptService {
                         },
                     }) => {
                         const inputParameters = [colorSpace, `${value || ""}${unit || ""}`].filter(Boolean);
-                        const outputParameters = [metadata?.renderingIntent, metadata?.outputProfileName].filter(Boolean);
+                        const parametersWithIntent = [...inputParameters, metadata?.renderingIntent].filter(Boolean);
 
                         return [
                             "$<indent><<",
@@ -177,12 +177,12 @@ export class GhostscriptService {
                             variant && `$<indent>  /Variant (${variant})`,
                             ...(templateSupportsOutputParameters
                                 ? [
-                                    inputParameters.length > 0 && `$<indent>  /Parameters (${inputParameters.join(" - ")})`,
-                                    outputParameters.length > 0 && `$<indent>  /OutputParameters (${outputParameters.join(" - ")})`,
+                                    parametersWithIntent.length > 0 && `$<indent>  /Parameters (${[...inputParameters, metadata?.renderingIntent].filter(Boolean).join(" \\267 ")})`,
+                                    (metadata?.outputProfileName || metadata?.profileCategory) && `$<indent>  /OutputParameters (${[metadata?.outputProfileName, metadata?.profileCategory].filter(Boolean).join(" \\267 ")})`,
                                 ]
                                 : [
-                                    (inputParameters.length > 0 || outputParameters.length > 0) &&
-                                    `$<indent>  /Parameters (${[...inputParameters, ...outputParameters].join(" - ")})`,
+                                    parametersWithIntent.length > 0 &&
+                                    `$<indent>  /Parameters (${[...inputParameters, metadata?.renderingIntent, metadata?.outputProfileName, metadata?.profileCategory].filter(Boolean).join(" \\267 ")})`,
                                 ]),
                             "$<indent>>>",
                         ]
@@ -197,20 +197,18 @@ export class GhostscriptService {
         slugSourceText = /^(?<indent>[ \t]*)%\|[ \t]+\{\{Slug\}\}.*?$/m[Symbol.replace](
             slugSourceText,
             [
-                `$<indent>/SlugHeader (${[
-                    "Slug CR 20250322",
-                    metadata?.profileCategory,
-                ]
-                    .filter(Boolean)
-                    .join(" - ")}) def`,
+                `$<indent>/SlugHeader (Slug CR ${metadata?.generatorVersion ?? "F10a"}) def`,
                 `$<indent>/SlugFooter (${[
                     metadata?.slugs?.email ?? "user@example.com",
                     /^(?<YYYY>\d{4})-(?<MM>\d{2})-(?<DD>\d{2})T(?<hh>\d{2}):(?<mm>\d{2}):(?<ss>\d{2})\.\d+Z$/[
                         Symbol.replace
                     ](metadata?.timestamp ?? new Date().toISOString(), "$<YYYY>-$<MM>-$<DD> $<hh>:$<mm>:$<ss>"),
+                    metadata?.digest
+                        ? `${metadata.digest.slice(0, 3)}-${metadata.digest.slice(3)}`
+                        : undefined,
                 ]
                     .filter(Boolean)
-                    .join(" ")}) def`,
+                    .join(" \\267 ")}) def`,
             ].join("\n")
         );
 
