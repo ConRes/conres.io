@@ -1,0 +1,336 @@
+{
+    "settings": {
+        "colorManagement": {
+            "defaultSourceProfileForDeviceGray": null,
+            "defaultSourceProfileForDeviceGrayPolicy": {
+                "preferOutputIntent": true,
+                "preferEmbeded": false,
+                "preferGracefulFallback": false
+            },
+            "defaultSourceProfileForDeviceRGB": null,
+            "defaultSourceProfileForDeviceRGBPolicy": {
+                "preferOutputIntent": true,
+                "preferEmbeded": false,
+                "preferGracefulFallback": false
+            },
+            "defaultSourceProfileForDeviceCMYK": null,
+            "defaultSourceProfileForDeviceCMYKPolicy": {
+                "preferOutputIntent": true,
+                "preferEmbeded": false,
+                "preferGracefulFallback": false
+            }
+        }
+    },
+    "assets": [
+        { "asset": "CR21", "colorSpace": "sRGB", "barcodes": [ { "type": "QR" } ] },
+        { "asset": "CR21", "colorSpace": "sGray", "barcodes": [ { "type": "QR" } ] },
+        { "asset": "CR21", "colorSpace": "Lab", "barcodes": [ { "type": "QR" } ] },
+        { "asset": "CR21", "colorSpace": "SepK", "barcodes": [ { "type": "QR" } ] },
+        {
+            "asset": "A - Interlaken Map",
+            "colorSpace": "sRGB",
+            "barcodes": [ { "type": "RMQR" } ]
+        },
+        {
+            "asset": "A - Interlaken Map",
+            "colorSpace": "sGray",
+            "barcodes": [ { "type": "RMQR" } ]
+        },
+        {
+            "asset": "P - Type Sizes",
+            "colorSpace": "sGray",
+            "barcodes": [
+                { "type": "RMQR" }, { "type": "RMQR" }, { "type": "RMQR" }, { "type": "RMQR" }
+            ]
+        },
+        {
+            "asset": "P - Type Sizes",
+            "colorSpace": "SepK",
+            "barcodes": [
+                { "type": "RMQR" }, { "type": "RMQR" }, { "type": "RMQR" }, { "type": "RMQR" }
+            ]
+        },
+        {
+            "asset": "P - Lissajou",
+            "colorSpace": "sGray",
+            "barcodes": [ { "type": "RMQR" }, { "type": "RMQR" } ]
+        },
+        {
+            "asset": "P - Lissajou",
+            "colorSpace": "SepK",
+            "barcodes": [ { "type": "RMQR" }, { "type": "RMQR" } ]
+        },
+        {
+            "asset": "P - ConRes TV25 vs TV75",
+            "colorSpace": "sRGB",
+            "barcodes": [ { "type": "QR" }, { "type": "QR" } ]
+        },
+        {
+            "asset": "P - ConRes TV25 vs TV75",
+            "colorSpace": "sGray",
+            "barcodes": [ { "type": "QR" }, { "type": "QR" } ]
+        },
+        {
+            "asset": "P - ConRes TV25 vs TV75",
+            "colorSpace": "Lab",
+            "barcodes": [ { "type": "QR" }, { "type": "QR" } ]
+        },
+        {
+            "asset": "P - ConRes CR21 vs CR20",
+            "colorSpace": "sRGB",
+            "barcodes": [ { "type": "RMQR" } ]
+        },
+        {
+            "asset": "P - ConRes CR21 vs CR20",
+            "colorSpace": "sGray",
+            "barcodes": [ { "type": "RMQR" } ]
+        },
+        {
+            "asset": "P - ConRes CR21 vs CR20",
+            "colorSpace": "Lab",
+            "barcodes": [ { "type": "RMQR" } ]
+        }
+    ],
+    "slugs": [
+        {
+            "slug": "Standard Slug",
+            "content": [
+                {
+                    "type": "Rectangle",
+                    "x": 29,
+                    "y": 502.5,
+                    "width": 365,
+                    "height": 63.5,
+                    "color": { "type": "Grayscale", "gray": 0.95 },
+                    "borderColor": { "type": "Grayscale", "gray": 0 },
+                    "borderWidth": 0.001
+                },
+                {
+                    "type": "Rectangle",
+                    "x": 31.5,
+                    "y": 505,
+                    "width": 58.5,
+                    "height": 58.5,
+                    "color": { "type": "Grayscale", "gray": 1 },
+                    "borderColor": { "type": "Grayscale", "gray": 0.5 },
+                    "borderWidth": 0.001
+                },
+                {
+                    "type": "QR Code",
+                    "x": 33.5,
+                    "y": 507,
+                    "width": 54.5,
+                    "height": 54.5,
+                    "encoder": "qrcode",
+                    "options": {
+                        "eclevel": "L",
+                        "parsefnc": true,
+                        "inkspreadh": 0.125,
+                        "inkspreadv": 0.125
+                    },
+                    "content": [
+                        "{{SlugHeader}}",
+                        "\n",
+                        "{{SlugTitle}}",
+                        "\n",
+                        "{{SlugParameters}}",
+                        "\n",
+                        {
+                            "condition": "{{SlugOutputParameters}}",
+                            "content": [ "{{SlugOutputParameters}}", "\n" ]
+                        },
+                        "{{SlugFooter}}"
+                    ]
+                },
+                {
+                    "type": "Text",
+                    "text": "{{SlugTitle}}",
+                    "x": 92.5,
+                    "y": 552.5,
+                    "size": 9,
+                    "font": "Liberation Sans",
+                    "color": { "type": "Grayscale", "gray": 0 }
+                },
+                {
+                    "type": "Text",
+                    "text": [
+                        "{{SlugParameters}}",
+                        "\n",
+                        {
+                            "condition": "{{SlugOutputParameters}}",
+                            "content": [ "{{SlugOutputParameters}}", "\n" ]
+                        },
+                        "{{SlugFooter}}"
+                    ],
+                    "x": 92.5,
+                    "y": 543.5,
+                    "size": 6,
+                    "lineHeight": 9,
+                    "font": "Liberation Sans",
+                    "color": { "type": "Grayscale", "gray": 0 }
+                }
+            ]
+        }
+    ],
+    "colorSpaces": {
+        "sRGB": { "type": "RGB", "profile": "../profiles/sRGB IEC61966-2.1.icc" },
+        "sGray": { "type": "Gray", "profile": "../profiles/sGray.icc" },
+        "Lab": { "type": "Lab", "profile": "Lab" },
+        "SepK": { "type": "DeviceN" }
+    },
+    "docket": {
+        "colorSpace": "sRGB",
+        "slug": "Standard Slug",
+        "assets": [ { "asset": "CR21", "colorSpace": "sRGB" } ],
+        "bounds": { "x": 410, "y": 90, "width": 340, "height": 395, "unit": "points" }
+    },
+    "layouts": [
+        {
+            "layout": "P-31 Interlaken Map",
+            "colorSpace": "sRGB",
+            "assets": [
+                { "asset": "CR21", "colorSpace": "sRGB" },
+                { "asset": "A - Interlaken Map", "colorSpace": "sRGB" }
+            ]
+        },
+        {
+            "layout": "P-31 Interlaken Map",
+            "colorSpace": "sGray",
+            "assets": [
+                { "asset": "CR21", "colorSpace": "sGray" },
+                { "asset": "A - Interlaken Map", "colorSpace": "sGray" }
+            ]
+        },
+        {
+            "layout": "P-40 Type Sizes",
+            "colorSpace": "sGray",
+            "assets": [
+                { "asset": "CR21", "colorSpace": "sGray" },
+                { "asset": "P - Type Sizes", "colorSpace": "sGray" }
+            ]
+        },
+        {
+            "layout": "P-40 Type Sizes",
+            "colorSpace": "SepK",
+            "assets": [
+                { "asset": "CR21", "colorSpace": "SepK" },
+                { "asset": "P - Type Sizes", "colorSpace": "SepK" }
+            ]
+        },
+        {
+            "layout": "P-45 Lissajou",
+            "colorSpace": "sGray",
+            "assets": [
+                { "asset": "CR21", "colorSpace": "sGray" },
+                { "asset": "P - Lissajou", "colorSpace": "sGray" }
+            ]
+        },
+        {
+            "layout": "P-45 Lissajou",
+            "colorSpace": "SepK",
+            "assets": [
+                { "asset": "CR21", "colorSpace": "SepK" },
+                { "asset": "P - Lissajou", "colorSpace": "SepK" }
+            ]
+        },
+        {
+            "layout": "P-CR21-1 ConRes TV25 vs TV75",
+            "colorSpace": "sRGB",
+            "assets": [ { "asset": "P - ConRes TV25 vs TV75", "colorSpace": "sRGB" } ]
+        },
+        {
+            "layout": "P-CR21-1 ConRes TV25 vs TV75",
+            "colorSpace": "sGray",
+            "assets": [ { "asset": "P - ConRes TV25 vs TV75", "colorSpace": "sGray" } ]
+        },
+        {
+            "layout": "P-CR21-1 ConRes TV25 vs TV75",
+            "colorSpace": "Lab",
+            "assets": [ { "asset": "P - ConRes TV25 vs TV75", "colorSpace": "Lab" } ]
+        },
+        {
+            "layout": "P-CR21-2 ConRes CR21 vs CR20",
+            "colorSpace": "sRGB",
+            "assets": [
+                { "asset": "CR21", "colorSpace": "sRGB" },
+                { "asset": "P - ConRes CR21 vs CR20", "colorSpace": "sRGB" }
+            ]
+        },
+        {
+            "layout": "P-CR21-2 ConRes CR21 vs CR20",
+            "colorSpace": "sGray",
+            "assets": [
+                { "asset": "CR21", "colorSpace": "sGray" },
+                { "asset": "P - ConRes CR21 vs CR20", "colorSpace": "sGray" }
+            ]
+        },
+        {
+            "layout": "P-CR21-2 ConRes CR21 vs CR20",
+            "colorSpace": "Lab",
+            "assets": [
+                { "asset": "CR21", "colorSpace": "Lab" },
+                { "asset": "P - ConRes CR21 vs CR20", "colorSpace": "Lab" }
+            ]
+        }
+    ],
+    "pages": [
+        {
+            "layout": "P-31 Interlaken Map",
+            "slug": "Standard Slug",
+            "colorSpace": "sRGB",
+            "metadata": {
+                "title": "P-31 Interlaken Map",
+                "resolution": { "values": [ 900 ], "unit": "ppi" }
+            }
+        },
+        {
+            "layout": "P-31 Interlaken Map",
+            "slug": "Standard Slug",
+            "colorSpace": "sGray",
+            "metadata": {
+                "title": "P-31 Interlaken Map",
+                "resolution": { "values": [ 900 ], "unit": "ppi" }
+            }
+        },
+        {
+            "slug": "Standard Slug",
+            "metadata": { "title": "P-40 Type Sizes", "colorSpace": "sGray" }
+        },
+        {
+            "slug": "Standard Slug",
+            "metadata": { "title": "P-40 Type Sizes", "colorSpace": "SepK" }
+        },
+        {
+            "slug": "Standard Slug",
+            "metadata": { "title": "P-45 Lissajou", "colorSpace": "sGray" }
+        },
+        {
+            "slug": "Standard Slug",
+            "metadata": { "title": "P-45 Lissajou", "colorSpace": "SepK" }
+        },
+        {
+            "slug": "Standard Slug",
+            "metadata": { "title": "P-CR21-1 ConRes TV25 vs TV75", "colorSpace": "sRGB" }
+        },
+        {
+            "slug": "Standard Slug",
+            "metadata": { "title": "P-CR21-1 ConRes TV25 vs TV75", "colorSpace": "sGray" }
+        },
+        {
+            "slug": "Standard Slug",
+            "metadata": { "title": "P-CR21-1 ConRes TV25 vs TV75", "colorSpace": "Lab" }
+        },
+        {
+            "slug": "Standard Slug",
+            "metadata": { "title": "P-CR21-2 ConRes CR21 vs CR20", "colorSpace": "sRGB" }
+        },
+        {
+            "slug": "Standard Slug",
+            "metadata": { "title": "P-CR21-2 ConRes CR21 vs CR20", "colorSpace": "sGray" }
+        },
+        {
+            "slug": "Standard Slug",
+            "metadata": { "title": "P-CR21-2 ConRes CR21 vs CR20", "colorSpace": "Lab" }
+        }
+    ]
+}

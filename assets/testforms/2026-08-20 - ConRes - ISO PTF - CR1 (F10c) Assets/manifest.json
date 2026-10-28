@@ -1,162 +1,162 @@
 {
-    "settings":    {
+    "settings": {
         "colorManagement": {
-            "defaultSourceProfileForDeviceGray":       null,
+            "defaultSourceProfileForDeviceGray": null,
             "defaultSourceProfileForDeviceGrayPolicy": {
-                "preferOutputIntent":     true,
-                "preferEmbeded":          false,
+                "preferOutputIntent": true,
+                "preferEmbeded": false,
                 "preferGracefulFallback": false
             },
-            "defaultSourceProfileForDeviceRGB":        null,
-            "defaultSourceProfileForDeviceRGBPolicy":  {
-                "preferOutputIntent":     true,
-                "preferEmbeded":          false,
+            "defaultSourceProfileForDeviceRGB": null,
+            "defaultSourceProfileForDeviceRGBPolicy": {
+                "preferOutputIntent": true,
+                "preferEmbeded": false,
                 "preferGracefulFallback": false
             },
-            "defaultSourceProfileForDeviceCMYK":       null,
+            "defaultSourceProfileForDeviceCMYK": null,
             "defaultSourceProfileForDeviceCMYKPolicy": {
-                "preferOutputIntent":     true,
-                "preferEmbeded":          false,
+                "preferOutputIntent": true,
+                "preferEmbeded": false,
                 "preferGracefulFallback": false
             }
         }
     },
-    "assets":      [
+    "assets": [
         { "asset": "CR21", "colorSpace": "sRGB", "barcodes": [ { "type": "QR" } ] },
         { "asset": "CR21", "colorSpace": "sGray", "barcodes": [ { "type": "QR" } ] },
         { "asset": "CR21", "colorSpace": "Lab", "barcodes": [ { "type": "QR" } ] },
         { "asset": "CR21", "colorSpace": "SepK", "barcodes": [ { "type": "QR" } ] },
         {
-            "asset":      "A - London",
+            "asset": "A - London",
             "colorSpace": "sRGB",
-            "barcodes":   [ { "type": "RMQR" }, { "type": "RMQR" } ]
+            "barcodes": [ { "type": "RMQR" }, { "type": "RMQR" } ]
         },
         {
-            "asset":      "A - Winter Trees",
+            "asset": "A - Winter Trees",
             "colorSpace": "sRGB",
-            "barcodes":   [
+            "barcodes": [
                 { "type": "RMQR" }, { "type": "RMQR" }, { "type": "RMQR" }, { "type": "RMQR" }
             ]
         },
         {
-            "asset":      "A - Lake and Cat",
+            "asset": "A - Lake and Cat",
             "colorSpace": "sRGB",
-            "barcodes":   [ { "type": "RMQR" }, { "type": "RMQR" } ]
+            "barcodes": [ { "type": "RMQR" }, { "type": "RMQR" } ]
         },
         {
-            "asset":      "A - Vitznau Map",
+            "asset": "A - Vitznau Map",
             "colorSpace": "sRGB",
-            "barcodes":   [ { "type": "RMQR" }, { "type": "RMQR" } ]
+            "barcodes": [ { "type": "RMQR" }, { "type": "RMQR" } ]
         },
         {
-            "asset":      "A - Vitznau Map",
+            "asset": "A - Vitznau Map",
             "colorSpace": "sGray",
-            "barcodes":   [ { "type": "RMQR" }, { "type": "RMQR" } ]
+            "barcodes": [ { "type": "RMQR" }, { "type": "RMQR" } ]
         },
         {
-            "asset":      "A - Interlaken Map",
+            "asset": "A - Interlaken Map",
             "colorSpace": "sRGB",
-            "barcodes":   [ { "type": "RMQR" } ]
+            "barcodes": [ { "type": "RMQR" } ]
         },
         {
-            "asset":      "A - Interlaken Map",
+            "asset": "A - Interlaken Map",
             "colorSpace": "sGray",
-            "barcodes":   [ { "type": "RMQR" } ]
+            "barcodes": [ { "type": "RMQR" } ]
         },
         {
-            "asset":      "A - Interlaken Aerial",
+            "asset": "A - Interlaken Aerial",
             "colorSpace": "sRGB",
-            "barcodes":   [ { "type": "RMQR" } ]
+            "barcodes": [ { "type": "RMQR" } ]
         },
         {
-            "asset":      "P - Type Sizes",
+            "asset": "P - Type Sizes",
             "colorSpace": "sGray",
-            "barcodes":   [
+            "barcodes": [
                 { "type": "RMQR" }, { "type": "RMQR" }, { "type": "RMQR" }, { "type": "RMQR" }
             ]
         },
         {
-            "asset":      "P - Type Sizes",
+            "asset": "P - Type Sizes",
             "colorSpace": "SepK",
-            "barcodes":   [
+            "barcodes": [
                 { "type": "RMQR" }, { "type": "RMQR" }, { "type": "RMQR" }, { "type": "RMQR" }
             ]
         },
         {
-            "asset":      "P - Lissajou",
+            "asset": "P - Lissajou",
             "colorSpace": "sGray",
-            "barcodes":   [ { "type": "RMQR" }, { "type": "RMQR" } ]
+            "barcodes": [ { "type": "RMQR" }, { "type": "RMQR" } ]
         },
         {
-            "asset":      "P - Lissajou",
+            "asset": "P - Lissajou",
             "colorSpace": "SepK",
-            "barcodes":   [ { "type": "RMQR" }, { "type": "RMQR" } ]
+            "barcodes": [ { "type": "RMQR" }, { "type": "RMQR" } ]
         },
         {
-            "asset":      "P - ConRes TV25 vs TV75",
+            "asset": "P - ConRes TV25 vs TV75",
             "colorSpace": "sRGB",
-            "barcodes":   [ { "type": "QR" }, { "type": "QR" } ]
+            "barcodes": [ { "type": "QR" }, { "type": "QR" } ]
         },
         {
-            "asset":      "P - ConRes TV25 vs TV75",
+            "asset": "P - ConRes TV25 vs TV75",
             "colorSpace": "sGray",
-            "barcodes":   [ { "type": "QR" }, { "type": "QR" } ]
+            "barcodes": [ { "type": "QR" }, { "type": "QR" } ]
         },
         {
-            "asset":      "P - ConRes TV25 vs TV75",
+            "asset": "P - ConRes TV25 vs TV75",
             "colorSpace": "Lab",
-            "barcodes":   [ { "type": "QR" }, { "type": "QR" } ]
+            "barcodes": [ { "type": "QR" }, { "type": "QR" } ]
         },
         {
-            "asset":      "P - ConRes CR21 vs CR20",
+            "asset": "P - ConRes CR21 vs CR20",
             "colorSpace": "sRGB",
-            "barcodes":   [ { "type": "RMQR" } ]
+            "barcodes": [ { "type": "RMQR" } ]
         },
         {
-            "asset":      "P - ConRes CR21 vs CR20",
+            "asset": "P - ConRes CR21 vs CR20",
             "colorSpace": "sGray",
-            "barcodes":   [ { "type": "RMQR" } ]
+            "barcodes": [ { "type": "RMQR" } ]
         },
         {
-            "asset":      "P - ConRes CR21 vs CR20",
+            "asset": "P - ConRes CR21 vs CR20",
             "colorSpace": "Lab",
-            "barcodes":   [ { "type": "RMQR" } ]
+            "barcodes": [ { "type": "RMQR" } ]
         }
     ],
-    "slugs":       [
+    "slugs": [
         {
-            "slug":    "Standard Slug",
+            "slug": "Standard Slug",
             "content": [
                 {
-                    "type":        "Rectangle",
-                    "x":           29,
-                    "y":           502.5,
-                    "width":       365,
-                    "height":      63.5,
-                    "color":       { "type": "Grayscale", "gray": 0.95 },
+                    "type": "Rectangle",
+                    "x": 29,
+                    "y": 502.5,
+                    "width": 365,
+                    "height": 63.5,
+                    "color": { "type": "Grayscale", "gray": 0.95 },
                     "borderColor": { "type": "Grayscale", "gray": 0 },
                     "borderWidth": 0.001
                 },
                 {
-                    "type":        "Rectangle",
-                    "x":           31.5,
-                    "y":           505,
-                    "width":       58.5,
-                    "height":      58.5,
-                    "color":       { "type": "Grayscale", "gray": 1 },
+                    "type": "Rectangle",
+                    "x": 31.5,
+                    "y": 505,
+                    "width": 58.5,
+                    "height": 58.5,
+                    "color": { "type": "Grayscale", "gray": 1 },
                     "borderColor": { "type": "Grayscale", "gray": 0.5 },
                     "borderWidth": 0.001
                 },
                 {
-                    "type":    "QR Code",
-                    "x":       33.5,
-                    "y":       507,
-                    "width":   54.5,
-                    "height":  54.5,
+                    "type": "QR Code",
+                    "x": 33.5,
+                    "y": 507,
+                    "width": 54.5,
+                    "height": 54.5,
                     "encoder": "qrcode",
                     "options": {
-                        "eclevel":    "L",
-                        "parsefnc":   true,
+                        "eclevel": "L",
+                        "parsefnc": true,
                         "inkspreadh": 0.125,
                         "inkspreadv": 0.125
                     },
@@ -169,367 +169,367 @@
                         "\n",
                         {
                             "condition": "{{SlugOutputParameters}}",
-                            "content":   [ "{{SlugOutputParameters}}", "\n" ]
+                            "content": [ "{{SlugOutputParameters}}", "\n" ]
                         },
                         "{{SlugFooter}}"
                     ]
                 },
                 {
-                    "type":  "Text",
-                    "text":  "{{SlugTitle}}",
-                    "x":     92.5,
-                    "y":     552.5,
-                    "size":  9,
-                    "font":  "Liberation Sans",
+                    "type": "Text",
+                    "text": "{{SlugTitle}}",
+                    "x": 92.5,
+                    "y": 552.5,
+                    "size": 9,
+                    "font": "Liberation Sans",
                     "color": { "type": "Grayscale", "gray": 0 }
                 },
                 {
-                    "type":       "Text",
-                    "text":       [
+                    "type": "Text",
+                    "text": [
                         "{{SlugParameters}}",
                         "\n",
                         {
                             "condition": "{{SlugOutputParameters}}",
-                            "content":   [ "{{SlugOutputParameters}}", "\n" ]
+                            "content": [ "{{SlugOutputParameters}}", "\n" ]
                         },
                         "{{SlugFooter}}"
                     ],
-                    "x":          92.5,
-                    "y":          543.5,
-                    "size":       6,
+                    "x": 92.5,
+                    "y": 543.5,
+                    "size": 6,
                     "lineHeight": 9,
-                    "font":       "Liberation Sans",
-                    "color":      { "type": "Grayscale", "gray": 0 }
+                    "font": "Liberation Sans",
+                    "color": { "type": "Grayscale", "gray": 0 }
                 }
             ]
         }
     ],
     "colorSpaces": {
-        "sRGB":  { "type": "RGB",     "profile": "../profiles/sRGB IEC61966-2.1.icc" },
-        "sGray": { "type": "Gray",    "profile": "../profiles/sGray.icc"             },
-        "Lab":   { "type": "Lab",     "profile": "Lab"                               },
-        "SepK":  { "type": "DeviceN"                                                 }
+        "sRGB": { "type": "RGB", "profile": "../profiles/sRGB IEC61966-2.1.icc" },
+        "sGray": { "type": "Gray", "profile": "../profiles/sGray.icc" },
+        "Lab": { "type": "Lab", "profile": "Lab" },
+        "SepK": { "type": "DeviceN" }
     },
-    "docket":      {
+    "docket": {
         "colorSpace": "sRGB",
-        "slug":       "Standard Slug",
-        "assets":     [ { "asset": "CR21", "colorSpace": "sRGB" } ],
-        "bounds":     { "x": 410, "y": 90, "width": 340, "height": 395, "unit": "points" }
+        "slug": "Standard Slug",
+        "assets": [ { "asset": "CR21", "colorSpace": "sRGB" } ],
+        "bounds": { "x": 410, "y": 90, "width": 340, "height": 395, "unit": "points" }
     },
-    "layouts":     [
+    "layouts": [
         {
-            "layout":     "P-20 London",
+            "layout": "P-20 London",
             "colorSpace": "sRGB",
-            "assets":     [
-                { "asset": "CR21",       "colorSpace": "sRGB" },
+            "assets": [
+                { "asset": "CR21", "colorSpace": "sRGB" },
                 { "asset": "A - London", "colorSpace": "sRGB" }
             ]
         },
         {
-            "layout":     "P-20 London",
+            "layout": "P-20 London",
             "colorSpace": "sGray",
-            "assets":     [
-                { "asset": "CR21",       "colorSpace": "sGray" },
-                { "asset": "A - London", "colorSpace": "sRGB"  }
+            "assets": [
+                { "asset": "CR21", "colorSpace": "sGray" },
+                { "asset": "A - London", "colorSpace": "sRGB" }
             ]
         },
         {
-            "layout":     "P-21 Winter Trees",
+            "layout": "P-21 Winter Trees",
             "colorSpace": "sRGB",
-            "assets":     [
-                { "asset": "CR21",             "colorSpace": "sRGB" },
+            "assets": [
+                { "asset": "CR21", "colorSpace": "sRGB" },
                 { "asset": "A - Winter Trees", "colorSpace": "sRGB" }
             ]
         },
         {
-            "layout":     "P-21 Winter Trees",
+            "layout": "P-21 Winter Trees",
             "colorSpace": "sGray",
-            "assets":     [
-                { "asset": "CR21",             "colorSpace": "sGray" },
-                { "asset": "A - Winter Trees", "colorSpace": "sRGB"  }
+            "assets": [
+                { "asset": "CR21", "colorSpace": "sGray" },
+                { "asset": "A - Winter Trees", "colorSpace": "sRGB" }
             ]
         },
         {
-            "layout":     "P-22 Lake and Cat",
+            "layout": "P-22 Lake and Cat",
             "colorSpace": "sRGB",
-            "assets":     [
-                { "asset": "CR21",             "colorSpace": "sRGB" },
+            "assets": [
+                { "asset": "CR21", "colorSpace": "sRGB" },
                 { "asset": "A - Lake and Cat", "colorSpace": "sRGB" }
             ]
         },
         {
-            "layout":     "P-22 Lake and Cat",
+            "layout": "P-22 Lake and Cat",
             "colorSpace": "sGray",
-            "assets":     [
-                { "asset": "CR21",             "colorSpace": "sGray" },
-                { "asset": "A - Lake and Cat", "colorSpace": "sRGB"  }
+            "assets": [
+                { "asset": "CR21", "colorSpace": "sGray" },
+                { "asset": "A - Lake and Cat", "colorSpace": "sRGB" }
             ]
         },
         {
-            "layout":     "P-30 Vitznau Map",
+            "layout": "P-30 Vitznau Map",
             "colorSpace": "sRGB",
-            "assets":     [
-                { "asset": "CR21",            "colorSpace": "sRGB" },
+            "assets": [
+                { "asset": "CR21", "colorSpace": "sRGB" },
                 { "asset": "A - Vitznau Map", "colorSpace": "sRGB" }
             ]
         },
         {
-            "layout":     "P-30 Vitznau Map",
+            "layout": "P-30 Vitznau Map",
             "colorSpace": "sGray",
-            "assets":     [
-                { "asset": "CR21",            "colorSpace": "sGray" },
+            "assets": [
+                { "asset": "CR21", "colorSpace": "sGray" },
                 { "asset": "A - Vitznau Map", "colorSpace": "sGray" }
             ]
         },
         {
-            "layout":     "P-31 Interlaken Map",
+            "layout": "P-31 Interlaken Map",
             "colorSpace": "sRGB",
-            "assets":     [
-                { "asset": "CR21",               "colorSpace": "sRGB" },
+            "assets": [
+                { "asset": "CR21", "colorSpace": "sRGB" },
                 { "asset": "A - Interlaken Map", "colorSpace": "sRGB" }
             ]
         },
         {
-            "layout":     "P-31 Interlaken Map",
+            "layout": "P-31 Interlaken Map",
             "colorSpace": "sGray",
-            "assets":     [
-                { "asset": "CR21",               "colorSpace": "sGray" },
+            "assets": [
+                { "asset": "CR21", "colorSpace": "sGray" },
                 { "asset": "A - Interlaken Map", "colorSpace": "sGray" }
             ]
         },
         {
-            "layout":     "P-32 Interlaken Aerial",
+            "layout": "P-32 Interlaken Aerial",
             "colorSpace": "sRGB",
-            "assets":     [
-                { "asset": "CR21",                  "colorSpace": "sRGB" },
+            "assets": [
+                { "asset": "CR21", "colorSpace": "sRGB" },
                 { "asset": "A - Interlaken Aerial", "colorSpace": "sRGB" }
             ]
         },
         {
-            "layout":     "P-32 Interlaken Aerial",
+            "layout": "P-32 Interlaken Aerial",
             "colorSpace": "sGray",
-            "assets":     [
-                { "asset": "CR21",                  "colorSpace": "sGray" },
-                { "asset": "A - Interlaken Aerial", "colorSpace": "sRGB"  }
+            "assets": [
+                { "asset": "CR21", "colorSpace": "sGray" },
+                { "asset": "A - Interlaken Aerial", "colorSpace": "sRGB" }
             ]
         },
         {
-            "layout":     "P-40 Type Sizes",
+            "layout": "P-40 Type Sizes",
             "colorSpace": "sGray",
-            "assets":     [
-                { "asset": "CR21",           "colorSpace": "sGray" },
+            "assets": [
+                { "asset": "CR21", "colorSpace": "sGray" },
                 { "asset": "P - Type Sizes", "colorSpace": "sGray" }
             ]
         },
         {
-            "layout":     "P-40 Type Sizes",
+            "layout": "P-40 Type Sizes",
             "colorSpace": "SepK",
-            "assets":     [
-                { "asset": "CR21",           "colorSpace": "SepK" },
+            "assets": [
+                { "asset": "CR21", "colorSpace": "SepK" },
                 { "asset": "P - Type Sizes", "colorSpace": "SepK" }
             ]
         },
         {
-            "layout":     "P-45 Lissajou",
+            "layout": "P-45 Lissajou",
             "colorSpace": "sGray",
-            "assets":     [
-                { "asset": "CR21",         "colorSpace": "sGray" },
+            "assets": [
+                { "asset": "CR21", "colorSpace": "sGray" },
                 { "asset": "P - Lissajou", "colorSpace": "sGray" }
             ]
         },
         {
-            "layout":     "P-45 Lissajou",
+            "layout": "P-45 Lissajou",
             "colorSpace": "SepK",
-            "assets":     [
-                { "asset": "CR21",         "colorSpace": "SepK" },
+            "assets": [
+                { "asset": "CR21", "colorSpace": "SepK" },
                 { "asset": "P - Lissajou", "colorSpace": "SepK" }
             ]
         },
         {
-            "layout":     "P-CR21-1 ConRes TV25 vs TV75",
+            "layout": "P-CR21-1 ConRes TV25 vs TV75",
             "colorSpace": "sRGB",
-            "assets":     [ { "asset": "P - ConRes TV25 vs TV75", "colorSpace": "sRGB" } ]
+            "assets": [ { "asset": "P - ConRes TV25 vs TV75", "colorSpace": "sRGB" } ]
         },
         {
-            "layout":     "P-CR21-1 ConRes TV25 vs TV75",
+            "layout": "P-CR21-1 ConRes TV25 vs TV75",
             "colorSpace": "sGray",
-            "assets":     [ { "asset": "P - ConRes TV25 vs TV75", "colorSpace": "sGray" } ]
+            "assets": [ { "asset": "P - ConRes TV25 vs TV75", "colorSpace": "sGray" } ]
         },
         {
-            "layout":     "P-CR21-1 ConRes TV25 vs TV75",
+            "layout": "P-CR21-1 ConRes TV25 vs TV75",
             "colorSpace": "Lab",
-            "assets":     [ { "asset": "P - ConRes TV25 vs TV75", "colorSpace": "Lab" } ]
+            "assets": [ { "asset": "P - ConRes TV25 vs TV75", "colorSpace": "Lab" } ]
         },
         {
-            "layout":     "P-CR21-2 ConRes CR21 vs CR20",
+            "layout": "P-CR21-2 ConRes CR21 vs CR20",
             "colorSpace": "sRGB",
-            "assets":     [
-                { "asset": "CR21",                    "colorSpace": "sRGB" },
+            "assets": [
+                { "asset": "CR21", "colorSpace": "sRGB" },
                 { "asset": "P - ConRes CR21 vs CR20", "colorSpace": "sRGB" }
             ]
         },
         {
-            "layout":     "P-CR21-2 ConRes CR21 vs CR20",
+            "layout": "P-CR21-2 ConRes CR21 vs CR20",
             "colorSpace": "sGray",
-            "assets":     [
-                { "asset": "CR21",                    "colorSpace": "sGray" },
+            "assets": [
+                { "asset": "CR21", "colorSpace": "sGray" },
                 { "asset": "P - ConRes CR21 vs CR20", "colorSpace": "sGray" }
             ]
         },
         {
-            "layout":     "P-CR21-2 ConRes CR21 vs CR20",
+            "layout": "P-CR21-2 ConRes CR21 vs CR20",
             "colorSpace": "Lab",
-            "assets":     [
-                { "asset": "CR21",                    "colorSpace": "Lab" },
+            "assets": [
+                { "asset": "CR21", "colorSpace": "Lab" },
                 { "asset": "P - ConRes CR21 vs CR20", "colorSpace": "Lab" }
             ]
         }
     ],
-    "pages":       [
+    "pages": [
         {
-            "layout":     "P-20 London",
-            "slug":       "Standard Slug",
+            "layout": "P-20 London",
+            "slug": "Standard Slug",
             "colorSpace": "sRGB",
-            "metadata":   {
-                "title":      "P-20 London",
-                "resolution": { "values": [ 2400, 1200 ], "unit": "ppi" }
-            }
-        },
-        {
-            "layout":     "P-20 London",
-            "slug":       "Standard Slug",
-            "colorSpace": "sGray",
-            "metadata":   {
-                "title":      "P-20 London",
-                "resolution": { "values": [ 2400, 1200 ], "unit": "ppi" }
-            }
-        },
-        {
-            "layout":     "P-21 Winter Trees",
-            "slug":       "Standard Slug",
-            "colorSpace": "sRGB",
-            "metadata":   {
-                "title":      "P-21 Winter Trees",
-                "resolution": { "values": [ 1200 ], "unit": "ppi" }
-            }
-        },
-        {
-            "layout":     "P-21 Winter Trees",
-            "slug":       "Standard Slug",
-            "colorSpace": "sGray",
-            "metadata":   {
-                "title":      "P-21 Winter Trees",
-                "resolution": { "values": [ 1200 ], "unit": "ppi" }
-            }
-        },
-        {
-            "layout":     "P-22 Lake and Cat",
-            "slug":       "Standard Slug",
-            "colorSpace": "sRGB",
-            "metadata":   {
-                "title":      "P-22 Lake and Cat",
-                "resolution": { "values": [ 1800, 1200 ], "unit": "ppi" }
-            }
-        },
-        {
-            "layout":     "P-22 Lake and Cat",
-            "slug":       "Standard Slug",
-            "colorSpace": "sGray",
-            "metadata":   {
-                "title":      "P-22 Lake and Cat",
-                "resolution": { "values": [ 1800, 1200 ], "unit": "ppi" }
-            }
-        },
-        {
-            "layout":     "P-30 Vitznau Map",
-            "slug":       "Standard Slug",
-            "colorSpace": "sRGB",
-            "metadata":   {
-                "title":      "P-30 Vitznau Map",
-                "resolution": { "values": [ 900 ], "unit": "ppi" }
-            }
-        },
-        {
-            "layout":     "P-30 Vitznau Map",
-            "slug":       "Standard Slug",
-            "colorSpace": "sGray",
-            "metadata":   {
-                "title":      "P-30 Vitznau Map",
-                "resolution": { "values": [ 900 ], "unit": "ppi" }
-            }
-        },
-        {
-            "layout":     "P-31 Interlaken Map",
-            "slug":       "Standard Slug",
-            "colorSpace": "sRGB",
-            "metadata":   {
-                "title":      "P-31 Interlaken Map",
-                "resolution": { "values": [ 900 ], "unit": "ppi" }
-            }
-        },
-        {
-            "layout":     "P-31 Interlaken Map",
-            "slug":       "Standard Slug",
-            "colorSpace": "sGray",
-            "metadata":   {
-                "title":      "P-31 Interlaken Map",
-                "resolution": { "values": [ 900 ], "unit": "ppi" }
-            }
-        },
-        {
-            "slug":     "Standard Slug",
             "metadata": {
-                "title":      "P-32 Interlaken Aerial",
+                "title": "P-20 London",
+                "resolution": { "values": [ 2400, 1200 ], "unit": "ppi" }
+            }
+        },
+        {
+            "layout": "P-20 London",
+            "slug": "Standard Slug",
+            "colorSpace": "sGray",
+            "metadata": {
+                "title": "P-20 London",
+                "resolution": { "values": [ 2400, 1200 ], "unit": "ppi" }
+            }
+        },
+        {
+            "layout": "P-21 Winter Trees",
+            "slug": "Standard Slug",
+            "colorSpace": "sRGB",
+            "metadata": {
+                "title": "P-21 Winter Trees",
+                "resolution": { "values": [ 1200 ], "unit": "ppi" }
+            }
+        },
+        {
+            "layout": "P-21 Winter Trees",
+            "slug": "Standard Slug",
+            "colorSpace": "sGray",
+            "metadata": {
+                "title": "P-21 Winter Trees",
+                "resolution": { "values": [ 1200 ], "unit": "ppi" }
+            }
+        },
+        {
+            "layout": "P-22 Lake and Cat",
+            "slug": "Standard Slug",
+            "colorSpace": "sRGB",
+            "metadata": {
+                "title": "P-22 Lake and Cat",
+                "resolution": { "values": [ 1800, 1200 ], "unit": "ppi" }
+            }
+        },
+        {
+            "layout": "P-22 Lake and Cat",
+            "slug": "Standard Slug",
+            "colorSpace": "sGray",
+            "metadata": {
+                "title": "P-22 Lake and Cat",
+                "resolution": { "values": [ 1800, 1200 ], "unit": "ppi" }
+            }
+        },
+        {
+            "layout": "P-30 Vitznau Map",
+            "slug": "Standard Slug",
+            "colorSpace": "sRGB",
+            "metadata": {
+                "title": "P-30 Vitznau Map",
+                "resolution": { "values": [ 900 ], "unit": "ppi" }
+            }
+        },
+        {
+            "layout": "P-30 Vitznau Map",
+            "slug": "Standard Slug",
+            "colorSpace": "sGray",
+            "metadata": {
+                "title": "P-30 Vitznau Map",
+                "resolution": { "values": [ 900 ], "unit": "ppi" }
+            }
+        },
+        {
+            "layout": "P-31 Interlaken Map",
+            "slug": "Standard Slug",
+            "colorSpace": "sRGB",
+            "metadata": {
+                "title": "P-31 Interlaken Map",
+                "resolution": { "values": [ 900 ], "unit": "ppi" }
+            }
+        },
+        {
+            "layout": "P-31 Interlaken Map",
+            "slug": "Standard Slug",
+            "colorSpace": "sGray",
+            "metadata": {
+                "title": "P-31 Interlaken Map",
+                "resolution": { "values": [ 900 ], "unit": "ppi" }
+            }
+        },
+        {
+            "slug": "Standard Slug",
+            "metadata": {
+                "title": "P-32 Interlaken Aerial",
                 "resolution": { "values": [ 900 ], "unit": "ppi" },
                 "colorSpace": "sRGB"
             }
         },
         {
-            "slug":     "Standard Slug",
+            "slug": "Standard Slug",
             "metadata": {
-                "title":      "P-32 Interlaken Aerial",
+                "title": "P-32 Interlaken Aerial",
                 "resolution": { "values": [ 900 ], "unit": "ppi" },
                 "colorSpace": "sGray"
             }
         },
         {
-            "slug":     "Standard Slug",
+            "slug": "Standard Slug",
             "metadata": { "title": "P-40 Type Sizes", "colorSpace": "sGray" }
         },
         {
-            "slug":     "Standard Slug",
+            "slug": "Standard Slug",
             "metadata": { "title": "P-40 Type Sizes", "colorSpace": "SepK" }
         },
         {
-            "slug":     "Standard Slug",
+            "slug": "Standard Slug",
             "metadata": { "title": "P-45 Lissajou", "colorSpace": "sGray" }
         },
         {
-            "slug":     "Standard Slug",
+            "slug": "Standard Slug",
             "metadata": { "title": "P-45 Lissajou", "colorSpace": "SepK" }
         },
         {
-            "slug":     "Standard Slug",
+            "slug": "Standard Slug",
             "metadata": { "title": "P-CR21-1 ConRes TV25 vs TV75", "colorSpace": "sRGB" }
         },
         {
-            "slug":     "Standard Slug",
+            "slug": "Standard Slug",
             "metadata": { "title": "P-CR21-1 ConRes TV25 vs TV75", "colorSpace": "sGray" }
         },
         {
-            "slug":     "Standard Slug",
+            "slug": "Standard Slug",
             "metadata": { "title": "P-CR21-1 ConRes TV25 vs TV75", "colorSpace": "Lab" }
         },
         {
-            "slug":     "Standard Slug",
+            "slug": "Standard Slug",
             "metadata": { "title": "P-CR21-2 ConRes CR21 vs CR20", "colorSpace": "sRGB" }
         },
         {
-            "slug":     "Standard Slug",
+            "slug": "Standard Slug",
             "metadata": { "title": "P-CR21-2 ConRes CR21 vs CR20", "colorSpace": "sGray" }
         },
         {
-            "slug":     "Standard Slug",
+            "slug": "Standard Slug",
             "metadata": { "title": "P-CR21-2 ConRes CR21 vs CR20", "colorSpace": "Lab" }
         }
     ]
